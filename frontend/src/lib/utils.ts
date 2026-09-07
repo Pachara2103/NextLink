@@ -1,5 +1,10 @@
-import { COORDINATOR_FIELDS, NO_DATA } from "@/lib/constants";
-import type { Coordinator, CoordinatorDraft, GroupLine } from "@/types";
+import {
+  COORDINATOR_FIELDS,
+  MESSAGES,
+  NO_DATA,
+  type CoordinatorDraft,
+} from "@/lib/constants";
+import type { Coordinator, CoordinatorUpdate, GroupLine } from "@/types";
 
 /** Tiny classnames joiner. Drops falsy entries. */
 export function cn(...parts: Array<string | false | null | undefined>): string {
@@ -16,23 +21,37 @@ export function isBlank(value: string | null | undefined): boolean {
   return trimmed === "" || trimmed === NO_DATA;
 }
 
-/** TH (EN) when both exist, otherwise whichever one is present. */
-export function companyLabel(group: GroupLine): {
+/**
+ * TH (EN) when both exist, otherwise whichever one is present. Takes the two
+ * name fields rather than a GroupLine, so the company directory rows can use it
+ * too — both shapes get them from schemas/company.py::CompanyName.
+ */
+export function companyLabel(company: {
+  companyTh?: string | null;
+  companyEn?: string | null;
+}): {
   primary: string | null;
   secondary: string | null;
 } {
-  const th = isBlank(group.companyTh) ? null : group.companyTh;
-  const en = isBlank(group.companyEn) ? null : group.companyEn;
+  const th = isBlank(company.companyTh) ? null : company.companyTh!;
+  const en = isBlank(company.companyEn) ? null : company.companyEn!;
   if (th && en) return { primary: th, secondary: en };
   return { primary: th ?? en, secondary: null };
+}
+
+/** line_groups.display_name is nullable, so every render needs a fallback. */
+export function groupLabel(group: GroupLine): string {
+  return isBlank(group.displayName)
+    ? MESSAGES.noGroupName
+    : group.displayName!;
 }
 
 export function coordinatorName(person: Coordinator): {
   primary: string;
   secondary: string | null;
 } {
-  const th = isBlank(person.nameTh) ? null : person.nameTh;
-  const en = isBlank(person.nameEn) ? null : person.nameEn;
+  const th = isBlank(person.nameTh) ? null : person.nameTh!;
+  const en = isBlank(person.nameEn) ? null : person.nameEn!;
   return {
     primary: th ?? en ?? "ไม่ระบุชื่อ",
     secondary: th && en ? en : null,
@@ -70,7 +89,10 @@ const THAI_MONTHS = [
 ];
 
 /** Buddhist-era short date, optionally with a HH:mm suffix. */
-export function formatThaiDate(iso: string | null, withTime = false): string {
+export function formatThaiDate(
+  iso: string | null | undefined,
+  withTime = false,
+): string {
   if (!iso) return "ไม่มีข้อมูลเวลา";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "ไม่มีข้อมูลเวลา";
@@ -93,18 +115,20 @@ export function toDraft(person: Coordinator): CoordinatorDraft {
 }
 
 /**
- * Trims every field and collapses empty strings back to null, which is the
- * shape the graph write expects. A relevant left at the sentinel becomes null.
+ * Trims every field and collapses empty strings back to null, which is what the
+ * PUT body wants. A relevant left at the sentinel becomes null.
+ *
+ * Driven by COORDINATOR_FIELDS rather than a written-out object, so the field
+ * names live in exactly one place; constants.ts checks those names against
+ * CoordinatorUpdate at compile time, which is what makes the cast safe.
  */
-export function fromDraft(
-  draft: CoordinatorDraft,
-): Record<string, string | null> {
+export function fromDraft(draft: CoordinatorDraft): CoordinatorUpdate {
   const out: Record<string, string | null> = {};
   for (const field of COORDINATOR_FIELDS) {
     const value = (draft[field] ?? "").trim();
     out[field] = value === "" || value === NO_DATA ? null : value;
   }
-  return out;
+  return out as CoordinatorUpdate;
 }
 
 /** The one hard validation rule: at least one of the two name fields. */

@@ -31,6 +31,7 @@ export const ICON_NAMES = [
   "pencil",
   "plus",
   "sparkles",
+  "bot",
   "refresh",
   "phone",
   "mail",
@@ -50,6 +51,21 @@ export const ICON_NAMES = [
   "log-out",
   "trash",
   "lock",
+  "note",
+  "message",
+  "book",
+  "home",
+  "calendar",
+  "filter",
+  "settings",
+  "list",
+  "grid",
+  "chevron-up",
+  // คุณขวัญใจ (components/agent/*)
+  "send",
+  "stop",
+  "copy",
+  "history",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
@@ -97,6 +113,17 @@ export function IconSprite() {
         <path d="M10 6h.01M14 6h.01M10 10h.01M14 10h.01M10 14h.01M14 14h.01" />
         <path d="M10 22v-4h4v4" />
       </symbol>
+      {/* The two layout toggles on the group panel. */}
+      <symbol {...STROKE} id="i-list" viewBox="0 0 24 24">
+        <path d="M8 6h13M8 12h13M8 18h13" />
+        <path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
+      </symbol>
+      <symbol {...STROKE} id="i-grid" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="7.5" height="7.5" rx="1.5" />
+        <rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5" />
+        <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5" />
+        <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5" />
+      </symbol>
       <symbol {...STROKE} id="i-search" viewBox="0 0 24 24">
         <circle cx="11" cy="11" r="8" />
         <path d="m21 21-4.3-4.3" />
@@ -130,6 +157,14 @@ export function IconSprite() {
       <symbol {...STROKE} id="i-sparkles" viewBox="0 0 24 24">
         <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
         <path d="M19 3v4M17 5h4" />
+      </symbol>
+      <symbol {...STROKE} id="i-bot" viewBox="0 0 24 24">
+        <rect x="3.5" y="8" width="17" height="12" rx="3.2" />
+        <path d="M12 3.2v4.8" />
+        <circle cx="12" cy="2.6" r="1.3" />
+        <path d="M8.8 13.2v1.6M15.2 13.2v1.6" />
+        <path d="M9.8 17.4h4.4" />
+        <path d="M1.6 12.4v3.2M22.4 12.4v3.2" />
       </symbol>
       <symbol {...STROKE} id="i-refresh" viewBox="0 0 24 24">
         <path d="M21 12a9 9 0 1 1-2.64-6.36" />
@@ -212,6 +247,36 @@ export function IconSprite() {
         <rect x="4" y="10" width="16" height="11" rx="2" />
         <path d="M8 10V7a4 4 0 0 1 8 0v3" />
       </symbol>
+      <symbol {...STROKE} id="i-note" viewBox="0 0 24 24">
+        <path d="M6 3h8l4.5 4.5V21H6z" />
+        <path d="M13.8 3v4.6h4.6" />
+        <path d="M9.2 12.5h6M9.2 16.4h4" />
+      </symbol>
+      <symbol {...STROKE} id="i-message" viewBox="0 0 24 24">
+        <path d="M4 5h16v11H9.5L4 20z" />
+        <path d="M8 9h8M8 12.4h5" />
+      </symbol>
+      <symbol {...STROKE} id="i-book" viewBox="0 0 24 24">
+        <path d="M4 5.5A2 2 0 0 1 6 3.5h13V19H6a2 2 0 0 0-2 2z" />
+        <path d="M8 8h7" />
+      </symbol>
+      <symbol {...STROKE} id="i-home" viewBox="0 0 24 24">
+        <path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" />
+      </symbol>
+      <symbol {...STROKE} id="i-calendar" viewBox="0 0 24 24">
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path d="M8 3v4M16 3v4M3 11h18" />
+      </symbol>
+      <symbol {...STROKE} id="i-filter" viewBox="0 0 24 24">
+        <path d="M3.5 6h17M6.5 12h11M10 18h4" />
+      </symbol>
+      <symbol {...STROKE} id="i-settings" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15H4.5a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.06-.06A2 2 0 1 1 8.57 5.2l.06.06a1.7 1.7 0 0 0 2.87-1.2V4a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 11h.1a2 2 0 1 1 0 4Z" />
+      </symbol>
+      <symbol {...STROKE} id="i-chevron-up" viewBox="0 0 24 24">
+        <path d="m6 15 6-6 6 6" />
+      </symbol>
       <symbol {...STROKE} id="i-loader" viewBox="0 0 24 24">
         <path d="M12 3v4" />
         <path d="M12 17v4" opacity="0.3" />
@@ -221,6 +286,22 @@ export function IconSprite() {
         <path d="M17 12h4" opacity="0.5" />
         <path d="m5.6 18.4 2.9-2.9" opacity="0.6" />
         <path d="m15.5 8.5 2.9-2.9" opacity="0.7" />
+      </symbol>
+      <symbol {...STROKE} id="i-send" viewBox="0 0 24 24">
+        <path d="M4.5 12 20 4.5 15.2 20l-3.3-5.6Z" />
+        <path d="M11.9 14.4 20 4.5" />
+      </symbol>
+      <symbol {...STROKE} id="i-stop" viewBox="0 0 24 24">
+        <rect x="7" y="7" width="10" height="10" rx="2" />
+      </symbol>
+      <symbol {...STROKE} id="i-copy" viewBox="0 0 24 24">
+        <rect x="9" y="9" width="11" height="11" rx="2" />
+        <path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3" />
+      </symbol>
+      <symbol {...STROKE} id="i-history" viewBox="0 0 24 24">
+        <path d="M3.6 10.5A8.5 8.5 0 1 1 4 15" />
+        <path d="M3.2 5.5v5h5" />
+        <path d="M12 7.6V12l3 1.8" />
       </symbol>
     </svg>
   );

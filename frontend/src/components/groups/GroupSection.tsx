@@ -2,44 +2,66 @@
 
 import { useMemo, useState } from "react";
 
+import { GroupCard } from "@/components/groups/GroupCard";
 import { GroupRow } from "@/components/groups/GroupRow";
 import { CountChip } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SortSelect } from "@/components/ui/Field";
 import { Pagination } from "@/components/ui/Pagination";
-import { SORT_OPTIONS } from "@/lib/constants";
+import { GRID_ITEMS_PER_PAGE, ITEMS_PER_PAGE, SORT_OPTIONS } from "@/lib/constants";
 import { paginate, sortGroups } from "@/lib/filters";
-import type { GroupLine, PanelKey, SortOption } from "@/types";
+import type { GroupLayout, GroupLine, PanelKey, SortOption } from "@/types";
 
 /**
  * A titled, sorted, paginated list of groups. Sort choice and page number are
  * local, so the matched and unmatched sections never affect one another.
+ *
+ * `layout` only changes how a page is drawn and how many fit on it — the rows
+ * and the cards render the same group with the same three actions.
  */
 export function GroupSection({
   title,
   groups,
-  matched,
+  linked,
   scope,
+  layout = "list",
 }: {
   title: string;
   groups: GroupLine[];
-  matched: boolean;
+  /** Which of the two sections this is — drives the count chip and the empty state. */
+  linked: boolean;
   scope: PanelKey;
+  layout?: GroupLayout;
 }) {
   const [sortBy, setSortBy] = useState<SortOption>("time-desc");
   const [page, setPage] = useState(1);
 
+  // A page of six is not a page of five, so the page number a reader is on
+  // means something different after a switch. Back to the top rather than
+  // silently landing them somewhere else in the list. Adjusted during render
+  // rather than in an effect — React re-runs this component before painting,
+  // so the reset never shows as a flash of the wrong page.
+  const [lastLayout, setLastLayout] = useState<GroupLayout>(layout);
+  if (lastLayout !== layout) {
+    setLastLayout(layout);
+    setPage(1);
+  }
+
   const sorted = useMemo(() => sortGroups(groups, sortBy), [groups, sortBy]);
-  const view = paginate(sorted, page);
+  const view = paginate(
+    sorted,
+    page,
+    layout === "grid" ? GRID_ITEMS_PER_PAGE : ITEMS_PER_PAGE,
+  );
 
   return (
     <section>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <h2 className="font-display text-lg font-semibold text-white">
+          <h2 className="font-display text-lg font-semibold text-text">
             {title}
           </h2>
-          <CountChip tone={matched ? "matched" : "unmatched"}>
+          <CountChip tone={linked ? "matched" : "unmatched"}>
             {groups.length}
           </CountChip>
         </div>
@@ -56,7 +78,7 @@ export function GroupSection({
 
       {groups.length === 0 ? (
         <div className="mt-3.5">
-          {matched ? (
+          {linked ? (
             <EmptyState
               icon="unlink"
               title="ยังไม่มีกลุ่มไลน์ที่ผูกบริษัท"
@@ -73,11 +95,12 @@ export function GroupSection({
         </div>
       ) : (
         <>
-          <div className="mt-3.5 space-y-2.5">
-            {view.items.map((group) => (
-              <GroupRow key={group.id} group={group} scope={scope} />
-            ))}
-          </div>
+          <GroupList
+            groups={view.items}
+            scope={scope}
+            layout={layout}
+            className="mt-3.5"
+          />
           <div className="mt-4">
             <Pagination
               page={view.page}
@@ -88,5 +111,59 @@ export function GroupSection({
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * The one place that decides rows-vs-cards, so the section list and the search
+ * results cannot drift apart. Three columns is the ceiling: at 2×3 = 6 per page
+ * a card still has room for its short names and contact pills, and past that
+ * the grid stops being scannable.
+ */
+export function GroupList({
+  groups,
+  scope,
+  layout,
+  highlight,
+  className,
+}: {
+  groups: GroupLine[];
+  scope: PanelKey;
+  layout: GroupLayout;
+  highlight?: string;
+  className?: string;
+}) {
+  if (layout === "grid") {
+    return (
+      <div
+        className={
+          className
+            ? `${className} grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3`
+            : "grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3"
+        }
+      >
+        {groups.map((group) => (
+          <GroupCard
+            key={group.groupId}
+            group={group}
+            scope={scope}
+            highlight={highlight}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className={className ? `${className} space-y-2.5` : "space-y-2.5"}>
+      {groups.map((group) => (
+        <GroupRow
+          key={group.groupId}
+          group={group}
+          scope={scope}
+          highlight={highlight}
+        />
+      ))}
+    </div>
   );
 }

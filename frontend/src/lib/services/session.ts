@@ -3,12 +3,19 @@
  * fetch helper so those two do not have to import each other.
  */
 
+import type { AuthUser } from "@/types";
+
 const STORAGE_KEY = "nextlink.session";
 
+/**
+ * The user the API confirmed, kept whole, plus the token that proves it. Nested
+ * rather than flattened so `session.user` IS an AuthUser — a field added to
+ * schemas/user.py::AuthUser arrives here without a second declaration, and
+ * nothing has to strip the token back off before using it.
+ */
 export interface StoredSession {
   token: string;
-  userId: string;
-  username: string;
+  user: AuthUser;
 }
 
 export function readSession(): StoredSession | null {
@@ -17,7 +24,10 @@ export function readSession(): StoredSession | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     // A half-written or older-format entry is worse than none.
-    if (typeof parsed?.token !== "string" || typeof parsed?.username !== "string") {
+    if (
+      typeof parsed?.token !== "string" ||
+      typeof parsed?.user?.username !== "string"
+    ) {
       return null;
     }
     return parsed as StoredSession;

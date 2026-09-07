@@ -36,7 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="th"
       className={`${anuphan.variable} ${baiJamjuree.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-slate-900 font-body text-slate-300">
+      <body className="min-h-full bg-bg font-body text-text-2">
         <IconSprite />
         {/* Both the login page and the console read the same session. */}
         <AuthProvider>{children}</AuthProvider>

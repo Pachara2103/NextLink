@@ -10,34 +10,34 @@ const TONES: Record<
   { box: string; icon: IconName; iconColor: string; text: string }
 > = {
   success: {
-    box: "border-emerald-500/30 bg-emerald-500/10",
+    box: "border-ok-line bg-ok-soft",
     icon: "check-circle",
-    iconColor: "text-emerald-400",
-    text: "text-emerald-200",
+    iconColor: "text-ok",
+    text: "text-ok",
   },
   error: {
-    box: "border-rose-500/30 bg-rose-500/10",
+    box: "border-danger-line bg-danger-soft",
     icon: "alert",
-    iconColor: "text-rose-400",
-    text: "text-rose-200",
+    iconColor: "text-danger",
+    text: "text-danger",
   },
   warn: {
-    box: "border-amber-500/30 bg-amber-500/10",
+    box: "border-warn-line bg-warn-soft",
     icon: "alert",
-    iconColor: "text-amber-400",
-    text: "text-amber-200",
+    iconColor: "text-warn",
+    text: "text-warn",
   },
   info: {
-    box: "border-slate-700 bg-slate-800/40",
+    box: "border-line bg-surface-2",
     icon: "info",
-    iconColor: "text-slate-400",
-    text: "text-slate-300",
+    iconColor: "text-text-2",
+    text: "text-text-2",
   },
   loading: {
-    box: "border-slate-700 bg-slate-800/40",
+    box: "border-line bg-surface-2",
     icon: "loader",
-    iconColor: "text-violet-400",
-    text: "text-slate-200",
+    iconColor: "text-accent",
+    text: "text-text",
   },
 };
 
@@ -77,7 +77,7 @@ export function Alert({
       <div className="min-w-0 flex-1">
         <p className={cn("text-[13.5px] font-medium", spec.text)}>{title}</p>
         {detail && (
-          <p className="truncate text-[12px] text-slate-400">{detail}</p>
+          <p className="truncate text-[12px] text-text-2">{detail}</p>
         )}
       </div>
       {trailing}
@@ -87,7 +87,7 @@ export function Alert({
           aria-label="ปิดข้อความ"
           onClick={onDismiss}
           className={cn(
-            "grid size-7 shrink-0 place-items-center rounded-lg transition hover:bg-white/5",
+            "grid size-7 shrink-0 place-items-center rounded-lg transition hover:bg-surface-2",
             spec.text,
           )}
         >
@@ -101,9 +101,9 @@ export function Alert({
 /** Quieter inline note used underneath form fields. */
 export function InlineNote({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-start gap-2.5 rounded-xl border border-slate-700/60 bg-slate-900/60 px-3.5 py-2.5">
-      <Icon name="info" className="mt-0.5 size-4 shrink-0 text-slate-500" />
-      <p className="text-[12px] leading-relaxed text-slate-400">{children}</p>
+    <div className="flex items-start gap-2.5 rounded-xl border border-line bg-sunken px-3.5 py-2.5">
+      <Icon name="info" className="mt-0.5 size-4 shrink-0 text-text-3" />
+      <p className="text-[12px] leading-relaxed text-text-2">{children}</p>
     </div>
   );
 }

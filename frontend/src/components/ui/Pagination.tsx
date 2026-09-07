@@ -26,7 +26,7 @@ export function Pagination({
   return (
     <nav
       aria-label="เปลี่ยนหน้า"
-      className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-800/20 px-3 py-2.5"
+      className="flex items-center justify-between gap-3 rounded-xl border border-line-soft bg-surface px-3 py-2.5"
     >
       <button
         type="button"
@@ -35,8 +35,8 @@ export function Pagination({
         className={cn(
           "inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[13px] transition",
           page <= 1
-            ? "cursor-not-allowed border-slate-800 text-slate-600"
-            : "border-slate-700 bg-slate-800/60 text-slate-200 hover:bg-slate-800",
+            ? "cursor-not-allowed border-line-soft text-text-4"
+            : "border-line bg-surface text-text hover:bg-surface-2",
         )}
       >
         <Icon name="arrow-left" className="size-4" />
@@ -49,7 +49,7 @@ export function Pagination({
           return (
             <span key={n} className="flex items-center gap-1">
               {gap && (
-                <span className="px-1 font-mono text-[12px] text-slate-600">
+                <span className="px-1 font-mono text-[12px] text-text-4">
                   …
                 </span>
               )}
@@ -60,8 +60,8 @@ export function Pagination({
                 className={cn(
                   "grid size-8 place-items-center rounded-lg font-mono text-[13px] tabular-nums transition",
                   n === page
-                    ? "bg-violet-500/15 font-medium text-violet-200"
-                    : "text-slate-400 hover:bg-slate-800",
+                    ? "bg-accent-soft font-medium text-accent"
+                    : "text-text-2 hover:bg-surface-2",
                 )}
               >
                 {n}
@@ -69,7 +69,7 @@ export function Pagination({
             </span>
           );
         })}
-        <span className="px-1.5 font-mono text-[12px] text-slate-600">
+        <span className="px-1.5 font-mono text-[12px] text-text-4">
           / {totalPages}
         </span>
       </div>
@@ -81,8 +81,8 @@ export function Pagination({
         className={cn(
           "inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[13px] transition",
           page >= totalPages
-            ? "cursor-not-allowed border-slate-800 text-slate-600"
-            : "border-slate-700 bg-slate-800/60 text-slate-200 hover:bg-slate-800",
+            ? "cursor-not-allowed border-line-soft text-text-4"
+            : "border-line bg-surface text-text hover:bg-surface-2",
         )}
       >
         <span className="hidden sm:inline">ถัดไป</span>

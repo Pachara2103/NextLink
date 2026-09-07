@@ -2,7 +2,11 @@ import { ITEMS_PER_PAGE } from "@/lib/constants";
 import type { GroupLine, SortOption } from "@/types";
 
 /**
- * Case-insensitive substring match across the three searchable fields.
+ * Case-insensitive substring match across the searchable fields: the LINE
+ * group's name, the company's Thai and English names, and the company's short
+ * names — the same set the notes page searches, because a short name is often
+ * the only thing anyone remembers a company by.
+ *
  * A blank term matches nothing on purpose: the results block stays hidden
  * instead of listing every group.
  */
@@ -10,13 +14,13 @@ export function searchGroups(groups: GroupLine[], term: string): GroupLine[] {
   const needle = term.trim().toLowerCase();
   if (!needle) return [];
   return groups.filter((g) =>
-    [g.displayName, g.companyTh, g.companyEn].some((field) =>
-      (field ?? "").toLowerCase().includes(needle),
+    [g.displayName, g.companyTh, g.companyEn, ...(g.aliases ?? [])].some(
+      (field) => (field ?? "").toLowerCase().includes(needle),
     ),
   );
 }
 
-function time(iso: string | null, fallback: number): number {
+function time(iso: string | null | undefined, fallback: number): number {
   if (!iso) return fallback;
   const t = new Date(iso).getTime();
   return Number.isNaN(t) ? fallback : t;
@@ -32,7 +36,8 @@ export function sortGroups(
   sortBy: SortOption,
 ): GroupLine[] {
   const byText =
-    (pick: (g: GroupLine) => string | null) => (a: GroupLine, b: GroupLine) =>
+    (pick: (g: GroupLine) => string | null | undefined) =>
+    (a: GroupLine, b: GroupLine) =>
       (pick(a) ?? "")
         .toLowerCase()
         .localeCompare((pick(b) ?? "").toLowerCase(), "th");
@@ -83,9 +88,9 @@ export function paginate<T>(
  * first one they see. Rows without updatedAt sink to the bottom, the same way
  * sortGroups treats them under time-desc.
  */
-export function sortByUpdatedDesc<T extends { updatedAt: string | null }>(
-  items: T[],
-): T[] {
+export function sortByUpdatedDesc<
+  T extends { updatedAt: string | null | undefined },
+>(items: T[]): T[] {
   return [...items].sort(
     (a, b) =>
       time(b.updatedAt, Number.NEGATIVE_INFINITY) -

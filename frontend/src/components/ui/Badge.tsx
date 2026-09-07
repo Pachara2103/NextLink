@@ -8,20 +8,26 @@ export type BadgeTone =
   | "pending"
   | "completed"
   | "neutral"
-  | "muted";
+  | "muted"
+  /** Company short names. One tone for every alias, on purpose. */
+  | "alias"
+  /** Company contacts. One tone for every contact, whatever their role. */
+  | "contact";
 
 const TONES: Record<BadgeTone, string> = {
-  matched: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-  unmatched: "border-amber-500/30 bg-amber-500/10 text-amber-300",
-  pending: "border-violet-500/30 bg-violet-500/10 text-violet-300",
-  completed: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-  neutral: "border-slate-600/60 bg-slate-700/40 text-slate-300",
-  muted: "border-slate-700 bg-slate-800 text-slate-500 italic",
+  matched: "border-ok-line bg-ok-soft text-ok",
+  unmatched: "border-warn-line bg-warn-soft text-warn",
+  pending: "border-accent-line bg-accent-soft text-accent",
+  completed: "border-ok-line bg-ok-soft text-ok",
+  neutral: "border-line bg-surface-2 text-text-3",
+  muted: "border-line-soft bg-surface-2 text-text-3 italic",
+  alias: "border-accent-line bg-accent-soft text-accent",
+  contact: "border-accent-line bg-accent-soft text-accent",
 };
 
 const DOTS: Partial<Record<BadgeTone, string>> = {
-  matched: "bg-emerald-400",
-  unmatched: "bg-amber-400",
+  matched: "bg-ok",
+  unmatched: "bg-warn",
 };
 
 export function Badge({

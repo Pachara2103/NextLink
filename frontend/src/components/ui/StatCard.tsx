@@ -10,32 +10,32 @@ const TONES: Record<
   { box: string; label: string; icon: string; value: string; bar: string }
 > = {
   neutral: {
-    box: "border-slate-800 bg-slate-800/30",
-    label: "text-slate-500",
-    icon: "text-slate-600",
-    value: "text-white",
-    bar: "bg-slate-400",
+    box: "border-line-soft bg-surface",
+    label: "text-text-3",
+    icon: "text-text-4",
+    value: "text-text",
+    bar: "bg-text-4",
   },
   matched: {
-    box: "border-emerald-500/20 bg-emerald-500/[0.06]",
-    label: "text-emerald-400/70",
-    icon: "text-emerald-500/70",
-    value: "text-emerald-300",
-    bar: "bg-emerald-400",
+    box: "border-ok-line bg-ok-soft",
+    label: "text-ok",
+    icon: "text-ok",
+    value: "text-ok",
+    bar: "bg-ok",
   },
   unmatched: {
-    box: "border-amber-500/20 bg-amber-500/[0.06]",
-    label: "text-amber-400/70",
-    icon: "text-amber-500/70",
-    value: "text-amber-300",
-    bar: "bg-amber-400",
+    box: "border-warn-line bg-warn-soft",
+    label: "text-warn",
+    icon: "text-warn",
+    value: "text-warn",
+    bar: "bg-warn",
   },
   pending: {
-    box: "border-violet-500/20 bg-violet-500/[0.06]",
-    label: "text-violet-400/70",
-    icon: "text-violet-400/70",
-    value: "text-violet-200",
-    bar: "bg-violet-400",
+    box: "border-accent-line bg-accent-soft",
+    label: "text-accent",
+    icon: "text-accent",
+    value: "text-accent",
+    bar: "bg-accent",
   },
 };
 
@@ -78,7 +78,7 @@ export function StatCard({
         {value}
       </div>
       {progress !== undefined ? (
-        <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-slate-900/60">
+        <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-sunken">
           <div
             className={cn("h-full rounded-full", spec.bar)}
             style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}

@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "gen:api": "openapi-typescript http://127.0.0.1:8000/openapi.json -o src/types/api.ts",
+    "check:api": "npm run gen:api && git diff --exit-code -- src/types/api.ts"
   },
   "dependencies": {
     "next": "16.3.3",
@@ -20,6 +22,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
+    "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

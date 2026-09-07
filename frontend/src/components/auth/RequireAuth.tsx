@@ -30,7 +30,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   if (status !== "authed") {
     return (
       <div className="grid min-h-screen place-items-center">
-        <Icon name="loader" className="size-6 animate-spin text-violet-400" />
+        <Icon name="loader" className="size-6 animate-spin text-accent" />
         <span className="sr-only">กำลังตรวจสอบสิทธิ์การเข้าใช้งาน</span>
       </div>
     );
@@ -66,15 +66,15 @@ function BackendUnreachable({
 
   return (
     <main className="grid min-h-screen place-items-center px-5 py-10">
-      <div className="w-full max-w-[420px] rounded-2xl border border-slate-800 bg-slate-900/70 p-6 text-center backdrop-blur-xl">
-        <div className="mx-auto grid size-12 place-items-center rounded-2xl border border-amber-500/25 bg-amber-500/10">
-          <Icon name="alert" className="size-6 text-amber-400" />
+      <div className="w-full max-w-[420px] rounded-2xl border border-line bg-surface/80 p-6 text-center backdrop-blur-xl">
+        <div className="mx-auto grid size-12 place-items-center rounded-2xl border border-warn-line bg-warn-soft">
+          <Icon name="alert" className="size-6 text-warn" />
         </div>
 
-        <h1 className="mt-4 font-display text-lg font-semibold tracking-tight text-white">
+        <h1 className="mt-4 font-display text-lg font-semibold tracking-tight text-text">
           เชื่อมต่อเซิร์ฟเวอร์ไม่ได้
         </h1>
-        <p className="mt-2 text-[13px] leading-relaxed text-slate-400">
+        <p className="mt-2 text-[13px] leading-relaxed text-text-2">
           ระบบยังตรวจสอบสิทธิ์การเข้าใช้งานของคุณไม่ได้
           เพราะติดต่อเซิร์ฟเวอร์ไม่สำเร็จ กรุณาตรวจสอบว่าเซิร์ฟเวอร์เปิดใช้งานอยู่
           แล้วลองใหม่อีกครั้ง

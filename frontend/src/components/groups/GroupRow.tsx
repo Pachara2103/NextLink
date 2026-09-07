@@ -2,8 +2,10 @@
 
 import { CompanyForm } from "@/components/groups/CompanyForm";
 import { GroupChip, GroupIdentity } from "@/components/groups/GroupIdentity";
+import { ManageContactsButton } from "@/components/groups/ManageContactsButton";
+import { UnlinkCompanyButton } from "@/components/groups/UnlinkCompanyButton";
 import { Button } from "@/components/ui/Button";
-import { cn, formatThaiDate } from "@/lib/utils";
+import { cn, groupLabel } from "@/lib/utils";
 import { useConsole } from "@/store/console-store";
 import type { GroupLine, PanelKey } from "@/types";
 
@@ -21,57 +23,62 @@ export function GroupRow({
   /** Search term, marked inside the name and company line. */
   highlight?: string;
 }) {
-  const { openCompanyForm, isCompanyFormOpen } = useConsole();
-  const formOpen = isCompanyFormOpen(scope, group.id);
-  const matched = group.isCompanyMatched;
-
-  if (formOpen) {
-    return (
-      <div className="rounded-xl border border-violet-500/40 bg-violet-500/[0.05]">
-        <CompanyForm group={group} />
-      </div>
-    );
-  }
+  const { openCompanyForm, isCompanyFormOpen, companyContacts } = useConsole();
+  const formOpen = isCompanyFormOpen(scope, group.groupId);
+  const linked = group.isLinked;
+  // Keyed by company id, so a group with no company row simply has none.
+  const contacts =
+    group.companyId != null ? (companyContacts[group.companyId] ?? []) : [];
 
   return (
     <div
       className={cn(
         "flex flex-wrap items-center gap-4 rounded-xl border p-4 transition",
-        matched
-          ? "border-slate-700/60 bg-slate-800/30 hover:border-slate-600/70 hover:bg-slate-800/50"
-          : "border-amber-500/25 bg-amber-500/[0.04] hover:bg-amber-500/[0.07]",
+        linked
+          ? "border-line bg-surface hover:border-text-4 hover:bg-surface-2"
+          : "border-warn-line bg-warn-soft hover:bg-warn-strong",
       )}
     >
-      <GroupChip matched={matched} size="sm" />
+      <GroupChip
+        linked={linked}
+        size="sm"
+        pictureUrl={group.pictureUrl}
+        alt={groupLabel(group)}
+      />
       <GroupIdentity
         group={group}
         titleSize="sm"
+        contacts={contacts}
         highlight={highlight}
-        onCompanyClick={() => openCompanyForm(scope, group.id)}
+        onCompanyClick={() => openCompanyForm(scope, group.groupId)}
       />
 
-      <span className="hidden font-mono text-[11px] tabular-nums text-slate-600 sm:inline">
-        {formatThaiDate(group.updatedAt, true)}
-      </span>
-
-      {matched ? (
-        <Button
-          icon="pencil"
-          size="sm"
-          onClick={() => openCompanyForm(scope, group.id)}
-        >
-          แก้ไข
-        </Button>
+      {linked ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <ManageContactsButton group={group} />
+          <Button
+            icon="pencil"
+            size="sm"
+            onClick={() => openCompanyForm(scope, group.groupId)}
+          >
+            
+          </Button>
+          <UnlinkCompanyButton group={group} />
+        </div>
       ) : (
         <Button
           variant="warn"
           icon="plus"
           size="sm"
-          onClick={() => openCompanyForm(scope, group.id)}
+          onClick={() => openCompanyForm(scope, group.groupId)}
         >
           เพิ่มบริษัท
         </Button>
       )}
+
+      {/* A dialog, not a swap: the row keeps its place in the list while the
+          form is open, so nothing below it shifts under the cursor. */}
+      {formOpen && <CompanyForm group={group} />}
     </div>
   );
 }

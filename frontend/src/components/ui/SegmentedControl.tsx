@@ -19,7 +19,7 @@ export function SegmentedControl<T extends string>({
     <div
       role="tablist"
       className={cn(
-        "inline-flex gap-1 rounded-xl border border-slate-700 bg-slate-900 p-1",
+        "inline-flex gap-1 rounded-xl border border-line bg-sunken p-1",
         className,
       )}
     >
@@ -36,8 +36,8 @@ export function SegmentedControl<T extends string>({
               "rounded-lg transition",
               size === "md" ? "px-3.5 py-1.5 text-[13px]" : "px-3 py-1 text-[12.5px]",
               active
-                ? "bg-violet-500/15 text-violet-200"
-                : "text-slate-400 hover:text-slate-100",
+                ? "bg-accent-soft text-accent"
+                : "text-text-2 hover:text-text",
             )}
           >
             {option.label}
@@ -59,7 +59,7 @@ export function FilterTabs<T extends string>({
   options: { value: T; label: string; count?: number }[];
 }) {
   return (
-    <div className="flex gap-1 rounded-xl border border-slate-800 bg-slate-900/70 p-1">
+    <div className="flex gap-1 rounded-xl border border-line-soft bg-sunken p-1">
       {options.map((option) => {
         const active = option.value === value;
         return (
@@ -70,8 +70,8 @@ export function FilterTabs<T extends string>({
             className={cn(
               "rounded-lg px-3 py-1.5 text-[13px] transition",
               active
-                ? "bg-slate-700/70 font-medium text-white"
-                : "text-slate-400 hover:text-slate-100",
+                ? "bg-surface-2 font-medium text-text"
+                : "text-text-2 hover:text-text",
             )}
           >
             {option.label}
@@ -79,7 +79,7 @@ export function FilterTabs<T extends string>({
               <span
                 className={cn(
                   "ml-1.5 font-mono tabular-nums",
-                  active ? "text-slate-400" : "text-slate-600",
+                  active ? "text-text-2" : "text-text-4",
                 )}
               >
                 {option.count}

@@ -27,10 +27,10 @@ export function LibraryPanel() {
   return (
     <div>
       <header>
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-white">
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-text">
           คลังสถานะ &amp; Component
         </h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <p className="mt-1 text-sm text-text-2">
           สถานะทั้งหมดที่ต้องมีใน Figma — Empty, Loading, Alert, Badge, Button, Input
         </p>
       </header>
@@ -80,8 +80,8 @@ export function LibraryPanel() {
             tone="loading"
             title="กำลังวิเคราะห์ข้อมูล..."
             trailing={
-              <div className="ml-auto hidden h-1 w-32 overflow-hidden rounded-full bg-slate-700 sm:block">
-                <div className="h-full w-2/5 rounded-full bg-violet-500" />
+              <div className="ml-auto hidden h-1 w-32 overflow-hidden rounded-full bg-surface-2 sm:block">
+                <div className="h-full w-2/5 rounded-full bg-accent" />
               </div>
             }
           />
@@ -109,8 +109,8 @@ export function LibraryPanel() {
             <Badge tone="completed">บันทึกแล้ว</Badge>
             <Badge tone="unmatched">ข้อมูลไม่ครบ 2 ช่อง</Badge>
             {RELEVANT_OPTIONS.slice(1).map((option) => (
-              <Badge key={option} tone="neutral">
-                {option}
+              <Badge key={option.value} tone="neutral">
+                {option.label}
               </Badge>
             ))}
             <Badge tone="muted">ไม่มีข้อมูล</Badge>
@@ -152,7 +152,7 @@ export function LibraryPanel() {
             <SelectField
               label="Select"
               options={RELEVANT_OPTIONS}
-              defaultValue={RELEVANT_OPTIONS[1]}
+              defaultValue={RELEVANT_OPTIONS[1].value}
             />
             <TextField label="Disabled" defaultValue="แก้ไขไม่ได้" disabled />
             <div className="sm:col-span-2">
@@ -181,15 +181,83 @@ export function LibraryPanel() {
         <Pagination page={page} totalPages={4} onChange={setPage} />
       </Group>
 
-      <Group title="Color tokens">
+      {/* The palette itself, in the order the tokens are meant to be reached
+          for: the four planes, the two rules, the four text steps, then the
+          four meanings. Every colour in the console is one of these — see the
+          CARBON block in app/globals.css. */}
+      <Group title="Color tokens · carbon">
         <Panel>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-            <Swatch swatch="bg-slate-900 border border-slate-700" name="slate-900" note="#0F172A · page" />
-            <Swatch swatch="bg-slate-800 border border-slate-700" name="slate-800" note="#1E293B · card" />
-            <Swatch swatch="bg-slate-700 border border-slate-600" name="slate-700" note="#334155 · border" />
-            <Swatch swatch="bg-violet-600" name="violet-600" note="#7C3AED · accent" />
-            <Swatch swatch="bg-emerald-400" name="emerald-400" note="#34D399 · matched" />
-            <Swatch swatch="bg-amber-400" name="amber-400" note="#FBBF24 · unmatched" />
+          <p className="text-[12.5px] text-text-3">
+            พื้นและเส้น — ไล่จากลึกสุดไปสว่างสุด
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <Swatch swatch="bg-bg border border-line" name="bg" note="#0A0C0E · หน้า" />
+            <Swatch swatch="bg-sunken border border-line" name="sunken" note="#0D1114 · ช่องจม" />
+            <Swatch swatch="bg-surface border border-line" name="surface" note="#101418 · การ์ด" />
+            <Swatch swatch="bg-surface-2 border border-line" name="surface-2" note="#151A1F · ชิป/hover" />
+            <Swatch swatch="bg-line-soft" name="line-soft" note="#1B2127 · เส้นบาง" />
+            <Swatch swatch="bg-line" name="line" note="#232A31 · เส้นหลัก" />
+          </div>
+
+          <p className="mt-5 text-[12.5px] text-text-3">
+            ตัวอักษร 4 ระดับ — หัวเรื่อง · เนื้อความ · คำอธิบาย · เกือบเป็นเฟอร์นิเจอร์
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Swatch swatch="bg-text" name="text" note="#EEF2F5" />
+            <Swatch swatch="bg-text-2" name="text-2" note="#B9C3CC" />
+            <Swatch swatch="bg-text-3" name="text-3" note="#7F8B96" />
+            <Swatch swatch="bg-text-4" name="text-4" note="#59636D" />
+          </div>
+
+          <p className="mt-5 text-[12.5px] text-text-3">
+            ความหมาย — แต่ละสีมีคู่ <span className="font-mono text-[11px]">-soft</span> (พื้น) และ{" "}
+            <span className="font-mono text-[11px]">-line</span> (เส้น)
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Swatch swatch="bg-accent" name="accent" note="#22D3EE · ปุ่มหลัก/เมนูปัจจุบัน" />
+            <Swatch swatch="bg-ok" name="ok" note="#34D399 · ผูกแล้ว/อนุมัติ" />
+            <Swatch swatch="bg-warn" name="warn" note="#FBBF24 · ยังไม่ผูก/รออนุมัติ" />
+            <Swatch swatch="bg-danger" name="danger" note="#FB7185 · ลบ/ยกเลิก" />
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Swatch
+              swatch="bg-accent-soft border border-accent-line"
+              name="accent-soft / -line"
+              note="พื้น + เส้นของ accent"
+            />
+            <Swatch
+              swatch="bg-ok-soft border border-ok-line"
+              name="ok-soft / -line"
+              note="พื้น + เส้นของ ok"
+            />
+            <Swatch
+              swatch="bg-warn-soft border border-warn-line"
+              name="warn-soft / -line"
+              note="พื้น + เส้นของ warn"
+            />
+            <Swatch
+              swatch="bg-danger-soft border border-danger-line"
+              name="danger-soft / -line"
+              note="พื้น + เส้นของ danger"
+            />
+          </div>
+
+          <p className="mt-5 text-[12.5px] text-text-3">
+            สีตัวอักษรบนพื้นทึบ — ห้ามใช้ขาวบนปุ่มที่ถมสี
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid h-14 place-items-center rounded-xl bg-accent font-display text-[13px] font-semibold text-accent-ink">
+              accent-ink
+            </div>
+            <div className="grid h-14 place-items-center rounded-xl bg-warn font-display text-[13px] font-semibold text-warn-ink">
+              warn-ink
+            </div>
+            <div className="grid h-14 place-items-center rounded-xl bg-accent-hover font-display text-[13px] font-semibold text-accent-ink">
+              accent-hover
+            </div>
+            <div className="grid h-14 place-items-center rounded-xl bg-danger-strong font-display text-[13px] font-semibold text-danger">
+              danger-strong
+            </div>
           </div>
         </Panel>
       </Group>
@@ -206,7 +274,7 @@ function Group({
 }) {
   return (
     <section className="mt-9">
-      <h2 className="font-mono text-[10px] tracking-[0.16em] text-slate-500 uppercase">
+      <h2 className="font-mono text-[10px] tracking-[0.16em] text-text-3 uppercase">
         {title}
       </h2>
       <div className="mt-3">{children}</div>
@@ -216,7 +284,7 @@ function Group({
 
 function Panel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-800/20 p-5">
+    <div className="rounded-2xl border border-line-soft bg-surface p-5">
       {children}
     </div>
   );
@@ -234,8 +302,8 @@ function Swatch({
   return (
     <div>
       <div className={`h-14 rounded-xl ${swatch}`} />
-      <p className="mt-1.5 font-mono text-[11px] text-slate-300">{name}</p>
-      <p className="font-mono text-[10px] text-slate-600">{note}</p>
+      <p className="mt-1.5 font-mono text-[11px] text-text-2">{name}</p>
+      <p className="font-mono text-[10px] text-text-4">{note}</p>
     </div>
   );
 }

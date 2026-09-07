@@ -5,12 +5,11 @@ from langchain_core.outputs import LLMResult
 from core.db import pg_db
 
 class TokenTrackerHandler(BaseCallbackHandler):
-    def __init__(self,  log_type: str, step_name: str, group_id: str|None, group_name: str|None, user_id: str="0"):
+    def __init__(self,  log_type: str, step_name: str, group_id: str, user_id: int=0):
         super().__init__()
         self.log_type = log_type
-        self.step_name = step_name  # เช่น 'extract_contact' หรือ 'match_company'
+        self.step_name = step_name 
         self.group_id = group_id  
-        self.group_name = group_name
         self.user_id = user_id
         self.usage_data = {}
 
@@ -22,7 +21,8 @@ class TokenTrackerHandler(BaseCallbackHandler):
         parent_run_id: Optional[UUID] = None,
         **kwargs: Any,
     ) -> Any:
-
+        
+      try:
         llm_output = response.llm_output or {}
         token_usage = llm_output.get("token_usage", {})
 
@@ -55,7 +55,6 @@ class TokenTrackerHandler(BaseCallbackHandler):
             "log_type": self.log_type,
             "step_name": self.step_name,
             "group_id": self.group_id,
-            "group_name": self.group_name,
             "user_id": self.user_id,
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
@@ -64,32 +63,36 @@ class TokenTrackerHandler(BaseCallbackHandler):
 
         self._save_to_db(self.usage_data)
 
+      except Exception as e:
+        print(f"\n[Error] Failed to save token log: {e}\n")
+
     def _save_to_db(self, data: dict):
         sql = """
             INSERT INTO token_logs (
                 log_type, 
                 step_name, 
                 group_id, 
-                group_name,
                 user_id, 
                 input_tokens, 
                 output_tokens, 
                 total_tokens
             ) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+            VALUES (%s, %s, %s, %s, %s, %s, %s);
         """
         try:
-            with pg_db.get_cursor() as cursor:
+            with pg_db.get_connection() as conn:
+              with conn.cursor() as cursor:
                 cursor.execute(sql, (
                     data["log_type"],
                     data["step_name"],
                     data["group_id"],
-                    data["group_name"],
                     data["user_id"],
                     data["input_tokens"],
                     data["output_tokens"],
                     data["total_tokens"],
                 ))
-            print(f"\n[DB Saved] Type: {data['log_type']}, Step: {data['step_name']}, Total Tokens: {data['total_tokens']}\n")
+                conn.commit()
+                print(f"\n[DB Saved] Type: {data['log_type']}, Step: {data['step_name']}, Total Tokens: {data['total_tokens']}\n")
+                
         except Exception as e:
-            print(f"\n[Error] Failed to save token log:\n{e}\n")
+            print(f"\n[Error] Failed to save token log: {e}\n")

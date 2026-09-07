@@ -38,16 +38,23 @@ function authHeaders(): Record<string, string> {
   return session ? { Authorization: `Bearer ${session.token}` } : {};
 }
 
-async function parse<T>(path: string, response: Response): Promise<T> {
-  if (!response.ok) {
-    // A 401 on /auth/login means the credentials were wrong, which the form
-    // reports itself — tearing the session down there would be nonsense.
-    // Anywhere else it means our token is gone, expired or forged.
-    if (response.status === 401 && !path.startsWith("/api/v1/auth/login")) {
-      notifyUnauthorized();
-    }
-    throw new ApiError(response.status, await readDetail(response));
+/**
+ * The half of `parse` that does not read the body: status check, 401 handling.
+ * Split out because a streaming response must not be consumed to be checked.
+ */
+async function assertOk(path: string, response: Response): Promise<void> {
+  if (response.ok) return;
+  // A 401 on /auth/login means the credentials were wrong, which the form
+  // reports itself — tearing the session down there would be nonsense.
+  // Anywhere else it means our token is gone, expired or forged.
+  if (response.status === 401 && !path.startsWith("/api/v1/auth/login")) {
+    notifyUnauthorized();
   }
+  throw new ApiError(response.status, await readDetail(response));
+}
+
+async function parse<T>(path: string, response: Response): Promise<T> {
+  await assertOk(path, response);
   return (await response.json()) as T;
 }
 
@@ -75,4 +82,43 @@ export async function putJson<T>(path: string, body: unknown): Promise<T> {
       body: JSON.stringify(body),
     }),
   );
+}
+
+export async function deleteJson<T>(path: string): Promise<T> {
+  return parse<T>(
+    path,
+    await fetch(path, { method: "DELETE", headers: authHeaders() }),
+  );
+}
+
+/**
+ * A POST whose response body is read as it arrives instead of all at once —
+ * the agent's Server-Sent Events stream.
+ *
+ * fetch rather than EventSource: EventSource is GET-only and cannot carry an
+ * Authorization header, which would mean putting the token in the query string
+ * of every question. `signal` is what the หยุด button aborts.
+ */
+export async function postStream(
+  path: string,
+  body: unknown,
+  signal?: AbortSignal,
+): Promise<ReadableStream<Uint8Array>> {
+  const response = await fetch(path, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "text/event-stream",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(body),
+    signal,
+  });
+
+  await assertOk(path, response);
+
+  if (!response.body) {
+    throw new ApiError(500, "เบราว์เซอร์นี้อ่านข้อมูลแบบสตรีมไม่ได้");
+  }
+  return response.body;
 }

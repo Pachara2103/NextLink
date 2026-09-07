@@ -18,6 +18,7 @@ import {
   writeSession,
 } from "@/lib/services/session";
 import { userService } from "@/lib/services/user";
+import type { AuthUser } from "@/types";
 
 /**
  * "loading" covers both the hydration render and the round trip that checks a
@@ -32,9 +33,13 @@ import { userService } from "@/lib/services/user";
  */
 export type AuthStatus = "loading" | "authed" | "anon" | "offline";
 
+/**
+ * Carries the whole AuthUser rather than a lone username, so a field added to
+ * schemas/user.py::AuthUser is available here without another declaration.
+ */
 interface Session {
   status: AuthStatus;
-  username: string | null;
+  user: AuthUser | null;
 }
 
 /**
@@ -42,14 +47,14 @@ interface Session {
  * cannot see it, so it is read through useSyncExternalStore, which renders the
  * server snapshot during hydration and swaps in the real one right after.
  */
-const LOADING: Session = { status: "loading", username: null };
-const ANON: Session = { status: "anon", username: null };
+const LOADING: Session = { status: "loading", user: null };
+const ANON: Session = { status: "anon", user: null };
 
 let snapshot: Session = LOADING;
 const listeners = new Set<() => void>();
 
-/** Null until the first client read; then true only while a token needs checking. */
-let pendingValidation: string | null = null;
+/** Null until the first client read; then set only while a token needs checking. */
+let pendingValidation: AuthUser | null = null;
 let validationStarted = false;
 
 function subscribe(listener: () => void) {
@@ -73,8 +78,8 @@ function getSnapshot(): Session {
       snapshot = ANON;
     } else {
       // Hold at "loading" until the API confirms the token is still good.
-      pendingValidation = stored.username;
-      snapshot = { status: "loading", username: stored.username };
+      pendingValidation = stored.user;
+      snapshot = { status: "loading", user: stored.user };
     }
   }
   return snapshot;
@@ -92,10 +97,9 @@ function signOutLocally() {
 
 setUnauthorizedHandler(signOutLocally);
 
-async function validateStoredToken(username: string) {
+async function validateStoredToken(stored: AuthUser) {
   try {
-    const user = await userService.me();
-    publish({ status: "authed", username: user.username });
+    publish({ status: "authed", user: await userService.me() });
   } catch (error) {
     // A 401 already went through the unauthorized handler above, which cleared
     // the session — nothing left to do here.
@@ -106,7 +110,7 @@ async function validateStoredToken(username: string) {
     // kept, because it may well still be valid, but the session stays shut
     // until something confirms it.
     console.error("session check failed", error);
-    publish({ status: "offline", username });
+    publish({ status: "offline", user: stored });
   }
 }
 
@@ -115,6 +119,12 @@ interface Auth extends Session {
   signOut: () => Promise<void>;
   /** Runs the session check again, for the retry button on the offline screen. */
   retry: () => Promise<void>;
+  /**
+   * Renames the signed-in user. Rejects on failure rather than swallowing it,
+   * because the dialog is what turns the reason into a message; on success the
+   * stored session is rewritten so a reload keeps the new name.
+   */
+  saveDisplayName: (displayName: string | null) => Promise<void>;
 }
 
 const AuthContext = createContext<Auth | null>(null);
@@ -138,14 +148,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Errors propagate on purpose: the login form is what turns a status code
     // into a message, and it must not be told the sign-in worked.
     const result = await userService.login({ username, password });
-    writeSession({
-      token: result.access_token,
-      userId: result.user.id,
-      username: result.user.username,
-    });
+    // accessToken, not access_token: schemas/user.py uses ApiBaseModel now, so
+    // /auth/login speaks the same camelCase as every other endpoint.
+    writeSession({ token: result.accessToken, user: result.user });
     validationStarted = true;
     pendingValidation = null;
-    publish({ status: "authed", username: result.user.username });
+    publish({ status: "authed", user: result.user });
   }, []);
 
   const retry = useCallback(async () => {
@@ -154,8 +162,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       publish(ANON);
       return;
     }
-    publish({ status: "loading", username: stored.username });
-    await validateStoredToken(stored.username);
+    publish({ status: "loading", user: stored.user });
+    await validateStoredToken(stored.user);
+  }, []);
+
+  const saveDisplayName = useCallback(async (displayName: string | null) => {
+    const profile = await userService.updateProfile({ displayName });
+    const stored = readSession();
+    if (stored) writeSession({ ...stored, user: profile });
+    publish({ status: "authed", user: profile });
   }, []);
 
   const signOut = useCallback(async () => {
@@ -170,8 +185,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<Auth>(
-    () => ({ ...session, signIn, signOut, retry }),
-    [session, signIn, signOut, retry],
+    () => ({ ...session, signIn, signOut, retry, saveDisplayName }),
+    [session, signIn, signOut, retry, saveDisplayName],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

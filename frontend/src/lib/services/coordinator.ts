@@ -1,7 +1,12 @@
-import { postJson, getJson, putJson } from "@/lib/services/http";
-import type { Coordinator } from "@/types";
+import { postJson, getJson, putJson,deleteJson } from "@/lib/services/http";
+import type {
+  Coordinator,
+  CoordinatorUpdate,
+  ListResponse,
+  StatusResponse,
+} from "@/types";
 
-
+/** The console renders per group, the API returns one flat list. */
 export function groupByGroupId(
   list: Coordinator[],
 ): Record<string, Coordinator[]> {
@@ -12,28 +17,33 @@ export function groupByGroupId(
   return byGroup;
 }
 
+async function list(): Promise<Coordinator[]> {
+  const body = await getJson<ListResponse<Coordinator>>("/api/v1/coordinators");
+  return body?.items ?? [];
+}
 
 export const coordinatorService = {
+  list,
 
-  getCoordinatorsByGroup: async (): Promise<Record<string, Coordinator[]>> => {
-    const body = await getJson<{ coordinators: Coordinator[] }>(
-      `/api/v1/coordinators`,
-    );
-    return groupByGroupId(body?.coordinators ?? []);
-  },
+  getCoordinatorsByGroup: async (): Promise<Record<string, Coordinator[]>> =>
+    groupByGroupId(await list()),
 
   approve: (coordinatorId: number) =>
-    postJson<{status: string}>(`/api/v1/coordinators/${coordinatorId}/approve`, {}),
+    postJson<StatusResponse>(
+      `/api/v1/coordinators/${coordinatorId}/approve`,
+      {},
+    ),
 
   decline: (coordinatorId: number) =>
-    postJson<{status: string}>(`/api/v1/coordinators/${coordinatorId}/decline`, {}),
+    deleteJson<StatusResponse>(
+      `/api/v1/coordinators/${coordinatorId}`,
+    ),
 
   /**
-   * updatedAt is dropped rather than forwarded: the column is set to
-   * CURRENT_TIMESTAMP by the UPDATE itself, and the schema types the field as a
-   * plain datetime, so a row that has never been touched would send null and
-   * come back 422.
+   * The body is CoordinatorUpdate, which has no id, status or timestamps in it
+   * at all — so there is nothing to strip off before sending any more. The id
+   * goes in the path, where the route reads it from.
    */
-  update: ({ updatedAt: _serverOwned, ...payload }: Coordinator) =>
-    putJson<{status: string}>(`/api/v1/coordinators/${payload.id}`, payload),
+  update: (coordinatorId: number, patch: CoordinatorUpdate) =>
+    putJson<StatusResponse>(`/api/v1/coordinators/${coordinatorId}`, patch),
 };

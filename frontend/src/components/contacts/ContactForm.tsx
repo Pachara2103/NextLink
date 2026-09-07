@@ -8,13 +8,14 @@ import { Button, CloseButton } from "@/components/ui/Button";
 import { SelectField, TextField } from "@/components/ui/Field";
 import {
   COORDINATOR_FIELDS,
-  FIELD_LABELS,
+  COORDINATOR_FIELD_LABELS,
   MESSAGES,
   RELEVANT_OPTIONS,
+  type CoordinatorField,
 } from "@/lib/constants";
 import { fromDraft, hasCoordinatorName, toDraft } from "@/lib/utils";
 import { useConsole } from "@/store/console-store";
-import type { Coordinator, CoordinatorField } from "@/types";
+import type { Coordinator } from "@/types";
 
 const MONO_FIELDS: CoordinatorField[] = ["phone", "email"];
 const REQUIRED_FIELDS: CoordinatorField[] = ["nameTh", "nameEn"];
@@ -68,8 +69,8 @@ export function ContactForm({
   return (
     <div className="p-4">
       <div className="flex items-center justify-between gap-3">
-        <h4 className="flex items-center gap-2 font-display text-sm font-semibold text-white">
-          <Icon name="pencil" className="size-4 text-violet-400" />
+        <h4 className="flex items-center gap-2 font-display text-sm font-semibold text-text">
+          <Icon name="pencil" className="size-4 text-accent" />
           แก้ไขข้อมูลผู้ประสานงาน
         </h4>
         <CloseButton onClick={cancelContactEdit} disabled={saving} />
@@ -80,15 +81,15 @@ export function ContactForm({
           field === "relevant" ? (
             <SelectField
               key={field}
-              label={FIELD_LABELS[field]}
+              label={COORDINATOR_FIELD_LABELS[field]}
               options={RELEVANT_OPTIONS}
-              value={draft[field] === "" ? RELEVANT_OPTIONS[0] : draft[field]}
+              value={draft[field]}
               onChange={(event) => update(field, event.target.value)}
             />
           ) : (
             <TextField
               key={field}
-              label={FIELD_LABELS[field]}
+              label={COORDINATOR_FIELD_LABELS[field]}
               required={REQUIRED_FIELDS.includes(field)}
               mono={MONO_FIELDS.includes(field)}
               placeholder={PLACEHOLDERS[field]}

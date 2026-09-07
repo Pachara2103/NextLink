@@ -1,11 +1,17 @@
+import asyncio
 import logging
-import os
+from contextlib import asynccontextmanager
+
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from ai.graph import get_graph
 from api.v1.router import api_router
+from core import config
+from core.ai import warmup
+from core.db import graph_db, pg_db
 from core.exceptions import AppException
 
 logging.basicConfig(
@@ -15,15 +21,59 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+MODELS_READY = False
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+  
+    global MODELS_READY
+
+    missing = config.missing_required()
+    if missing:
+        logger.warning(
+            "config ที่จำเป็นยังไม่ได้ตั้ง: %s (เติมใน %s)",
+            ", ".join(missing),
+            config.ENV_PATH,
+        )
+
+    try:
+        await asyncio.to_thread(warmup)
+        await asyncio.to_thread(get_graph)
+        MODELS_READY = True
+        logger.info("models ready - accepting requests")
+    except Exception:
+        logger.exception(
+            "model warmup failed - starting anyway; the first request that needs "
+            "a model will retry the load"
+        )
+
+    for name, db in (("postgres", pg_db), ("neo4j", graph_db)):
+        try:
+            await asyncio.to_thread(db.check)
+            logger.info("%s reachable", name)
+        except Exception:
+            logger.exception("%s is not reachable at startup", name)
+
+    yield
+
+    for name, db in (("postgres", pg_db), ("neo4j", graph_db)):
+        try:
+            db.close()
+        except Exception:
+            logger.exception("failed to close %s", name)
+
+
 app = FastAPI(
     title="NextLink AI API",
     version="1.0.0",
     redirect_slashes=False,
+    lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("CORS_ORIGIN")],
+    allow_origins=config.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,11 +95,6 @@ async def app_exception_handler(request: Request, exc: AppException):
 
 @app.exception_handler(Exception)
 async def global_unknown_exception_handler(request: Request, exc: Exception):
-    """Anything nobody thought to raise on purpose.
-
-    The details stay in the server log; the client gets one sentence, because a
-    stack trace in a toast helps an attacker more than it helps the user.
-    """
     logger.error(
         "Unhandled exception on %s %s: %s",
         request.method,
@@ -65,13 +110,9 @@ async def global_unknown_exception_handler(request: Request, exc: Exception):
 
 @app.get("/api/v1/health", tags=["health"])
 def health_api():
-    """Unauthenticated liveness probe, so the console can tell "backend down"
-    from "token rejected" without spending a real request."""
-    return {"status": "ok"}
-
+    return {"status": "ok", "models": MODELS_READY}
 
 app.include_router(api_router)
 
-
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run(app, host=config.HOST, port=config.PORT)

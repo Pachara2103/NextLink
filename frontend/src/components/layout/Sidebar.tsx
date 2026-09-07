@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { ProfileModal } from "@/components/auth/ProfileModal";
 import { Icon, type IconName } from "@/components/icons";
 import { ConfirmModal } from "@/components/ui/Modal";
+import { MESSAGES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth-store";
 import { useConsole } from "@/store/console-store";
@@ -17,8 +19,10 @@ interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { key: "contacts", label: "ข้อมูลผู้ประสานงาน", icon: "inbox" },
+  { key: "contacts", label: "สรุปข้อมูลจากไลน์", icon: "inbox" },
   { key: "groups", label: "กลุ่มไลน์และบริษัท", icon: "building" },
+  { key: "notes", label: "โน้ตบันทึกข้อมูล", icon: "note" },
+  { key: "agent", label: "คุณขวัญใจ", icon: "bot" },
   // { key: "library", label: "คลังสถานะ & Component", icon: "layers" },
 ];
 
@@ -29,13 +33,14 @@ export function Sidebar({
   active: PanelKey;
   onNavigate: (panel: PanelKey) => void;
 }) {
-  const { groupLines, matchedGroups, pendingCount, unmatchedGroups } =
+  const { groupLines, linkedGroups, pendingCount, unlinkedGroups } =
     useConsole();
-  const { username, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const router = useRouter();
 
   const [confirmingSignOut, setConfirmingSignOut] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
 
   async function onSignOut() {
     setSigningOut(true);
@@ -46,38 +51,41 @@ export function Sidebar({
   }
 
   const counts: Partial<Record<PanelKey, { value: number; tone: string }>> = {
-    contacts: { value: pendingCount, tone: "bg-violet-500/15 text-violet-300" },
+    contacts: { value: pendingCount, tone: "bg-accent-soft text-accent" },
     groups: {
-      value: unmatchedGroups.length,
-      tone: "bg-amber-500/15 text-amber-300",
+      value: unlinkedGroups.length,
+      tone: "bg-warn-soft text-warn",
     },
   };
 
   const ratio =
     groupLines.length === 0
       ? 0
-      : Math.round((matchedGroups.length / groupLines.length) * 100);
+      : Math.round((linkedGroups.length / groupLines.length) * 100);
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-[266px] shrink-0 flex-col border-r border-slate-800 bg-slate-950/50 backdrop-blur-xl lg:flex">
-      <div className="flex items-center gap-3 px-6 py-6">
-        <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-950/60">
-          <Icon name="link" className="size-5 text-white" />
-        </div>
-        <div className="min-w-0">
-          <div className="truncate font-display text-[15px] font-semibold tracking-tight text-white">
-            NextLink AI
-          </div>
-          <div className="truncate text-[11px] text-slate-500">
-            Coordinator Console
-          </div>
-        </div>
+    <aside className="sticky top-0 hidden h-screen w-[266px] shrink-0 flex-col border-r border-line-soft bg-surface/70 backdrop-blur-xl lg:flex">
+      <div className="flex items-center px-6 py-6">
+        {/* The logo, not a glyph on an accent plate: it is already a mark.
+            A plain <img> from /public — one 256px PNG, no layout to optimise. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/nextlink-logo.png"
+          alt="NextLink"
+          width={40}
+          height={40}
+          className="size-10 shrink-0 object-contain"
+        />
+
+       <img
+    src="/nextlink-text.png"
+    alt="NextLink Text"
+    className="h-15 w-auto shrink-0" // "h-4" กำหนด height เป็น 1rem (16px), "w-auto" ปรับ width อัตโนมัติตามสัดส่วน
+  />
       </div>
 
       <nav className="flex flex-col gap-1 px-3">
-        <p className="px-3 pt-2 pb-2 font-mono text-[10px] tracking-[0.16em] text-slate-600 uppercase">
-          พื้นที่ทำงาน
-        </p>
+      
         {NAV_ITEMS.map((item) => {
           const on = item.key === active;
           const count = counts[item.key];
@@ -90,15 +98,15 @@ export function Sidebar({
               className={cn(
                 "flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition",
                 on
-                  ? "bg-violet-500/10 text-white shadow-[inset_0_0_0_1px_rgba(139,92,246,0.25)]"
-                  : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100",
+                  ? "bg-accent-soft text-text shadow-[inset_0_0_0_1px_var(--color-accent-line)]"
+                  : "text-text-2 hover:bg-surface-2 hover:text-text",
               )}
             >
               <Icon
                 name={item.icon}
                 className={cn(
                   "size-[18px] shrink-0",
-                  on ? "text-violet-400" : "text-slate-500",
+                  on ? "text-accent" : "text-text-3",
                 )}
               />
               <span className="flex-1 truncate font-medium">{item.label}</span>
@@ -118,50 +126,74 @@ export function Sidebar({
       </nav>
 
       <div className="mt-auto space-y-3 p-4">
-        <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
-          <span className="font-mono text-[10px] tracking-[0.14em] text-slate-500 uppercase">
+        <div className="rounded-xl border border-line-soft bg-surface p-4">
+          <span className="font-mono text-[10px] tracking-[0.14em] text-text-3 uppercase">
             ความคืบหน้าการผูกบริษัท
           </span>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="font-display text-2xl font-semibold tabular-nums text-white">
+            <span className="font-display text-2xl font-semibold tabular-nums text-text">
               {ratio}
             </span>
-            <span className="text-sm text-slate-500">%</span>
+            <span className="text-sm text-text-3">%</span>
           </div>
-          <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+          <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-violet-500 to-emerald-400"
+              className="h-full rounded-full bg-gradient-to-r from-accent to-ok"
               style={{ width: `${ratio}%` }}
             />
           </div>
-          <p className="mt-2 text-[11px] text-slate-500">
-            ผูกแล้ว {matchedGroups.length} จาก {groupLines.length} กลุ่ม
+          <p className="mt-2 text-[11px] text-text-3">
+            ผูกแล้ว {linkedGroups.length} จาก {groupLines.length} กลุ่ม
           </p>
         </div>
 
         <div className="flex items-center gap-3 rounded-xl px-2 py-1.5">
-          <div className="grid size-8 shrink-0 place-items-center rounded-full bg-slate-800 font-mono text-[11px] font-medium text-slate-300 uppercase">
-            {(username ?? "?").slice(0, 2)}
+          {/* One glyph rather than the first two letters of the name: sliced
+              Thai text cuts mid-cluster ("แอดมิน" came out as "แอ"), and a
+              console with a single admin account gains nothing from initials. */}
+          <div className="grid size-8 shrink-0 place-items-center rounded-full border border-line bg-surface-2 text-text-3">
+            <Icon name="user" className="size-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[13px] font-medium text-slate-200">
-              {username ?? "ไม่ทราบผู้ใช้"}
+            {/* display_name is nullable, so an account that has never set one
+                says so rather than falling back to the login name. */}
+            <div
+              className={cn(
+                "truncate text-[13px] font-medium",
+                user?.displayName ? "text-text" : "text-text-3 italic",
+              )}
+            >
+              {user?.displayName ?? MESSAGES.noDisplayName}
             </div>
-            <div className="truncate text-[11px] text-slate-500">
+            <div className="truncate text-[11px] text-text-3">
               ผู้ดูแลระบบ
             </div>
           </div>
           <button
             type="button"
+            onClick={() => setEditingProfile(true)}
+            aria-label="ตั้งค่าบัญชี"
+            title="ตั้งค่าบัญชี"
+            className="grid size-8 shrink-0 place-items-center rounded-lg text-text-3 transition hover:bg-surface-2 hover:text-text"
+          >
+            <Icon name="settings" className="size-4" />
+          </button>
+          <button
+            type="button"
             onClick={() => setConfirmingSignOut(true)}
             aria-label="ออกจากระบบ"
             title="ออกจากระบบ"
-            className="grid size-8 shrink-0 place-items-center rounded-lg text-slate-500 transition hover:bg-rose-500/10 hover:text-rose-300"
+            className="grid size-8 shrink-0 place-items-center rounded-lg text-text-3 transition hover:bg-danger-soft hover:text-danger"
           >
             <Icon name="log-out" className="size-4" />
           </button>
         </div>
       </div>
+
+      <ProfileModal
+        open={editingProfile}
+        onClose={() => setEditingProfile(false)}
+      />
 
       <ConfirmModal
         open={confirmingSignOut}

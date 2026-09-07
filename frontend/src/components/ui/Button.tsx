@@ -12,13 +12,13 @@ export type ButtonVariant =
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary:
-    "bg-violet-600 text-white font-semibold shadow-lg shadow-violet-950/50 hover:bg-violet-500 active:bg-violet-700",
-  warn: "bg-amber-500 text-amber-950 font-semibold shadow-lg shadow-amber-950/30 hover:bg-amber-400",
+    "bg-accent text-accent-ink font-semibold shadow-lift hover:bg-accent-hover active:bg-accent",
+  warn: "bg-warn text-warn-ink font-semibold shadow-lift hover:bg-warn-hover",
   secondary:
-    "border border-slate-700 bg-slate-800/60 text-slate-200 font-medium hover:border-slate-600 hover:bg-slate-800",
-  ghost: "text-slate-400 font-medium hover:bg-slate-800/60 hover:text-slate-100",
+    "border border-line bg-surface-2 text-text-2 font-medium hover:border-text-4 hover:bg-surface",
+  ghost: "text-text-2 font-medium hover:bg-surface-2 hover:text-text",
   danger:
-    "border border-rose-500/40 bg-rose-500/10 text-rose-200 font-medium hover:bg-rose-500/20",
+    "border border-danger-line bg-danger-soft text-danger font-medium hover:bg-danger-strong",
 };
 
 const SIZES = {
@@ -59,7 +59,7 @@ export function Button({
         VARIANTS[variant],
         fullWidth && "w-full",
         isDisabled &&
-          "cursor-not-allowed border-slate-800 bg-slate-800/30 text-slate-600 shadow-none hover:bg-slate-800/30",
+          "cursor-not-allowed border-line-soft bg-surface-2 text-text-4 shadow-none hover:bg-surface-2",
         className,
       )}
       {...rest}
@@ -95,8 +95,8 @@ export function IconButton({
       className={cn(
         "grid size-9 place-items-center rounded-xl border transition",
         disabled
-          ? "cursor-not-allowed border-slate-800 bg-slate-800/30 text-slate-600"
-          : "border-slate-700 bg-slate-800/60 text-slate-300 hover:border-slate-600 hover:bg-slate-800",
+          ? "cursor-not-allowed border-line-soft bg-surface-2 text-text-4"
+          : "border-line bg-surface-2 text-text-2 hover:border-text-4 hover:bg-surface",
         className,
       )}
       {...rest}
@@ -116,7 +116,7 @@ export function CloseButton({
       type="button"
       aria-label="ปิด"
       className={cn(
-        "grid size-8 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-800 hover:text-slate-200",
+        "grid size-8 place-items-center rounded-lg text-text-3 transition hover:bg-surface-2 hover:text-text",
         className,
       )}
       {...rest}

@@ -9,3 +9,5 @@ package.json
 note
 test
 design
+
+.env.example

@@ -10,6 +10,88 @@
   --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
+/* ---------------------------------------------------------------------------
+ * CARBON — the console's one palette, from design/index.html
+ *
+ * Every colour in the app comes from a token below, and no component names a
+ * Tailwind palette colour (slate-800, violet-500, …) any more. That is the
+ * whole point of the layer: the console is one theme deep today, and the way
+ * to change its colour is to change these fifteen values, not five hundred
+ * class names.
+ *
+ * How to pick one:
+ *
+ *   bg                the page behind everything
+ *   surface           a card, a panel, a modal — the plane the reader reads on
+ *   surface-2         one step up from surface: chips, hovers, raised rows
+ *   sunken            one step down: a well inside a card (inputs, nested
+ *                     lists, code, the filter bar under a header)
+ *   line / line-soft  a border that separates / one that barely whispers
+ *   text              headings and the one number in a sentence that matters
+ *   text-2            body copy
+ *   text-3            captions, labels, the second half of a pair
+ *   text-4            disabled, placeholder, a glyph that is nearly furniture
+ *   accent            the console's own colour: primary action, current nav,
+ *                     the marked part of a search hit. `accent-ink` is what is
+ *                     legible ON accent — never text-white on a filled button.
+ *   ok / warn / danger  matched · pending or unmatched · destructive
+ *
+ * Each status also has `-soft` (a fill that sits on surface) and `-line` (its
+ * border). They are flat hex rather than a color-mix() of the two, so an
+ * opacity modifier (bg-accent-soft/60) still behaves.
+ * ------------------------------------------------------------------------- */
+@theme {
+  --color-bg: #0a0c0e;
+  --color-surface: #101418;
+  --color-surface-2: #151a1f;
+  --color-sunken: #0d1114;
+
+  --color-line: #232a31;
+  --color-line-soft: #1b2127;
+
+  --color-text: #eef2f5;
+  --color-text-2: #b9c3cc;
+  --color-text-3: #7f8b96;
+  --color-text-4: #59636d;
+
+  --color-accent: #22d3ee;
+  --color-accent-ink: #04222a;
+  --color-accent-soft: #122b32;
+  --color-accent-line: #236e7d;
+  /* A filled control gets lighter on hover, not more transparent: on this
+     ground an alpha step reads as "disabled", the wrong signal for a hover. */
+  --color-accent-hover: #41d8ef;
+  /* The step up from a soft fill: hover on a soft-filled control, or the
+     selected one in a row of them. */
+  --color-accent-strong: #13363f;
+
+  --color-ok: #34d399;
+  --color-ok-soft: #142b27;
+  --color-ok-line: #296a59;
+  --color-ok-strong: #16362f;
+
+  --color-warn: #fbbf24;
+  --color-warn-soft: #2f2a1a;
+  --color-warn-line: #75632c;
+  --color-warn-strong: #3d341a;
+  --color-warn-hover: #fbc73e;
+  /* Legible ON warn — the only filled button in the app that is not accent. */
+  --color-warn-ink: #433007;
+
+  --color-danger: #fb7185;
+  --color-danger-soft: #2c1f25;
+  --color-danger-line: #794653;
+  /* Hover for the soft-filled destructive button. */
+  --color-danger-strong: #3f272e;
+
+  /* The glow behind the top of the page, and the lift under a modal or a
+     floating button. Both are part of the palette: on this near-black ground
+     a shadow reads as depth only when it is this dark. */
+  --color-glow: rgb(34 211 238 / 0.12);
+  --shadow-lift: 0 10px 30px -12px rgb(0 0 0 / 0.8);
+  --shadow-lift-lg: 0 24px 60px -20px rgb(0 0 0 / 0.85);
+}
+
 @layer base {
   html {
     color-scheme: dark;
@@ -17,8 +99,8 @@
   }
 
   body {
-    background-color: var(--color-slate-900);
-    color: var(--color-slate-300);
+    background-color: var(--color-bg);
+    color: var(--color-text-2);
     font-family: var(--font-body);
   }
 
@@ -36,11 +118,11 @@
   }
 
   ::selection {
-    background-color: color-mix(in oklab, var(--color-violet-500) 35%, transparent);
+    background-color: color-mix(in oklab, var(--color-accent) 35%, transparent);
   }
 
   *:focus-visible {
-    outline: 2px solid var(--color-violet-400);
+    outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
 
@@ -49,27 +131,112 @@
     height: 10px;
   }
   ::-webkit-scrollbar-track {
-    background-color: var(--color-slate-900);
+    background-color: var(--color-bg);
   }
   ::-webkit-scrollbar-thumb {
-    background-color: var(--color-slate-700);
-    border: 2px solid var(--color-slate-900);
+    background-color: var(--color-line);
+    border: 2px solid var(--color-bg);
     border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background-color: var(--color-slate-600);
+    background-color: var(--color-text-4);
   }
 
   input::placeholder,
   textarea::placeholder {
-    color: var(--color-slate-600);
+    color: var(--color-text-4);
   }
 
   /* native dropdown list is painted by the OS — force it dark */
   select option {
-    background-color: #0f172a;
-    color: #e2e8f0;
+    background-color: #101418;
+    color: #eef2f5;
   }
+}
+
+/* ---------------------------------------------------------------------------
+ * คุณขวัญใจ (components/agent/*)
+ *
+ * Three motions that say "the agent is working", and nothing else: a sweep
+ * across the status text, three dots under it, and one breath on the avatar of
+ * the empty state. Utilities rather than component CSS, because the rest of the
+ * panel is plain Tailwind — these three just have no utility to express them.
+ * ------------------------------------------------------------------------- */
+
+@keyframes agent-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Reads as a light sweeping left across the label, so a status that stays put
+   for a few seconds still looks alive. */
+.agent-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-text-4) 20%,
+    var(--color-text-2) 40%,
+    var(--color-accent) 52%,
+    var(--color-text-4) 72%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: agent-shimmer 2.1s linear infinite;
+}
+
+@keyframes agent-dot {
+  0%,
+  70%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  35% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+/* Staggered by an inline animation-delay at the use site. */
+.agent-dot {
+  animation: agent-dot 1.25s ease-in-out infinite;
+}
+
+@keyframes agent-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(34 211 238 / 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgb(34 211 238 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(34 211 238 / 0);
+  }
+}
+
+.agent-pulse {
+  animation: agent-pulse 2s ease-out infinite;
+}
+
+/* Toasts slide in from the right edge they are pinned to. */
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateX(0.75rem) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.toast-enter {
+  animation: toast-enter 180ms ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {

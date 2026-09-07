@@ -73,18 +73,18 @@ export function LoginPage() {
       {/* same ambient glow the console uses, so the two pages read as one system */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-x-0 top-0 h-[420px] bg-[radial-gradient(70%_100%_at_50%_0%,rgba(139,92,246,0.16),transparent_70%)]"
+        className="pointer-events-none fixed inset-x-0 top-0 h-[420px] bg-[radial-gradient(70%_100%_at_50%_0%,var(--color-glow),transparent_70%)]"
       />
 
       <div className="relative w-full max-w-[400px]">
         <div className="flex flex-col items-center text-center">
-          <div className="grid size-12 place-items-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-950/60">
-            <Icon name="link" className="size-6 text-white" />
+          <div className="grid size-12 place-items-center rounded-2xl bg-accent shadow-lift">
+            <Icon name="link" className="size-6 text-accent-ink" />
           </div>
-          <h1 className="mt-4 font-display text-xl font-semibold tracking-tight text-white">
+          <h1 className="mt-4 font-display text-xl font-semibold tracking-tight text-text">
             NextLink AI
           </h1>
-          <p className="mt-1 text-[13px] text-slate-500">
+          <p className="mt-1 text-[13px] text-text-3">
             Coordinator Console · เข้าสู่ระบบเพื่อจัดการข้อมูลผู้ประสานงาน
           </p>
         </div>
@@ -92,16 +92,16 @@ export function LoginPage() {
         <form
           onSubmit={onSubmit}
           noValidate
-          className="mt-7 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 backdrop-blur-xl sm:p-6"
+          className="mt-7 rounded-2xl border border-line bg-surface/80 p-5 backdrop-blur-xl sm:p-6"
         >
           <label className="block">
-            <span className="font-mono text-[10px] tracking-[0.14em] text-slate-500 uppercase">
+            <span className="font-mono text-[10px] tracking-[0.14em] text-text-3 uppercase">
               ชื่อผู้ใช้
             </span>
             <div className="relative mt-1.5">
               <Icon
                 name="user"
-                className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-slate-600"
+                className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-text-4"
               />
               <input
                 name="username"
@@ -113,24 +113,24 @@ export function LoginPage() {
                 aria-invalid={error ? true : undefined}
                 placeholder="ชื่อผู้ใช้ของคุณ"
                 className={cn(
-                  "w-full rounded-xl border bg-slate-900/80 py-2.5 pr-3.5 pl-10 text-[14px] text-slate-100 transition",
-                  "placeholder:text-slate-600 focus:outline-none",
+                  "w-full rounded-xl border bg-sunken py-2.5 pr-3.5 pl-10 text-[14px] text-text transition",
+                  "placeholder:text-text-4 focus:outline-none",
                   error
-                    ? "border-rose-500/50 focus:border-rose-400"
-                    : "border-slate-700 focus:border-violet-500",
+                    ? "border-danger-line focus:border-danger-line"
+                    : "border-line focus:border-accent",
                 )}
               />
             </div>
           </label>
 
           <label className="mt-4 block">
-            <span className="font-mono text-[10px] tracking-[0.14em] text-slate-500 uppercase">
+            <span className="font-mono text-[10px] tracking-[0.14em] text-text-3 uppercase">
               รหัสผ่าน
             </span>
             <div className="relative mt-1.5">
               <Icon
                 name="lock"
-                className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-slate-600"
+                className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-text-4"
               />
               <input
                 name="password"
@@ -143,11 +143,11 @@ export function LoginPage() {
                 aria-invalid={error ? true : undefined}
                 placeholder="••••••••"
                 className={cn(
-                  "w-full rounded-xl border bg-slate-900/80 py-2.5 pr-11 pl-10 text-[14px] text-slate-100 transition",
-                  "placeholder:text-slate-600 focus:outline-none",
+                  "w-full rounded-xl border bg-sunken py-2.5 pr-11 pl-10 text-[14px] text-text transition",
+                  "placeholder:text-text-4 focus:outline-none",
                   error
-                    ? "border-rose-500/50 focus:border-rose-400"
-                    : "border-slate-700 focus:border-violet-500",
+                    ? "border-danger-line focus:border-danger-line"
+                    : "border-line focus:border-accent",
                 )}
               />
               <button
@@ -156,7 +156,7 @@ export function LoginPage() {
                 aria-label={reveal ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
                 aria-pressed={reveal}
                 title={reveal ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
-                className="absolute top-1/2 right-2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-800 hover:text-slate-200"
+                className="absolute top-1/2 right-2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-text-3 transition hover:bg-surface-2 hover:text-text"
               >
                 <Icon name={reveal ? "eye" : "eye-off"} className="size-4" />
               </button>
@@ -177,15 +177,15 @@ export function LoginPage() {
           {error && (
             <p
               role="alert"
-              className="mt-3 flex items-start gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-rose-200"
+              className="mt-3 flex items-start gap-2 rounded-xl border border-danger-line bg-danger-soft px-3.5 py-2.5 text-[12.5px] leading-relaxed text-danger"
             >
-              <Icon name="alert" className="mt-0.5 size-4 shrink-0 text-rose-400" />
+              <Icon name="alert" className="mt-0.5 size-4 shrink-0 text-danger" />
               {error}
             </p>
           )}
         </form>
 
-        <p className="mt-5 text-center text-[11px] text-slate-600">
+        <p className="mt-5 text-center text-[11px] text-text-4">
           บัญชีผู้ใช้ออกให้โดยผู้ดูแลระบบเท่านั้น
         </p>
       </div>

@@ -1,32 +1,15 @@
-"""Signed session tokens.
-
-PyJWT is not installed and adding a dependency for this is not worth it, so the
-token is an HMAC-SHA256 signed payload built from the standard library. The
-format is the same idea as a JWT without the algorithm-negotiation footgun:
-
-    base64url(payload_json) "." base64url(hmac_sha256(secret, payload_b64))
-
-The signature covers the payload bytes, comparison is constant time, and there
-is no "alg" field to confuse — this only ever verifies HMAC-SHA256.
-"""
-
 import base64
 import hashlib
 import hmac
 import json
 import logging
-import os
 import secrets
 import time
 
-from dotenv import load_dotenv
-
-# Not left to import order: this module is read at import time, and whether the
-# secret is found must not depend on some other module having loaded .env first.
-load_dotenv()
-
-# Long enough for a working day, short enough that a leaked token expires.
-TOKEN_TTL_SECONDS = 12 * 60 * 60
+# Not left to import order: importing core.config is what guarantees .env has
+# been read, so whether the secret is found does not depend on some other
+# module having called load_dotenv() first.
+from core.config import AUTH_SECRET, ENV_PATH, TOKEN_TTL_SECONDS
 
 
 class TokenError(Exception):
@@ -34,15 +17,15 @@ class TokenError(Exception):
 
 
 def _load_secret() -> bytes:
-    configured = os.getenv("AUTH_SECRET")
-    if configured:
-        return configured.encode("utf-8")
+    if AUTH_SECRET:
+        return AUTH_SECRET.encode("utf-8")
 
     # Without a configured secret every restart invalidates every session, and
     # uvicorn --reload restarts constantly. Loud, because it is a misconfig.
     logging.warning(
         "AUTH_SECRET is not set — generating an ephemeral one. Every restart "
-        "will sign users out. Set AUTH_SECRET in backend/.env."
+        "will sign users out. Set AUTH_SECRET in %s.",
+        ENV_PATH,
     )
     return secrets.token_bytes(32)
 
@@ -64,7 +47,7 @@ def _sign(payload_b64: str) -> str:
     return _b64encode(digest)
 
 
-def issue_token(user_id: str, username: str) -> str:
+def issue_token(user_id: int, username: str) -> str:
     payload = {
         "sub": str(user_id),
         "username": username,
