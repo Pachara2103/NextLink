@@ -66,22 +66,20 @@ export function Sidebar({
   return (
     <aside className="sticky top-0 hidden h-screen w-[266px] shrink-0 flex-col border-r border-line-soft bg-surface/70 backdrop-blur-xl lg:flex">
       <div className="flex items-center px-6 py-6">
-        {/* The logo, not a glyph on an accent plate: it is already a mark.
-            A plain <img> from /public — one 256px PNG, no layout to optimise. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+
         <img
           src="/nextlink-logo.png"
-          alt="NextLink"
+          alt="NextLink Icon"
           width={40}
           height={40}
           className="size-10 shrink-0 object-contain"
         />
 
-       <img
-    src="/nextlink-text.png"
-    alt="NextLink Text"
-    className="h-15 w-auto shrink-0" // "h-4" กำหนด height เป็น 1rem (16px), "w-auto" ปรับ width อัตโนมัติตามสัดส่วน
-  />
+        <img
+         src="/nextlink-text.png"
+         alt="NextLink Text"
+         className="h-15 w-auto shrink-0" 
+        />
       </div>
 
       <nav className="flex flex-col gap-1 px-3">

@@ -78,21 +78,28 @@ export function LoginPage() {
 
       <div className="relative w-full max-w-[400px]">
         <div className="flex flex-col items-center text-center">
-          <div className="grid size-12 place-items-center rounded-2xl bg-accent shadow-lift">
-            <Icon name="link" className="size-6 text-accent-ink" />
-          </div>
-          <h1 className="mt-4 font-display text-xl font-semibold tracking-tight text-text">
-            NextLink AI
-          </h1>
-          <p className="mt-1 text-[13px] text-text-3">
-            Coordinator Console · เข้าสู่ระบบเพื่อจัดการข้อมูลผู้ประสานงาน
-          </p>
+          
+           <img
+          src="/nextlink-logo.png"
+          alt="NextLink Icon"
+          width={40}
+          height={40}
+          className="size-18 shrink-0 object-contain"
+        />
+
+
+        <img
+         src="/nextlink-text.png"
+         alt="NextLink Text"
+         className="h-18 w-auto shrink-0" 
+        />
+      
         </div>
 
         <form
           onSubmit={onSubmit}
           noValidate
-          className="mt-7 rounded-2xl border border-line bg-surface/80 p-5 backdrop-blur-xl sm:p-6"
+          className="mt-2 rounded-2xl border border-line bg-surface/80 p-5 backdrop-blur-xl sm:p-6"
         >
           <label className="block">
             <span className="font-mono text-[10px] tracking-[0.14em] text-text-3 uppercase">
