@@ -19,8 +19,9 @@ import type {
   ContactCreate,
   ContactStatus,
   ContactUpdate,
-  Coordinator,
-  CoordinatorUpdate,
+  Employee,
+  EmployeeCreate,
+  EmployeeUpdate,
   GroupLine,
   Note,
   NoteInput,
@@ -31,12 +32,13 @@ import type {
 } from "@/types";
 
 import { companyService } from "@/lib/services/company";
+import { healthService, type HealthInfo } from "@/lib/services/health";
 import { contactService } from "@/lib/services/contact";
-import { coordinatorService } from "@/lib/services/coordinator";
+import { employeeService } from "@/lib/services/employee";
 import { lineService } from "@/lib/services/line";
 import { noteService } from "@/lib/services/note";
 import { isNetworkError, serverDetail } from "@/lib/services/errors";
-import { ApiError } from "@/lib/services/http";
+import { ApiError, setUnreachableHandler } from "@/lib/services/http";
 import { refreshUpdateLogs } from "@/lib/update-logs";
 
 /**
@@ -51,7 +53,13 @@ interface State {
   groupLines: GroupLine[];
   /** The company directory, for the "ค้นหาบริษัทที่มีอยู่" mode. */
   companies: Company[];
-  contacts: Record<string, Coordinator[]>;
+  /**
+   * The extracted and hand-added staff, keyed by **company** id — not group id.
+   * `employees.company_id` is the FK the table carries, so a LINE group reaches
+   * its people through the company row it points at, and a group with no
+   * company simply has none.
+   */
+  employees: Record<number, Employee[]>;
   /**
    * Company contacts, keyed by **company** id — not group id. A contact belongs
    * to the company, so unlinking a group and binding it to another one must not
@@ -61,6 +69,18 @@ interface State {
   notes: Note[];
   syncing: null | SyncScope;
   lastSyncedAt: string | null;
+  /**
+   * True from the moment a request fails to reach the API until /health
+   * answers again.
+   *
+   * It is not decoration. While it is true the data on screen is of unknown
+   * age — a write may have been cut off halfway, which is exactly what a
+   * backend restart in the middle of a click does — so writes are refused and
+   * everything is re-read the moment the server comes back.
+   */
+  serverDown: boolean;
+  /** The backend process the data on screen came from. See services/health.ts. */
+  bootId: string | null;
   viewingGroupId: string | null;
   editingContactId: number | null;
   editingCompany: { scope: PanelKey; groupId: string } | null;
@@ -92,23 +112,27 @@ type Action =
       scope: SyncScope;
       groups: GroupLine[];
       companies: Company[];
-      contacts: Record<string, Coordinator[]>;
+      employees: Record<number, Employee[]>;
       companyContacts: Record<number, Contact[]>;
       at: string;
     }
   | { type: "notes/set"; notes: Note[] }
   | { type: "company-contacts/set"; contacts: Record<number, Contact[]> }
+  | { type: "employees/set"; employees: Record<number, Employee[]> }
   | { type: "view/toggle"; groupId: string }
   | { type: "contact/edit"; contactId: number }
   | { type: "contact/edit-cancel" }
   | {
       type: "contact/save";
-      groupId: string;
+      companyId: number;
       contactId: number;
-      patch: CoordinatorUpdate;
+      patch: EmployeeUpdate;
+      at: string;
+      /** Quiet on the directory page, which raises its own toast. */
+      silent?: boolean;
     }
-  | { type: "contact/confirm"; groupId: string; contactId: number; at: string }
-  | { type: "contact/decline"; groupId: string; contactId: number; at: string }
+  | { type: "contact/confirm"; companyId: number; contactId: number; at: string }
+  | { type: "contact/delete"; companyId: number; contactId: number }
   | { type: "company/open"; scope: PanelKey; groupId: string }
   | { type: "company/close" }
   | {
@@ -127,6 +151,8 @@ type Action =
     }
   | { type: "company/unlinked"; groupId: string }
   | { type: "sync/failed"; message: string }
+  | { type: "server/down" }
+  | { type: "server/up"; bootId: string }
   | { type: "toast/set"; toast: Toast }
   | { type: "toast/dismiss"; id: number }
   | { type: "toast/clear" };
@@ -137,11 +163,13 @@ function initialState(): State {
   return {
     groupLines: [],
     companies: [],
-    contacts: {},
+    employees: {},
     companyContacts: {},
     notes: [],
     syncing: "initial",
     lastSyncedAt: null,
+    serverDown: false,
+    bootId: null,
     viewingGroupId: null,
     editingContactId: null,
     editingCompany: null,
@@ -149,19 +177,32 @@ function initialState(): State {
   };
 }
 
-function mapContacts(
-  contacts: Record<string, Coordinator[]>,
-  groupId: string,
+function mapEmployees(
+  employees: Record<number, Employee[]>,
+  companyId: number,
   contactId: number,
-  update: (person: Coordinator) => Coordinator,
-): Record<string, Coordinator[]> {
-  const list = contacts[groupId];
-  if (!list) return contacts;
+  update: (person: Employee) => Employee,
+): Record<number, Employee[]> {
+  const list = employees[companyId];
+  if (!list) return employees;
   return {
-    ...contacts,
-    [groupId]: list.map((person) =>
+    ...employees,
+    [companyId]: list.map((person) =>
       person.id === contactId ? update(person) : person,
     ),
+  };
+}
+
+function dropEmployee(
+  employees: Record<number, Employee[]>,
+  companyId: number,
+  contactId: number,
+): Record<number, Employee[]> {
+  const list = employees[companyId];
+  if (!list) return employees;
+  return {
+    ...employees,
+    [companyId]: list.filter((person) => person.id !== contactId),
   };
 }
 
@@ -170,6 +211,17 @@ function reducer(state: State, action: Action): State {
     case "sync/start":
       return { ...state, syncing: action.scope };
 
+    // Same object back when nothing changed: every failed health poll reports
+    // "still down", and a new state object each time would re-render the whole
+    // console twice a second for as long as the backend is away.
+    case "server/down":
+      return state.serverDown ? state : { ...state, serverDown: true };
+
+    case "server/up":
+      return state.serverDown === false && state.bootId === action.bootId
+        ? state
+        : { ...state, serverDown: false, bootId: action.bootId };
+
     // A sync closes everything that was open, exactly like the original reruns.
     case "sync/done":
       return {
@@ -177,12 +229,13 @@ function reducer(state: State, action: Action): State {
         syncing: null,
         lastSyncedAt: action.at,
 
-        // A "groups" refresh reads no coordinators, so it must not wipe the
+        // A "groups" refresh reads no employees, so it must not wipe the
         // ones already on screen. Everything else always overwrites, because
         // every scope re-reads the groups and the company directory.
         groupLines: action.groups,
         companies: action.companies,
-        contacts: action.scope === "groups" ? state.contacts : action.contacts,
+        employees:
+          action.scope === "groups" ? state.employees : action.employees,
         // Every scope re-reads these: they are one cheap list, and they are
         // what the badges on the group cards are drawn from.
         companyContacts: action.companyContacts,
@@ -203,68 +256,76 @@ function reducer(state: State, action: Action): State {
     case "contact/edit":
       return { ...state, editingContactId: action.contactId };
 
+    // No toast. Closing a form nobody submitted is not news — the dialog
+    // disappearing already says it, and a success-green notice for "nothing
+    // happened" only trains the eye to ignore the corner the real ones
+    // arrive in.
     case "contact/edit-cancel":
-      return pushToast(
-        { ...state, editingContactId: null },
-        { kind: "success", message: MESSAGES.editCancelled },
-      );
+      return { ...state, editingContactId: null };
 
-    // Saving the form only mutates local state. The graph write happens on
-    // confirm, which is why the two buttons carry different labels.
-    case "contact/save":
-      return {
+    /**
+     * The row as the write left it. `updatedAt` is set here too, because both
+     * endpoints stamp `updated_at = now()` — and on the directory page that
+     * column is the sort key, so a saved card that kept its old timestamp
+     * would stay where it was instead of moving to the top of its list.
+     */
+    case "contact/save": {
+      const next: State = {
         ...state,
         editingContactId: null,
-        contacts: mapContacts(
-          state.contacts,
-          action.groupId,
+        employees: mapEmployees(
+          state.employees,
+          action.companyId,
           action.contactId,
-          (person) => ({ ...person, ...action.patch }),
+          (person) => ({ ...person, ...action.patch, updatedAt: action.at }),
         ),
       };
+      return action.silent
+        ? next
+        : pushToast(next, {
+            kind: "success",
+            message: MESSAGES.employeeUpdated,
+          });
+    }
 
+    // Approval writes `active`, not `approved`: the status column carries
+    // where the person stands at the company, and "a human has looked at
+    // this" is not one of those places — it is the absence of `pending`.
     case "contact/confirm":
       return pushToast(
         {
           ...state,
-          contacts: mapContacts(
-            state.contacts,
-            action.groupId,
+          employees: mapEmployees(
+            state.employees,
+            action.companyId,
             action.contactId,
             (person) => ({
               ...person,
-              status: "approved",
+              status: "active",
               updatedAt: action.at,
             }),
           ),
         },
-        { kind: "success", message: MESSAGES.coordinatorApproved },
+        { kind: "success", message: MESSAGES.employeeApproved },
       );
 
-    // A decline is not a delete: the row stays in coordinators, it just leaves
-    // the รออนุมัติ list. Mirroring that here keeps the tab counts honest
-    // without another round trip.
-    case "contact/decline":
-      return pushToast(
-        {
-          ...state,
-          contacts: mapContacts(
-            state.contacts,
-            action.groupId,
-            action.contactId,
-            (person) => ({
-              ...person,
-              status: "declined",
-              updatedAt: action.at,
-            }),
-          ),
-        },
-        { kind: "success", message: MESSAGES.coordinatorDeclined },
-      );
+    // A decline really is a delete now — there is no `declined` status for the
+    // row to sit in — so the row leaves local state rather than changing
+    // colour in it. Same case serves the directory page's delete button.
+    case "contact/delete":
+      return {
+        ...state,
+        editingContactId: null,
+        employees: dropEmployee(
+          state.employees,
+          action.companyId,
+          action.contactId,
+        ),
+      };
 
     case "company/open":
       // The form is a dialog now, so it no longer takes the card's body over —
-      // and an expanded coordinator list underneath it is exactly what the
+      // and an expanded employee list underneath it is exactly what the
       // reviewer was looking at, so it stays expanded.
       return {
         ...state,
@@ -329,6 +390,9 @@ function reducer(state: State, action: Action): State {
     case "company-contacts/set":
       return { ...state, companyContacts: action.contacts };
 
+    case "employees/set":
+      return { ...state, employees: action.employees, editingContactId: null };
+
     // The company row is gone, so the group is back to unlinked with no
     // company names and nothing to point at.
     case "company/unlinked":
@@ -378,27 +442,51 @@ interface Store extends State {
   linkedGroups: GroupLine[];
   unlinkedGroups: GroupLine[];
   pendingCount: number;
-  completedCount: number;
-  /** One count per coordinators.status, for the filter tabs. */
+  /** Everyone who has been reviewed — the people the directory page lists. */
+  staffCount: number;
+  /** One count per employees.status. */
   statusCounts: Record<ContactStatus, number>;
+  /** This company's people, newest first. `null` company id gives an empty list. */
+  employeesOf: (companyId: number | null | undefined) => Employee[];
   isCompanyFormOpen: (scope: PanelKey, groupId: string) => boolean;
   sync: (scope: SyncScope) => Promise<void>;
+  /** Re-reads the employee list alone, after a write that the store cannot patch. */
+  reloadEmployees: () => Promise<void>;
   toggleView: (groupId: string) => void;
   startContactEdit: (contactId: number) => void;
   cancelContactEdit: () => void;
   /**
-   * Writes the edited fields through the API. Resolves true only when the row
-   * really changed; on failure nothing is touched locally and the form stays
-   * open on the values the user typed, so the save can be retried.
+   * Writes the edited fields of a **pending** row. PostgreSQL only: the row
+   * has no graph node yet, so there is nothing there to keep in step.
+   *
+   * Resolves true only when the row really changed; on failure nothing is
+   * touched locally and the form stays open on the values the user typed, so
+   * the save can be retried.
    */
   saveContact: (
-    groupId: string,
+    companyId: number,
     contactId: number,
-    patch: CoordinatorUpdate,
+    patch: EmployeeUpdate,
   ) => Promise<boolean>;
-  confirmContact: (groupId: string, contactId: number) => Promise<void>;
-  /** Declines one extracted coordinator — writes nothing to the graph. */
-  declineContact: (groupId: string, contactId: number) => Promise<void>;
+  /**
+   * Writes the edited fields of a **reviewed** row, through the endpoint that
+   * updates PostgreSQL and Neo4j under one transaction. This is what the
+   * directory page's edit form saves with — the pg-only write above would
+   * leave the graph holding the old name.
+   */
+  saveEmployee: (
+    companyId: number,
+    contactId: number,
+    patch: EmployeeUpdate,
+  ) => Promise<boolean>;
+  /** Adds one person by hand. Writes both halves. True only on success. */
+  createEmployee: (payload: EmployeeCreate) => Promise<boolean>;
+  /** Approves one extracted employee: status becomes `active` and the graph gains the node. */
+  confirmContact: (companyId: number, contactId: number) => Promise<void>;
+  /** Declines one extracted employee — deletes the pending row, graph untouched. */
+  declineContact: (companyId: number, contactId: number) => Promise<void>;
+  /** Deletes one reviewed employee from both halves. True only on success. */
+  deleteEmployee: (companyId: number, contactId: number) => Promise<boolean>;
   openCompanyForm: (scope: PanelKey, groupId: string) => void;
   closeCompanyForm: () => void;
   /**
@@ -452,39 +540,55 @@ function syncErrorMessage(error: unknown): string {
   return MESSAGES.syncFailed;
 }
 
-function coordinatorErrorMessage(error: unknown): string {
-  if (isNetworkError(error)) return MESSAGES.coordinatorNetworkFailed;
+function employeeErrorMessage(error: unknown): string {
+  if (isNetworkError(error)) return MESSAGES.employeeNetworkFailed;
 
   const detail = serverDetail(error);
-  if (detail) return `${MESSAGES.coordinatorPrefix}: ${detail}`;
+  if (detail) return `${MESSAGES.employeePrefix}: ${detail}`;
 
   const { status } = error as ApiError;
-  if (status === 404) return MESSAGES.coordinatorGroupNotMatched;
-  if (status >= 500) return MESSAGES.coordinatorDbFailed;
-  return MESSAGES.coordinatorSaveFailed;
+  if (status === 404) return MESSAGES.employeeGroupNotMatched;
+  if (status >= 500) return MESSAGES.employeeDbFailed;
+  return MESSAGES.employeeSaveFailed;
 }
 
-function coordinatorUpdateErrorMessage(error: unknown): string {
-  if (isNetworkError(error)) return MESSAGES.coordinatorUpdateNetworkFailed;
+function employeeUpdateErrorMessage(error: unknown): string {
+  if (isNetworkError(error)) return MESSAGES.employeeUpdateNetworkFailed;
 
   const detail = serverDetail(error);
-  if (detail) return `${MESSAGES.coordinatorUpdatePrefix}: ${detail}`;
+  if (detail) return `${MESSAGES.employeeUpdatePrefix}: ${detail}`;
 
   const { status } = error as ApiError;
-  if (status === 404) return MESSAGES.coordinatorUpdateNotFound;
-  if (status >= 500) return MESSAGES.coordinatorUpdateDbFailed;
-  return MESSAGES.coordinatorUpdateFailed;
+  if (status === 404) return MESSAGES.employeeUpdateNotFound;
+  if (status >= 500) return MESSAGES.employeeUpdateDbFailed;
+  return MESSAGES.employeeUpdateFailed;
+}
+
+function employeeCreateErrorMessage(error: unknown): string {
+  if (isNetworkError(error)) return MESSAGES.employeeCreateNetworkFailed;
+
+  const detail = serverDetail(error);
+  if (detail) return `${MESSAGES.employeeCreatePrefix}: ${detail}`;
+
+  const { status } = error as ApiError;
+  // 404 here is the Company node, not the row: the graph MERGE matches on it,
+  // so a company that exists in Postgres but not in Neo4j fails exactly this
+  // way — and the fix is to bind the company again, not to retry.
+  if (status === 404) return MESSAGES.employeeCreateNoCompany;
+  if (status === 400 || status === 422) return MESSAGES.requireEmployeeName;
+  if (status >= 500) return MESSAGES.employeeCreateDbFailed;
+  return MESSAGES.employeeCreateFailed;
 }
 
 function declineErrorMessage(error: unknown): string {
-  if (isNetworkError(error)) return MESSAGES.coordinatorNetworkFailed;
+  if (isNetworkError(error)) return MESSAGES.employeeNetworkFailed;
 
   const detail = serverDetail(error);
   if (detail) return `${MESSAGES.declinePrefix}: ${detail}`;
 
   return (error as ApiError).status >= 500
-    ? MESSAGES.coordinatorDbFailed
-    : MESSAGES.coordinatorDeclineFailed;
+    ? MESSAGES.employeeDbFailed
+    : MESSAGES.employeeDeclineFailed;
 }
 
 function companyErrorMessage(error: unknown): string {
@@ -538,7 +642,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
     try {
       let groups: GroupLine[] = [];
       let companies: Company[] = [];
-      let contacts: Record<string, Coordinator[]> = {};
+      let employees: Record<number, Employee[]> = {};
       let companyContacts: Record<number, Contact[]> = {};
       let errorGroups: string[] = [];
       // ไม่ null เมื่อ POST /line/update-information ไม่ตอบกลับ ตัว sync ยังเดินต่อ
@@ -551,7 +655,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
         // could name, so groupLines.companyId is stale until it has run — and
         // companyId is what decides create-vs-rename in saveCompany.
         const res = await lineService.updateInformation();
-        contacts = res.coordinators;
+        employees = res.employees;
         errorGroups = res.errorGroups;
         updateNotConfirmed = res.postError;
         if (updateNotConfirmed) {
@@ -575,11 +679,11 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       ]);
 
       if (scope === "initial") {
-        const [byGroup, notes] = await Promise.all([
-          coordinatorService.getCoordinatorsByGroup(),
+        const [byCompany, notes] = await Promise.all([
+          employeeService.getEmployeesByCompany(),
           noteService.list(),
         ]);
-        contacts = byGroup;
+        employees = byCompany;
         dispatch({ type: "notes/set", notes });
       }
 
@@ -601,7 +705,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
         scope,
         groups,
         companies,
-        contacts,
+        employees,
         companyContacts,
         at: new Date().toISOString(),
       });
@@ -631,11 +735,81 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // First paint has nothing to show, so pull the group lines and whatever
-  // coordinators are already stored. Only the LLM pass that produces new ones
+  // employees are already stored. Only the LLM pass that produces new ones
   // stays behind the "อัปเดตข้อมูล" button.
   useEffect(() => {
     void sync("initial");
   }, [sync]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // เซิร์ฟเวอร์หายไประหว่างทาง
+  //
+  // อาการที่ทำให้ต้องมีบล็อกนี้: กด "ลบข้อมูล" ตอน backend กำลัง restart
+  // (uvicorn --reload) request ถูกตัดกลางคัน แต่จอยังถือข้อมูลชุดเดิมไว้
+  // เหมือนไม่มีอะไรเกิดขึ้น พอเซิร์ฟเวอร์กลับมา สิ่งที่เห็นกับสิ่งที่อยู่ใน
+  // ฐานข้อมูลจึงไม่ตรงกัน แล้วทุกอย่างที่กดต่อจากนั้นก็ผิดตาม ๆ กัน
+  //
+  // กติกาใหม่: คำสั่งที่ไปไม่ถึงเซิร์ฟเวอร์ = "ไม่รู้ผล" ไม่ใช่ "ไม่สำเร็จ"
+  // จึงห้ามเดาว่าข้อมูลบนจอยังถูก - ต้องอ่านใหม่ทั้งหมดเมื่อกลับมาติดต่อได้
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /** boot id ของ backend ตัวที่ข้อมูลบนจอมาจาก - ดู services/health.ts */
+  const bootId = useRef<string | null>(null);
+
+  useEffect(() => {
+    setUnreachableHandler(() => dispatch({ type: "server/down" }));
+    return () => setUnreachableHandler(null);
+  }, []);
+
+  // อ่าน boot id ตั้งต้นไว้เทียบทีหลัง ถ้าอ่านไม่ได้ก็ไม่ต้องทำอะไร -
+  // ตัว handler ข้างบนขึ้นแบนเนอร์ให้แล้ว
+  useEffect(() => {
+    void healthService.read().then(
+      (info) => {
+        bootId.current = info.bootId;
+        dispatch({ type: "server/up", bootId: info.bootId });
+      },
+      () => {},
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!state.serverDown) return;
+
+    let stopped = false;
+
+    async function check() {
+      let info: HealthInfo;
+      try {
+        info = await healthService.read();
+      } catch {
+        return; // ยังไม่กลับมา - รอรอบหน้า
+      }
+      // ตอบได้แล้วแต่ยังโหลดโมเดลไม่เสร็จ: request อื่นยังได้ 503 อยู่
+      if (stopped || !info.ready) return;
+
+      const restarted = bootId.current !== null && bootId.current !== info.bootId;
+      bootId.current = info.bootId;
+      dispatch({ type: "server/up", bootId: info.bootId });
+      dispatch({
+        type: "toast/set",
+        toast: {
+          kind: "success",
+          message: restarted ? MESSAGES.serverRestarted : MESSAGES.serverBack,
+        },
+      });
+      // อ่านใหม่ทั้งชุด ไม่ใช่แค่ปลดแบนเนอร์ - "initial" คืออ่านอย่างเดียว
+      // ไม่มี LLM pass จึงเรียกได้โดยไม่มีค่าใช้จ่าย
+      void sync("initial");
+    }
+
+    void check();
+    const timer = setInterval(() => void check(), 2000);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [state.serverDown, sync]);
 
   // Stable identities: each toast row keys its 3s auto-dismiss timer off
   // dismissToast, so it must not change on every unrelated state update or the
@@ -646,72 +820,176 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   );
   const clearToasts = useCallback(() => dispatch({ type: "toast/clear" }), []);
 
+  /**
+   * Re-reads `GET /employees` on its own.
+   *
+   * The create endpoint answers with a bare status, so the id and timestamps of
+   * the row it inserted can only come from a read — there is nothing to patch
+   * local state with. Cheap enough to be the whole refresh: one flat list, no
+   * LLM pass, nothing behind the "อัปเดตข้อมูล" button.
+   */
+  const reloadEmployees = useCallback(async () => {
+    try {
+      dispatch({
+        type: "employees/set",
+        employees: await employeeService.getEmployeesByCompany(),
+      });
+    } catch (error) {
+      console.error("reloadEmployees failed", error);
+      dispatch({
+        type: "toast/set",
+        toast: { kind: "error", message: syncErrorMessage(error) },
+      });
+    }
+  }, []);
+
   const value = useMemo<Store>(() => {
     const linkedGroups = state.groupLines.filter((g) => g.isLinked);
     const unlinkedGroups = state.groupLines.filter((g) => !g.isLinked);
-    const everyone = Object.values(state.contacts).flat();
+    const everyone = Object.values(state.employees).flat();
     const statusCounts: Record<ContactStatus, number> = {
       pending: 0,
-      approved: 0,
-      declined: 0,
+      active: 0,
+      resigned: 0,
+      transferred: 0,
+      inactive: 0,
     };
     for (const person of everyone) statusCounts[person.status] += 1;
+
+    /**
+     * ปิดทางเขียนขณะที่ติดต่อเซิร์ฟเวอร์ไม่ได้
+     *
+     * ยิงไปตอนนี้ก็ได้แค่ค้างจนหมดเวลา แล้วจบลงที่ "ไม่รู้ว่าเขียนไปหรือยัง"
+     * ซึ่งแย่กว่าไม่ได้เริ่ม - ปุ่มที่กดไม่ได้พร้อมเหตุผล อ่านง่ายกว่าปุ่มที่
+     * กดแล้วหมุนเปล่า ๆ การอ่านยังปล่อยให้ทำได้ เพราะการอ่านคือทางกลับ
+     */
+    const refuseWhileDown = (): boolean => {
+      if (!state.serverDown) return false;
+      dispatch({
+        type: "toast/set",
+        toast: { kind: "error", message: MESSAGES.serverDownBlocked },
+      });
+      return true;
+    };
 
     return {
       ...state,
       linkedGroups,
       unlinkedGroups,
       pendingCount: statusCounts.pending,
-      completedCount: statusCounts.approved,
+      staffCount: everyone.length - statusCounts.pending,
       statusCounts,
+      employeesOf: (companyId) =>
+        companyId === null || companyId === undefined
+          ? []
+          : (state.employees[companyId] ?? []),
       isCompanyFormOpen: (scope, groupId) =>
         state.editingCompany?.scope === scope &&
         state.editingCompany.groupId === groupId,
       sync,
+      reloadEmployees,
       toggleView: (groupId) => dispatch({ type: "view/toggle", groupId }),
       startContactEdit: (contactId) =>
         dispatch({ type: "contact/edit", contactId }),
       cancelContactEdit: () => dispatch({ type: "contact/edit-cancel" }),
 
-      saveContact: async (groupId, contactId, patch) => {
+      saveContact: async (companyId, contactId, patch) => {
+        if (refuseWhileDown()) return false;
         try {
-          await coordinatorService.update(contactId, patch);
+          await employeeService.update(contactId, patch);
         } catch (error) {
           console.error("saveContact failed", error);
           dispatch({
             type: "toast/set",
             toast: {
               kind: "error",
-              message: coordinatorUpdateErrorMessage(error),
+              message: employeeUpdateErrorMessage(error),
             },
           });
           return false;
         }
 
         // Only now, so a row the API refused keeps the values it still has.
-        dispatch({ type: "contact/save", groupId, contactId, patch });
         dispatch({
-          type: "toast/set",
-          toast: { kind: "success", message: MESSAGES.coordinatorUpdated },
+          type: "contact/save",
+          companyId,
+          contactId,
+          patch,
+          at: new Date().toISOString(),
         });
         return true;
       },
 
-      confirmContact: async (groupId, contactId) => {
-        const group = state.groupLines.find((g) => g.groupId === groupId);
-        if (group && !group.isLinked) {
+      saveEmployee: async (companyId, contactId, patch) => {
+        if (refuseWhileDown()) return false;
+        try {
+          await employeeService.syncUpdate(contactId, patch);
+        } catch (error) {
+          console.error("saveEmployee failed", error);
           dispatch({
             type: "toast/set",
-            toast: { kind: "error", message: MESSAGES.companyNotFound },
+            toast: {
+              kind: "error",
+              message: employeeUpdateErrorMessage(error),
+            },
           });
-          return;
+          return false;
         }
 
+        // The patch carries `companyId`, so a person moved to another company
+        // has to be re-read rather than patched: the row belongs under a key
+        // this list does not hold yet.
+        if (patch.companyId !== companyId) {
+          dispatch({ type: "contact/delete", companyId, contactId });
+          await reloadEmployees();
+        } else {
+          dispatch({
+            type: "contact/save",
+            companyId,
+            contactId,
+            patch,
+            at: new Date().toISOString(),
+            silent: true,
+          });
+        }
+
+        dispatch({
+          type: "toast/set",
+          toast: { kind: "success", message: MESSAGES.employeeUpdated },
+        });
+        return true;
+      },
+
+      createEmployee: async (payload) => {
+        if (refuseWhileDown()) return false;
         try {
-          await coordinatorService.approve(contactId);
+          await employeeService.create(payload);
+        } catch (error) {
+          console.error("createEmployee failed", error);
+          dispatch({
+            type: "toast/set",
+            toast: { kind: "error", message: employeeCreateErrorMessage(error) },
+          });
+          return false;
+        }
+
+        // POST /employees answers with a bare status, so the id and timestamps
+        // of the new row can only come from a read.
+        await reloadEmployees();
+        dispatch({
+          type: "toast/set",
+          toast: { kind: "success", message: MESSAGES.employeeCreated },
+        });
+        return true;
+      },
+
+      confirmContact: async (companyId, contactId) => {
+        if (refuseWhileDown()) return;
+        try {
+          await employeeService.approve(contactId);
           dispatch({
             type: "contact/confirm",
-            groupId,
+            companyId,
             contactId,
             at: new Date().toISOString(),
           });
@@ -719,19 +997,19 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
           console.error("confirmContact failed", error);
           dispatch({
             type: "toast/set",
-            toast: { kind: "error", message: coordinatorErrorMessage(error) },
+            toast: { kind: "error", message: employeeErrorMessage(error) },
           });
         }
       },
 
-      declineContact: async (groupId, contactId) => {
+      declineContact: async (companyId, contactId) => {
+        if (refuseWhileDown()) return;
         try {
-          await coordinatorService.decline(contactId);
+          await employeeService.decline(contactId);
+          dispatch({ type: "contact/delete", companyId, contactId });
           dispatch({
-            type: "contact/decline",
-            groupId,
-            contactId,
-            at: new Date().toISOString(),
+            type: "toast/set",
+            toast: { kind: "success", message: MESSAGES.employeeDeclined },
           });
         } catch (error) {
           console.error("declineContact failed", error);
@@ -742,11 +1020,33 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
         }
       },
 
+      deleteEmployee: async (companyId, contactId) => {
+        if (refuseWhileDown()) return false;
+        try {
+          await employeeService.syncRemove(contactId);
+        } catch (error) {
+          console.error("deleteEmployee failed", error);
+          dispatch({
+            type: "toast/set",
+            toast: { kind: "error", message: declineErrorMessage(error) },
+          });
+          return false;
+        }
+
+        dispatch({ type: "contact/delete", companyId, contactId });
+        dispatch({
+          type: "toast/set",
+          toast: { kind: "success", message: MESSAGES.employeeDeleted },
+        });
+        return true;
+      },
+
       openCompanyForm: (scope, groupId) =>
         dispatch({ type: "company/open", scope, groupId }),
       closeCompanyForm: () => dispatch({ type: "company/close" }),
 
       saveCompany: async (group, input) => {
+        if (refuseWhileDown()) return false;
         // companyId is the whole decision: null means no row exists for this
         // group yet (create, keyed by group id), anything else means one is
         // already there — including one the extraction pass wrote — and must
@@ -805,6 +1105,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       },
 
       unlinkCompany: async (group) => {
+        if (refuseWhileDown()) return false;
         if (group.companyId === null || group.companyId === undefined) {
           dispatch({
             type: "toast/set",
@@ -838,6 +1139,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       // what the database actually stored rather than re-read in full — the
       // modal that fired this is still open and would flicker on a refetch.
       saveCompanyContact: async (companyId, id, input) => {
+        if (refuseWhileDown()) return false;
         const editing = id !== null;
         let saved: Contact;
         try {
@@ -882,6 +1184,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       },
 
       deleteCompanyContact: async (companyId, id) => {
+        if (refuseWhileDown()) return false;
         try {
           await contactService.remove(id);
         } catch (error) {
@@ -928,6 +1231,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       // the list afterwards, because the company and person names on a card
       // are joined in by the API and cannot be guessed from the request body.
       saveNote: async (id, input) => {
+        if (refuseWhileDown()) return false;
         const editing = id !== null;
         try {
           if (editing) await noteService.update(id, input);
@@ -966,6 +1270,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       },
 
       deleteNote: async (id) => {
+        if (refuseWhileDown()) return false;
         try {
           await noteService.remove(id);
         } catch (error) {
@@ -995,7 +1300,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       dismissToast,
       clearToasts,
     };
-  }, [state, sync, dismissToast, clearToasts]);
+  }, [state, sync, reloadEmployees, dismissToast, clearToasts]);
 
   return (
     <ConsoleContext.Provider value={value}>{children}</ConsoleContext.Provider>

@@ -101,3 +101,36 @@ def update_display_name(user_id: str, display_name: str | None) -> UserProfile:
         conn.commit()
 
     return _profile(row)
+
+
+def create_user(username: str, password: str) -> None:
+    if not username or not password:
+        raise BadRequestError("Username and password are required.")
+
+    CREATE_USER = """
+INSERT INTO users (username, password)
+VALUES (%s, %s)
+RETURNING id, username, display_name;
+"""
+    try:
+        salt = bcrypt.gensalt()
+        hashed_password = bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+    except Exception as e:
+        logger.error("[Create User Error] password hashing failed: %s", e)
+        raise PasswordHashError() from e
+
+    # 2. บันทึกลงฐานข้อมูล
+    try:
+        with pg_db.get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(CREATE_USER, (username, hashed_password))
+                result = cursor.fetchone()
+                conn.commit()
+    except Exception as e:
+        logger.error("[Create User Error] database insert failed for %s: %s", username, e)
+        raise e
+
+    if not result:
+        raise BadRequestError("Failed to create user.")
+
+    return _profile(result)

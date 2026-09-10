@@ -67,7 +67,7 @@ export function NoteCard({
             )}
             <span className="flex items-center gap-1.5 tabular-nums">
               <Icon name="clock" className="size-3.5" />
-              แก้ไข {formatThaiDate(note.updatedAt, true)}
+              แก้ไข {formatThaiDate(note.updatedAt)}
             </span>
             {edited && (
               <span className="flex items-center gap-1.5 tabular-nums text-text-4">

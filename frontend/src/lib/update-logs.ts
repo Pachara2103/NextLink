@@ -107,7 +107,23 @@ export function useUpdateLogs(): UpdateLogsState {
   return state;
 }
 
+/** The most recent อัปเดตข้อมูล, or null while that is not known yet. */
+export function latestUpdate(state: UpdateLogsState): UpdateLog | null {
+  return state.logs[0] ?? null;
+}
+
 /** When the last อัปเดตข้อมูล ran, or null while that is not known yet. */
 export function latestUpdateAt(state: UpdateLogsState): string | null {
   return state.logs[0]?.createdAt ?? null;
+}
+
+/**
+ * The groups the last run could not finish.
+ *
+ * An empty array on a run that happened means every group came back clean —
+ * which is a different thing from having no run to report — so callers that
+ * want to say "สำเร็จทุกกลุ่ม" check `latestUpdate` first.
+ */
+export function latestErrorGroups(state: UpdateLogsState): string[] {
+  return state.logs[0]?.errorGroups ?? [];
 }

@@ -2,6 +2,11 @@
 
 import { cn } from "@/lib/utils";
 
+const SEGMENT_SIZES = {
+  sm: "px-3 py-1 text-[12.5px]",
+  md: "px-3.5 py-1.5 text-[13px]",
+} as const;
+
 export function SegmentedControl<T extends string>({
   value,
   onChange,
@@ -12,14 +17,14 @@ export function SegmentedControl<T extends string>({
   value: T;
   onChange: (value: T) => void;
   options: { value: T; label: string }[];
-  size?: "sm" | "md";
+  size?: keyof typeof SEGMENT_SIZES;
   className?: string;
 }) {
   return (
     <div
       role="tablist"
       className={cn(
-        "inline-flex gap-1 rounded-xl border border-line bg-sunken p-1",
+        "inline-flex shrink-0 gap-1 rounded-xl border border-line bg-sunken p-1",
         className,
       )}
     >
@@ -33,8 +38,8 @@ export function SegmentedControl<T extends string>({
             aria-selected={active}
             onClick={() => onChange(option.value)}
             className={cn(
-              "rounded-lg transition",
-              size === "md" ? "px-3.5 py-1.5 text-[13px]" : "px-3 py-1 text-[12.5px]",
+              "rounded-lg whitespace-nowrap transition",
+              SEGMENT_SIZES[size],
               active
                 ? "bg-accent-soft text-accent"
                 : "text-text-2 hover:text-text",

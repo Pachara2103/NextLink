@@ -19,15 +19,24 @@ export type GroupLayout = "list" | "grid";
 
 export type PanelKey =
   | "contacts"
+  | "people"
   | "groups"
   | "notes"
   | "agent"
   | "library";
 
 /**
+ * The two things the people directory can be searched for. They are different
+ * searches, not one search over more fields: looking for a person answers with
+ * a list of people, while looking for a group or company narrows the directory
+ * underneath — so which one is meant has to be said rather than guessed.
+ */
+export type PeopleSearchMode = "person" | "group";
+
+/**
  * "groups" and "all" are the two buttons in the topbar. "initial" is the mount
  * read: it pulls the cheap endpoints at once so a fresh login already shows the
- * coordinators left over from the last session, without paying for the LLM pass
+ * employees left over from the last session, without paying for the LLM pass
  * that "all" runs.
  */
 export type SyncScope = "all" | "groups" | "initial";

@@ -14,15 +14,18 @@ import type { GroupLine } from "@/types";
  * Behind the confirm it calls DELETE /companies/{id}, which drops the company
  * row — so the group's LEFT JOIN gives it companyId = null again and it moves
  * back to "ยังไม่ได้ผูกบริษัท". The dialog spells out both halves of that,
- * because the graph node goes with it and coordinators approved under this
+ * because the graph node goes with it and employees approved under this
  * company have to be approved again once the right one is bound.
  */
 export function UnlinkCompanyButton({
   group,
   size = "sm",
+  className,
 }: {
   group: GroupLine;
   size?: "sm" | "md";
+  /** Lets a card footer stretch it to its share of the row. */
+  className?: string;
 }) {
   const { unlinkCompany } = useConsole();
   const [confirming, setConfirming] = useState(false);
@@ -49,9 +52,10 @@ export function UnlinkCompanyButton({
         variant="danger"
         icon="unlink"
         size={size}
+        className={className}
         onClick={() => setConfirming(true)}
       >
-        
+        ยกเลิกผูกบริษัท
       </Button>
 
       <ConfirmModal

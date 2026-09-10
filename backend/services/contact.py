@@ -1,12 +1,3 @@
-"""Company contacts — the people we know *at* a company.
-
-Not to be confused with `coordinators`, which is what the extraction pass
-produces from LINE chat and a reviewer approves. A contact is entered by hand,
-belongs to a company rather than to a LINE group, and never touches the graph:
-these rows exist so the console can show "who do we know here" next to a
-company name, so PostgreSQL is the whole story.
-"""
-
 from typing import Any
 
 from core.db import pg_db
@@ -17,21 +8,14 @@ from utils.mapping import columns_of, rows_to_models
 
 SELECT_CONTACTS = f"SELECT {columns_of(Contact)} FROM contacts"
 
-# Oldest first, so the badges on a group card keep a stable order as the list
-# grows — a new contact joins the end of the row instead of shuffling the ones
-# already there.
 ORDER = " ORDER BY created_at ASC, id ASC"
 
 
 def _clean(value: str | None) -> str | None:
-    """Blank stays out of the table: "" and NULL both mean "not given", and
-    keeping only one of the two spellings means the client never has to test
-    for both."""
     if value is None:
         return None
     trimmed = value.strip()
     return trimmed or None
-
 
 def _require_name(name: str | None) -> str:
     cleaned = _clean(name)
@@ -39,27 +23,12 @@ def _require_name(name: str | None) -> str:
         raise BadRequestError(message="กรุณากรอกชื่อผู้ติดต่อ")
     return cleaned
 
-
 def get_contacts(company_id: int | None = None) -> ListResponse[Contact]:
-    """Every contact, or only one company's.
-
-    The console reads the whole table once per sync and buckets by companyId on
-    the client — same shape as coordinators — so `company_id` is here for
-    callers that want a single company, not because the console needs it.
-    """
-    query = SELECT_CONTACTS
-    params: tuple = ()
-
-    if company_id is not None:
-        query += " WHERE company_id = %s"
-        params = (company_id,)
-
     with pg_db.get_connection() as conn:
         with conn.cursor() as cursor:
-            cursor.execute(query + ORDER + ";", params)
+            cursor.execute(SELECT_CONTACTS)
             rows = rows_to_models(cursor, Contact)
             return ListResponse(items=rows, total=len(rows))
-
 
 def get_contact(id: int) -> Contact:
     with pg_db.get_connection() as conn:

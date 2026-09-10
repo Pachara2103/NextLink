@@ -3,7 +3,7 @@
  *
  * Nothing here declares a field. `api.ts` is generated from the backend's
  * /openapi.json (`npm run gen:api`), so a Pydantic model in backend/schemas/ is
- * the only place a coordinator's or a company's fields are written down — this
+ * the only place a employee's or a company's fields are written down — this
  * file just gives those generated shapes short names to import.
  */
 
@@ -22,17 +22,31 @@ export type Company = Schemas["Company"];
 /** Body of both company writes — the create and the rename take the same one. */
 export type CompanyInput = Schemas["CompanyName"];
 
-/** A coordinator row as `GET /coordinators` returns it. */
-export type Coordinator = Schemas["Coordinator"];
+/**
+ * A employee row as `GET /employees` returns it.
+ *
+ * Keyed to a **company**, not to a LINE group: `employees.company_id` is the FK
+ * the table actually carries, and a group reaches its people through the
+ * company row it points at (`GroupLine.companyId`). There is no `groupId` on
+ * this shape to join on.
+ */
+export type Employee = Schemas["Employee"];
 
 /**
- * Body of `PUT /coordinators/{id}`: the seven editable fields and nothing else.
- * id lives in the path and status/timestamps belong to the server, which is why
- * the client no longer has to strip them off a read model before sending it.
+ * Body of every employee write — `POST /employees`, `PUT /employees/{id}` and
+ * `PUT /employees/{id}/sync` all take the same one.
+ *
+ * The seven editable fields plus the two the row cannot exist without: which
+ * company the person belongs to, and what state they are in. Only `id` and the
+ * timestamps are the server's, which is why the client still never has to strip
+ * anything off a read model before sending it.
  */
-export type CoordinatorUpdate = Schemas["CoordinatorCreate"];
+export type EmployeeUpdate = Schemas["EmployeeBase"];
 
-/** The activity a coordinator is attached to. Closed set, enforced in Python. */
+/** Same body, under the name that reads right at the create call site. */
+export type EmployeeCreate = Schemas["EmployeeBase"];
+
+/** The activity a employee is attached to. Closed set, enforced in Python. */
 export type RelevantType = Schemas["RelevantType"];
 
 /** One note joined with the company and person names needed to render it. */
@@ -45,12 +59,20 @@ export type NoteType = Schemas["NoteType"];
 export type NoteSource = Schemas["NoteSource"];
 export type Sentiment = Schemas["Sentiment"];
 
-/** Approval state of one extracted coordinator. */
-export type ContactStatus = Schemas["ApprovalStatus"];
+/**
+ * `employees.status`. One value means "not reviewed yet" (`pending`); the other
+ * four are where a person stands at the company once they have been. There is
+ * no `approved` / `declined` any more — an approval writes `active`, and a
+ * decline deletes the row.
+ */
+export type ContactStatus = Schemas["ContactStatus"];
+
+/** The four states a reviewed employee can be in — everything but `pending`. */
+export type EmployeeStatus = Exclude<ContactStatus, "pending">;
 
 /**
  * Company contacts — the people we know *at* a company, entered by hand.
- * Nothing to do with Coordinator, which is what the extraction pass produces
+ * Nothing to do with Employee, which is what the extraction pass produces
  * from LINE chat. Hand-written for now; see the note in `contact.ts`.
  */
 export type {
@@ -110,6 +132,7 @@ export type StatusResponse = Schemas["StatusResponse"];
 export type {
   GroupLayout,
   PanelKey,
+  PeopleSearchMode,
   SortOption,
   SyncScope,
   Toast,

@@ -1,4 +1,4 @@
-mock_company_and_coordinator = """
+mock_company_and_employee = """
 UNWIND [
   {
     c_id: 1, c_groupId: "GRP-001", companyTh: "ปตท. จำกัด (มหาชน)", companyEn: "PTT Public Company Limited", aliases: ["ปตท", "PTT"],
@@ -11,7 +11,7 @@ UNWIND [
     c_id: 2, c_groupId: "GRP-001", companyTh: "เอสซีจี แพคเกจจิ้ง", companyEn: "SCG Packaging", aliases: ["SCGP", "เอสซีจีแพค"],
     coords: [
       {id: 103, status: "active", nameTh: "กิตติศักดิ์ มั่นคง", nameEn: "Kittisak Mankong", nickname: "กิต", job_title: "Account Executive", phone: "082-222-2221", email: "kittisak@scg.com", relevant: "ประสานงานทั่วไป"},
-      {id: 104, status: "pending", nameTh: "นภาพร สุขใจ", nameEn: "Napaporn Sukjai", nickname: "ภา", job_title: "Coordinator", phone: "082-222-2222", email: "napaporn@scg.com", relevant: "ประสานงานเอกสาร"}
+      {id: 104, status: "pending", nameTh: "นภาพร สุขใจ", nameEn: "Napaporn Sukjai", nickname: "ภา", job_title: "Employee", phone: "082-222-2222", email: "napaporn@scg.com", relevant: "ประสานงานเอกสาร"}
     ]
   },
   {
@@ -66,7 +66,7 @@ UNWIND [
   {
     c_id: 11, c_groupId: "GRP-005", companyTh: "ท่าอากาศยานไทย", companyEn: "Airports of Thailand", aliases: ["AOT", "การทอดอนเมือง", "การทอ"],
     coords: [
-      {id: 114, status: "active", nameTh: "ธีรเดช สุวรรณ", nameEn: "Theeradech Suwan", nickname: "เดช", job_title: "Operations Coordinator", phone: "080-000-0002", email: "theeradech@aot.co.th", relevant: "ประสานงานท่าอากาศยาน"}
+      {id: 114, status: "active", nameTh: "ธีรเดช สุวรรณ", nameEn: "Theeradech Suwan", nickname: "เดช", job_title: "Operations Employee", phone: "080-000-0002", email: "theeradech@aot.co.th", relevant: "ประสานงานท่าอากาศยาน"}
     ]
   },
   {
@@ -106,10 +106,10 @@ CREATE (c:Company {
   updatedAt: datetime()
 })
 
-// 2. สร้าง Node Coordinator และผูก Relationship
+// 2. สร้าง Node Employee และผูก Relationship
 WITH c, data
 UNWIND data.coords AS coord
-CREATE (co:Coordinator {
+CREATE (co:Employee {
   id: coord.id,
   groupId: data.c_groupId,
   status: coord.status,
@@ -123,5 +123,5 @@ CREATE (co:Coordinator {
   createdAt: datetime(),
   updatedAt: datetime()
 })
-CREATE (c)-[:HAS_COORDINATOR]->(co)
+CREATE (c)-[:HAS_EMPLOYEE]->(co)
 """

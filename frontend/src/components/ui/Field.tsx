@@ -43,7 +43,13 @@ export function TextField({
   className,
   ...rest
 }: ComponentProps<"input"> & {
-  label: string;
+  /**
+   * Omit it when something above the box already names the field — the
+   * two-mode job title puts its label on the row that carries the mode
+   * switch, and a second one under it would read as a different field.
+   * Pass `aria-label` in that case so the input is still named.
+   */
+  label?: string;
   required?: boolean;
   /** Shows the error ring plus this message underneath the control. */
   error?: string;
@@ -56,9 +62,11 @@ export function TextField({
   const bad = invalid || Boolean(error);
   return (
     <label className="block">
-      <FieldLabel required={required} tone={bad ? "error" : "default"}>
-        {label}
-      </FieldLabel>
+      {label !== undefined && (
+        <FieldLabel required={required} tone={bad ? "error" : "default"}>
+          {label}
+        </FieldLabel>
+      )}
       <input
         type="text"
         aria-invalid={bad ? true : undefined}
@@ -131,7 +139,14 @@ export function SelectField({
   );
 }
 
-/** Compact select used in section headers, where the label is visually hidden. */
+/**
+ * Compact select used in section headers, where the label is visually hidden.
+ *
+ * The wrapper shrinks to the select rather than filling its parent: the
+ * chevron is positioned against the wrapper, so a block-level one in a grid
+ * cell or any other full-width slot left the glyph stranded at the far right
+ * with empty space between it and the control it belongs to.
+ */
 export function SortSelect({
   label,
   options,
@@ -141,7 +156,7 @@ export function SortSelect({
   options: { value: string; label: string }[];
 }) {
   return (
-    <div className="relative">
+    <div className="relative inline-block w-fit max-w-full align-top">
       <select
         aria-label={label}
         className="appearance-none rounded-xl border border-line bg-sunken py-2 pr-9 pl-3.5 text-[13px] text-text transition hover:border-text-4 focus:border-accent focus:outline-none"

@@ -56,4 +56,4 @@ def get_embedder():
 
 def warmup() -> None:
     get_llm()
-    get_embedder()
+    # get_embedder()

@@ -150,24 +150,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/coordinators": {
+    "/api/v1/employees": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Coordinators Api */
-        get: operations["get_coordinators_api_api_v1_coordinators_get"];
+        /** Get Employees Api */
+        get: operations["get_employees_api_api_v1_employees_get"];
         put?: never;
+        /** Sync Create Employee Api */
+        post: operations["sync_create_employee_api_api_v1_employees_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employees/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Employee Api */
+        post: operations["approve_employee_api_api_v1_employees__id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employees/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Employee Pg Api */
+        put: operations["update_employee_pg_api_api_v1_employees__id__put"];
         post?: never;
-        delete?: never;
+        /** Decline Employee Api */
+        delete: operations["decline_employee_api_api_v1_employees__id__delete"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/coordinators/{id}/approve": {
+    "/api/v1/employees/{id}/sync": {
         parameters: {
             query?: never;
             header?: never;
@@ -175,44 +211,11 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
-        /** Approve Coordinator Api */
-        post: operations["approve_coordinator_api_api_v1_coordinators__id__approve_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/coordinators/{id}/decline": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Decline Coordinator Api */
-        post: operations["decline_coordinator_api_api_v1_coordinators__id__decline_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/coordinators/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Update Coordinator Api */
-        put: operations["update_coordinator_api_api_v1_coordinators__id__put"];
+        /** Sync Update Employee Api */
+        put: operations["sync_update_employee_api_api_v1_employees__id__sync_put"];
         post?: never;
-        delete?: never;
+        /** Sync Delete Employee Api */
+        delete: operations["sync_delete_employee_api_api_v1_employees__id__sync_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -293,10 +296,10 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
-         * ApprovalStatus
+         * ContactStatus
          * @enum {string}
          */
-        ApprovalStatus: "pending" | "approved" | "declined";
+        ContactStatus: "pending" | "active" | "resigned" | "transferred" | "inactive";
         /** Company */
         Company: {
             /** Createdat */
@@ -343,8 +346,8 @@ export interface components {
              */
             aliases?: string[] | null;
         };
-        /** Coordinator */
-        Coordinator: {
+        /** Employee */
+        Employee: {
             /** Createdat */
             createdAt: string | null;
             /** Updatedat */
@@ -381,17 +384,17 @@ export interface components {
              * @description ชื่อเล่น
              */
             nickname?: string | null;
+            status: components["schemas"]["ContactStatus"];
+            /** Companyid */
+            companyId: number;
             /** Id */
             id: number;
-            status: components["schemas"]["ApprovalStatus"];
-            /** Groupid */
-            groupId: string;
         };
         /**
-         * CoordinatorCreate
-         * @description Schema for creating a new coordinator.
+         * EmployeeBase
+         * @description Schema for creating a new employee.
          */
-        CoordinatorCreate: {
+        EmployeeBase: {
             /** @description ความเกี่ยวข้องกับบริษัท */
             relevant?: components["schemas"]["RelevantType"] | null;
             /**
@@ -424,6 +427,9 @@ export interface components {
              * @description ชื่อเล่น
              */
             nickname?: string | null;
+            status: components["schemas"]["ContactStatus"];
+            /** Companyid */
+            companyId: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -469,10 +475,10 @@ export interface components {
             /** Total */
             total?: number | null;
         };
-        /** ListResponse[Coordinator] */
-        ListResponse_Coordinator_: {
+        /** ListResponse[Employee] */
+        ListResponse_Employee_: {
             /** Items */
-            items: components["schemas"]["Coordinator"][];
+            items: components["schemas"]["Employee"][];
             /** Total */
             total?: number | null;
         };
@@ -525,10 +531,25 @@ export interface components {
          * @description One row joined with the names the console needs to render it.
          *
          *     company_th / company_en / aliases come from `companies`, person_name /
-         *     person_nickname from `coordinators` — enriched here so the client never has
+         *     person_nickname from `employees` — enriched here so the client never has
          *     to stitch three lists together to render one card.
          */
         Note: {
+            /**
+             * Nameth
+             * @description ชื่อภาษาไทย
+             */
+            nameTh?: string | null;
+            /**
+             * Nameen
+             * @description ชื่อภาษาอังกฤษ
+             */
+            nameEn?: string | null;
+            /**
+             * Nickname
+             * @description ชื่อเล่น
+             */
+            nickname?: string | null;
             /**
              * Companyth
              * @description ชื่อบริษัทภาษาไทย
@@ -568,32 +589,16 @@ export interface components {
              * @default external
              */
             source: components["schemas"]["NoteSource"];
-            /**
-             * Academicyear
-             * @description ปีการศึกษา เช่น 2026
-             */
-            academicYear?: number | null;
-            /**
-             * Term
-             * @description ภาคเรียน (3 = ฤดูร้อน)
-             */
-            term?: (1 | 2 | 3) | null;
-            /**
-             * Groupid
-             * @description กลุ่มไลน์/บริษัทที่โน้ตนี้ผูกอยู่
-             */
-            groupId?: string | null;
-            /**
-             * Personid
-             * @description coordinators.id เมื่อโน้ตผูกกับคน
-             */
-            personId?: number | null;
+            /** Academicyear */
+            academicYear: number;
+            /** Term */
+            term: 1 | 2 | 3;
+            /** Companyid */
+            companyId: number;
+            /** Employeeid */
+            employeeId?: number | null;
             /** Id */
             id: number;
-            /** Personname */
-            personName?: string | null;
-            /** Personnickname */
-            personNickname?: string | null;
         };
         /**
          * NoteSource
@@ -604,15 +609,15 @@ export interface components {
          * NoteType
          * @enum {string}
          */
-        NoteType: "mou" | "elective" | "internship" | "coop" | "friday" | "hr" | "coordinator" | "instructor";
+        NoteType: "mou" | "elective" | "internship" | "coop" | "friday" | "person";
         /**
          * NoteCreate
          * @description Body of both writes.
          *
-         *     `group_id` is required for every type the console offers, because a note is
-         *     always filed under a company. `person_id` is required on top of that when
-         *     the type is about one person (coordinator / hr / instructor) — checked in
-         *     services/note.py so the error can name which one is missing.
+         *     `company_id` is required for every type, because a note is always filed
+         *     under a company. `employee_id` is required on top of that when the type is
+         *     `person`, and must be absent otherwise — checked in services/note.py, and
+         *     again by ck_notes_employee_binding.
          */
         NoteCreate: {
             /**
@@ -635,26 +640,14 @@ export interface components {
              * @default external
              */
             source: components["schemas"]["NoteSource"];
-            /**
-             * Academicyear
-             * @description ปีการศึกษา เช่น 2026
-             */
-            academicYear?: number | null;
-            /**
-             * Term
-             * @description ภาคเรียน (3 = ฤดูร้อน)
-             */
-            term?: (1 | 2 | 3) | null;
-            /**
-             * Groupid
-             * @description กลุ่มไลน์/บริษัทที่โน้ตนี้ผูกอยู่
-             */
-            groupId?: string | null;
-            /**
-             * Personid
-             * @description coordinators.id เมื่อโน้ตผูกกับคน
-             */
-            personId?: number | null;
+            /** Academicyear */
+            academicYear: number;
+            /** Term */
+            term: 1 | 2 | 3;
+            /** Companyid */
+            companyId: number;
+            /** Employeeid */
+            employeeId?: number | null;
         };
         /**
          * ProfileUpdate
@@ -671,7 +664,7 @@ export interface components {
          * RelevantType
          * @enum {string}
          */
-        RelevantType: "mou" | "elective" | "internship" | "coop" | "friday";
+        RelevantType: "mou" | "elective" | "internship" | "coop" | "friday" | "general";
         /**
          * Sentiment
          * @enum {string}
@@ -1015,7 +1008,7 @@ export interface operations {
             };
         };
     };
-    get_coordinators_api_api_v1_coordinators_get: {
+    get_employees_api_api_v1_employees_get: {
         parameters: {
             query?: never;
             header?: {
@@ -1032,7 +1025,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ListResponse_Coordinator_"];
+                    "application/json": components["schemas"]["ListResponse_Employee_"];
                 };
             };
             /** @description Validation Error */
@@ -1046,7 +1039,7 @@ export interface operations {
             };
         };
     };
-    approve_coordinator_api_api_v1_coordinators__id__approve_post: {
+    approve_employee_api_api_v1_employees__id__approve_post: {
         parameters: {
             query?: never;
             header?: {
@@ -1079,7 +1072,42 @@ export interface operations {
             };
         };
     };
-    decline_coordinator_api_api_v1_coordinators__id__decline_post: {
+    sync_create_employee_api_api_v1_employees_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmployeeBase"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decline_employee_api_api_v1_employees__id__delete: {
         parameters: {
             query?: never;
             header?: {
@@ -1112,7 +1140,7 @@ export interface operations {
             };
         };
     };
-    update_coordinator_api_api_v1_coordinators__id__put: {
+    update_employee_pg_api_api_v1_employees__id__put: {
         parameters: {
             query?: never;
             header?: {
@@ -1125,9 +1153,79 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CoordinatorCreate"];
+                "application/json": components["schemas"]["EmployeeBase"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_update_employee_api_api_v1_employees__id__sync_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmployeeBase"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_delete_employee_api_api_v1_employees__id__sync_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

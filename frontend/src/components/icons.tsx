@@ -61,6 +61,7 @@ export const ICON_NAMES = [
   "list",
   "grid",
   "chevron-up",
+  "more-vertical",
   // คุณขวัญใจ (components/agent/*)
   "send",
   "stop",
@@ -286,6 +287,12 @@ export function IconSprite() {
         <path d="M17 12h4" opacity="0.5" />
         <path d="m5.6 18.4 2.9-2.9" opacity="0.6" />
         <path d="m15.5 8.5 2.9-2.9" opacity="0.7" />
+      </symbol>
+      {/* The ⋮ that opens a card's overflow menu. */}
+      <symbol {...STROKE} id="i-more-vertical" viewBox="0 0 24 24">
+        <circle cx="12" cy="5" r="1" fill="currentColor" />
+        <circle cx="12" cy="12" r="1" fill="currentColor" />
+        <circle cx="12" cy="19" r="1" fill="currentColor" />
       </symbol>
       <symbol {...STROKE} id="i-send" viewBox="0 0 24 24">
         <path d="M4.5 12 20 4.5 15.2 20l-3.3-5.6Z" />

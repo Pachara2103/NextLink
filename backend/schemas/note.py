@@ -17,8 +17,8 @@ class NoteBase(ApiBaseModel):
     term: Literal[1, 2, 3] 
 
 class NoteCreate(NoteBase):
-    group_id: str 
-    person_id: int | None = None
+    company_id: int
+    employee_id: int | None
 
 class Note(NoteCreate, BaseTimestamp, CompanyName, BasePersonName):
     id: int

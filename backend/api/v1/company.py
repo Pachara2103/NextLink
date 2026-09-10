@@ -21,7 +21,6 @@ def create_company_api(payload: CompanyName, group_id: str, user: AuthUser = Dep
 
 @router.put("/{id}", response_model=StatusResponse)
 def update_company_api(payload: CompanyName, id: int, user: AuthUser = Depends(current_user)):
-    print(f"aliases: {payload.aliases} type: {type(payload.aliases)}")
     sync_update_company(payload, id=id)
     return StatusResponse()
 

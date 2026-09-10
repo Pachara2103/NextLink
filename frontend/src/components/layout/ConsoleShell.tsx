@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { MobileNav } from "@/components/layout/MobileNav";
+import { ServerStatusBanner } from "@/components/layout/ServerStatusBanner";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ToastHost } from "@/components/layout/ToastHost";
 import { AgentPanel } from "@/components/panels/AgentPanel";
@@ -10,11 +11,13 @@ import { ContactsPanel } from "@/components/panels/ContactsPanel";
 import { GroupsPanel } from "@/components/panels/GroupsPanel";
 import { LibraryPanel } from "@/components/panels/LibraryPanel";
 import { NotesPanel } from "@/components/panels/NotesPanel";
+import { PeoplePanel } from "@/components/panels/PeoplePanel";
 import { ConsoleProvider } from "@/store/console-store";
 import type { PanelKey } from "@/types";
 
 const PANELS: Record<PanelKey, () => React.ReactElement> = {
   contacts: ContactsPanel,
+  people: PeoplePanel,
   groups: GroupsPanel,
   notes: NotesPanel,
   agent: AgentPanel,
@@ -64,6 +67,10 @@ export function ConsoleShell() {
               readable while a modal is open and never shifts the panel. */}
           <ToastHost />
 
+          {/* บนสุดของทุกหน้า และค้างอยู่ตอนเลื่อน: ถ้าเซิร์ฟเวอร์หายไป
+              ทุกอย่างที่อยู่ใต้แถบนี้คือข้อมูลที่ยังยืนยันไม่ได้ */}
+          <ServerStatusBanner />
+
           {fullHeight ? (
             <main className="flex min-h-0 flex-1 flex-col">
               {/* Below lg the sidebar is hidden, so this is the only way out of
@@ -83,8 +90,7 @@ export function ConsoleShell() {
 
               <footer className="border-t border-line-soft px-5 py-6 sm:px-8">
                 <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[11px] text-text-4">
-                  <span>NextLink AI · Coordinator Console</span>
-                  <span>Next.js · TypeScript · Tailwind CSS</span>
+                  <span>NextLink Console</span>
                 </div>
               </footer>
             </>

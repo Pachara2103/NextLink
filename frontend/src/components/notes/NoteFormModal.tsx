@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
-import { FieldLabel, SortSelect } from "@/components/ui/Field";
+import { FieldLabel, SelectField } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import {
   NOTE_TYPES,
@@ -17,18 +17,24 @@ import {
 } from "@/lib/notes";
 import { cn, companyLabel, groupLabel } from "@/lib/utils";
 import { useConsole } from "@/store/console-store";
-import type { Coordinator, GroupLine, Note, NoteInput, NoteType } from "@/types";
+import type { Employee, GroupLine, Note, NoteInput, NoteType } from "@/types";
 
-/** Everything the form holds while it is open. Not NoteInput: term/year are
- *  always set here, and groupId/personId start out unchosen. */
+/**
+ * Everything the form holds while it is open. Not NoteInput: term/year are
+ * always set here, and the company/employee start out unchosen.
+ *
+ * `companyId`, not a group id — that is what `notes.company_id` stores. The
+ * picker below still lists LINE groups, because that is how anyone recognises
+ * a company here, but what it writes down is the company the group points at.
+ */
 interface Draft {
   type: NoteType;
   source: NoteInput["source"];
   sentiment: NoteInput["sentiment"];
   academicYear: number;
   term: 1 | 2 | 3;
-  groupId: string | null;
-  personId: number | null;
+  companyId: number | null;
+  employeeId: number | null;
   content: string;
 }
 
@@ -40,8 +46,8 @@ export function emptyNoteDraft(): Draft {
     sentiment: "neutral",
     academicYear: current.academicYear,
     term: current.term,
-    groupId: null,
-    personId: null,
+    companyId: null,
+    employeeId: null,
     content: "",
   };
 }
@@ -54,8 +60,8 @@ function draftFrom(note: Note): Draft {
     sentiment: note.sentiment ?? "neutral",
     academicYear: note.academicYear ?? current.academicYear,
     term: (note.term ?? current.term) as 1 | 2 | 3,
-    groupId: note.groupId ?? null,
-    personId: note.personId ?? null,
+    companyId: note.companyId,
+    employeeId: note.employeeId ?? null,
     content: note.content ?? "",
   };
 }
@@ -110,7 +116,7 @@ export function NoteFormModal({
   editing: Note | null;
   onClose: () => void;
 }) {
-  const { groupLines, contacts, saveNote } = useConsole();
+  const { groupLines, employeesOf, saveNote } = useConsole();
 
   // Keyed remount from the panel resets this, so the draft can start from the
   // note being edited without an effect that syncs props into state.
@@ -123,9 +129,22 @@ export function NoteFormModal({
 
   const patch = (next: Partial<Draft>) => setDraft((d) => ({ ...d, ...next }));
 
+  /**
+   * กลุ่มไลน์ของบริษัทที่เลือกไว้ - null เมื่อยังไม่ได้เลือก
+   *
+   * เช็ค null ก่อนเสมอ ห้ามปล่อยให้ find ทำงานตอน companyId ยังเป็น null:
+   * กลุ่มที่ยังไม่ได้ผูกบริษัทก็มี companyId เป็น null เหมือนกัน `find` จึงไป
+   * เจอกลุ่มนั้นแล้วคืนมาเป็น "บริษัทที่เลือกไว้" ทั้งที่ยังไม่ได้เลือกอะไร
+   * อาการคือฟอร์มเปิดมาก็ติดบริษัทมั่ว ๆ ไว้แล้ว ปุ่มบันทึกยังขึ้นว่า
+   * "ยังต้อง: เลือกบริษัท" และกากบาทกดแล้วไม่หาย เพราะการล้างค่าคือ set null
+   * ซึ่งไปเข้าเงื่อนไขเดิมอีกรอบ
+   */
   const selectedGroup = useMemo(
-    () => groupLines.find((g) => g.groupId === draft.groupId) ?? null,
-    [groupLines, draft.groupId],
+    () =>
+      draft.companyId === null || draft.companyId === undefined
+        ? null
+        : (groupLines.find((g) => g.companyId === draft.companyId) ?? null),
+    [groupLines, draft.companyId],
   );
 
   // Only groups with a company are offerable: a note is filed under a company,
@@ -133,7 +152,10 @@ export function NoteFormModal({
   const options = useMemo(() => {
     const needle = companyQuery.trim().toLowerCase();
     return groupLines
-      .filter((g) => g.isLinked)
+      // companyId as well as isLinked: what the pick writes down is the
+      // company id, so a group without one is not offerable even if the flag
+      // says otherwise.
+      .filter((g) => g.isLinked && g.companyId !== null)
       .filter((g) =>
         needle === ""
           ? true
@@ -143,9 +165,13 @@ export function NoteFormModal({
       );
   }, [groupLines, companyQuery]);
 
-  const people: Coordinator[] = draft.groupId
-    ? (contacts[draft.groupId] ?? []).filter((p) => p.status === "approved")
-    : [];
+  // Only people who have been through review can be pointed at: a note is a
+  // graph edge to an Employee node, and a `pending` row has no node yet. Any
+  // other status is fine — someone who has since resigned still said what the
+  // note is recording.
+  const people: Employee[] = employeesOf(selectedGroup?.companyId).filter(
+    (person) => person.status !== "pending",
+  );
 
   const needsPerson = isPersonNote(draft.type);
 
@@ -159,8 +185,9 @@ export function NoteFormModal({
   const locked = editing !== null;
 
   const blockers: string[] = [];
-  if (!draft.groupId) blockers.push("เลือกบริษัท");
-  if (needsPerson && draft.personId === null) blockers.push("เลือกผู้ประสานงาน");
+  if (draft.companyId === null) blockers.push("เลือกบริษัท");
+  if (needsPerson && draft.employeeId === null)
+    blockers.push("เลือกผู้ประสานงาน");
   if (draft.content.trim() === "") blockers.push("กรอกเนื้อหาโน้ต");
   const canSave = blockers.length === 0;
 
@@ -178,10 +205,13 @@ export function NoteFormModal({
         source: draft.source,
         academicYear: draft.academicYear,
         term: draft.term,
-        groupId: draft.groupId,
-        // The API rejects a personId on a company-level note, so it goes only
-        // when the type actually calls for one.
-        personId: needsPerson ? draft.personId : null,
+        // Non-null by canSave, which blocks the button until a company is
+        // picked — notes.company_id is NOT NULL.
+        companyId: draft.companyId!,
+        // The API rejects an employeeId on a company-level note (and so does
+        // ck_notes_employee_binding), so it goes only when the type calls for
+        // one.
+        employeeId: needsPerson ? draft.employeeId : null,
       });
       if (saved) onClose();
     } finally {
@@ -234,10 +264,10 @@ export function NoteFormModal({
               tone="border-accent-line bg-accent-soft text-accent"
               onClick={() =>
                 // Leaving a person type drops the person: the API refuses a
-                // personId on a company-level note.
+                // employeeId on a company-level note.
                 patch({
                   type: t.value,
-                  personId: isPersonNote(t.value) ? draft.personId : null,
+                  employeeId: isPersonNote(t.value) ? draft.employeeId : null,
                 })
               }
             >
@@ -289,9 +319,12 @@ export function NoteFormModal({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* SelectField, not the header-sized SortSelect: these two are form
+            fields in a grid cell, so they fill their column like บริษัท and
+            the rest of the form — and their chevron sits inside the control
+            instead of floating out at the edge of the cell. */}
         <div>
-          <FieldLabel>ปีการศึกษา</FieldLabel>
-          <SortSelect
+          <SelectField
             label="ปีการศึกษา"
             value={String(draft.academicYear)}
             onChange={(event) =>
@@ -304,8 +337,7 @@ export function NoteFormModal({
           />
         </div>
         <div>
-          <FieldLabel>ภาคเรียน</FieldLabel>
-          <SortSelect
+          <SelectField
             label="ภาคเรียน"
             value={String(draft.term)}
             onChange={(event) =>
@@ -345,7 +377,7 @@ export function NoteFormModal({
                 type="button"
                 aria-label="ล้างบริษัทที่เลือก"
                 onClick={() => {
-                  patch({ groupId: null, personId: null });
+                  patch({ companyId: null, employeeId: null });
                   setCompanyOpen(true);
                 }}
                 className="grid size-7 shrink-0 place-items-center rounded-lg text-text-2 transition hover:bg-surface-2 hover:text-text"
@@ -390,7 +422,10 @@ export function NoteFormModal({
                         key={group.groupId}
                         group={group}
                         onPick={() => {
-                          patch({ groupId: group.groupId, personId: null });
+                          patch({
+                            companyId: group.companyId,
+                            employeeId: null,
+                          });
                           setCompanyQuery("");
                           setCompanyOpen(false);
                         }}
@@ -412,13 +447,13 @@ export function NoteFormModal({
       {needsPerson && (
         <div>
           <FieldLabel required>ผู้ประสานงาน</FieldLabel>
-          <CoordinatorPicker
-            hasCompany={draft.groupId !== null}
+          <EmployeePicker
+            hasCompany={draft.companyId !== null}
             people={people}
-            selected={draft.personId}
+            selected={draft.employeeId}
             disabled={locked}
             fallbackName={editing ? notePersonLabel(editing) : null}
-            onSelect={(personId) => patch({ personId })}
+            onSelect={(employeeId) => patch({ employeeId })}
           />
           {locked && (
             <span className="mt-1.5 block text-[12px] text-text-3">
@@ -466,7 +501,7 @@ function CompanyOption({
   );
 }
 
-function CoordinatorPicker({
+function EmployeePicker({
   hasCompany,
   people,
   selected,
@@ -475,7 +510,7 @@ function CoordinatorPicker({
   onSelect,
 }: {
   hasCompany: boolean;
-  people: Coordinator[];
+  people: Employee[];
   selected: number | null;
   /** An edit: the person is shown, not chosen. */
   disabled?: boolean;
@@ -504,7 +539,7 @@ function CoordinatorPicker({
       <div className="flex items-start gap-2.5 rounded-xl border border-warn-line bg-warn-soft px-3.5 py-3 text-[13px] text-warn">
         <Icon name="alert" className="mt-0.5 size-4 shrink-0" />
         <span>
-          ต้องเลือกบริษัทก่อน จึงจะเลือกผู้ประสานงานได้ (รายชื่อจะกรองตามบริษัทที่เลือก)
+          กรุณาเลือกบริษัท
         </span>
       </div>
     );

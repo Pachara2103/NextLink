@@ -5,7 +5,7 @@ from langchain_core.outputs import LLMResult
 from core.db import pg_db
 
 class TokenTrackerHandler(BaseCallbackHandler):
-    def __init__(self,  log_type: str, step_name: str, group_id: str, user_id: int=0):
+    def __init__(self,  log_type: str, step_name: str, group_id: str, user_id: int):
         super().__init__()
         self.log_type = log_type
         self.step_name = step_name 

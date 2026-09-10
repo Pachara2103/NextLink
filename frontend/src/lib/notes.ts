@@ -9,18 +9,25 @@
 import type { IconName } from "@/components/icons";
 import type { Note, NoteSource, NoteType, Sentiment } from "@/types";
 
-/** The types the console offers. The schema also has hr / instructor in reserve. */
+/** Every value `NoteType` accepts, in the order the form offers them. */
 export const NOTE_TYPES: { value: NoteType; label: string; icon: IconName }[] = [
   { value: "mou", label: "MOU", icon: "briefcase" },
   { value: "elective", label: "วิชาเลือก", icon: "book" },
   { value: "internship", label: "ฝึกงาน", icon: "tag" },
   { value: "coop", label: "สหกิจ", icon: "building" },
   { value: "friday", label: "บรรยาย", icon: "message" },
-  { value: "coordinator", label: "ผู้ประสานงาน", icon: "user" },
+  { value: "person", label: "บุคคล", icon: "user" },
 ];
 
-/** Types that describe one person — services/note.py demands a personId for these. */
-export const PERSON_NOTE_TYPES: NoteType[] = ["coordinator", "hr", "instructor"];
+/**
+ * The types that describe one person, and so carry an `employeeId`.
+ *
+ * There is exactly one now — `person`. It used to be three (employee / hr /
+ * instructor), which is why this stayed a list: `ck_notes_employee_binding`
+ * is what actually decides, and keeping the question behind one helper means
+ * a second such type only has to be added here.
+ */
+export const PERSON_NOTE_TYPES: NoteType[] = ["person"];
 
 export function isPersonNote(type: NoteType): boolean {
   return PERSON_NOTE_TYPES.includes(type);
@@ -168,7 +175,7 @@ export function emptyFilters(): NoteFilters {
 /** Covers companyTh · companyEn · aliases · personName · personNickname. */
 /**
  * Case-insensitive substring match over everything a note can be looked up by:
- * the company's Thai and English names, its short names, the coordinator, and
+ * the company's Thai and English names, its short names, the employee, and
  * the name of the LINE group the note came from.
  *
  * The group name is not on the note — it is joined in from `line_groups` — so
@@ -186,8 +193,11 @@ export function matchesSearch(
     groupName,
     note.companyTh,
     note.companyEn,
-    note.personName,
-    note.personNickname,
+    // The employee's own columns, joined in from `employees` by the API —
+    // BasePersonName, so the same three names every other person shape has.
+    note.nameTh,
+    note.nameEn,
+    note.nickname,
     ...(note.aliases ?? []),
   ].some((value) => (value ?? "").toLowerCase().includes(needle));
 }
@@ -219,10 +229,15 @@ export function sortNotes(notes: Note[]): Note[] {
   );
 }
 
-/** "คุณสมชาย ใจดี (พี่ชาย)" from the names the API already joined in. */
+/**
+ * "สมชาย ใจดี (ชาย)" from the names the API already joined in.
+ *
+ * Thai first, English as the fallback — the same precedence `employeeName`
+ * uses on a card, so one person reads the same way wherever they appear.
+ */
 export function notePersonLabel(note: Note): string | null {
-  const name = note.personName?.trim();
+  const name = note.nameTh?.trim() || note.nameEn?.trim();
   if (!name) return null;
-  const nickname = note.personNickname?.trim();
+  const nickname = note.nickname?.trim();
   return nickname ? `${name} (${nickname})` : name;
 }

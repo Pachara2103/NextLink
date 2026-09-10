@@ -1,7 +1,7 @@
 import { getJson, postJson } from "@/lib/services/http";
-import { coordinatorService } from "@/lib/services/coordinator";
+import { employeeService } from "@/lib/services/employee";
 import type {
-  Coordinator,
+  Employee,
   GroupLine,
   ListResponse,
   UpdateLog,
@@ -11,14 +11,15 @@ import type {
  * Composed here, not returned by the API.
  *
  * `POST /line/update-information` answers with the display names of the groups
- * whose extraction failed and nothing else, so the coordinators it just wrote
+ * whose extraction failed and nothing else, so the employees it just wrote
  * have to be fetched separately. That means two round trips per click and a
  * contract that does not appear in /openapi.json — the shape below is the only
  * place it is written down. design/feedback.md §3.5 is the fix: have the route
- * return `{ coordinators, errorGroups }` and this type comes from api.ts.
+ * return `{ employees, errorGroups }` and this type comes from api.ts.
  */
 export interface UpdateInformationResult {
-  coordinators: Record<string, Coordinator[]>;
+  /** Keyed by company id — see the note at the top of `services/employee.ts`. */
+  employees: Record<number, Employee[]>;
   /** Display names of the groups the extraction pass could not finish. */
   errorGroups: string[];
   /**
@@ -56,7 +57,7 @@ export const lineService = {
    * The POST runs one LLM call per unread group inside a single request, so it
    * can take a minute or more and is the one call in this app that a proxy or a
    * flaky connection realistically gives up on. When that happens the server
-   * carries on and commits anyway, so the coordinators are read regardless and
+   * carries on and commits anyway, so the employees are read regardless and
    * the failure is reported as `postError` rather than raised.
    */
   updateInformation: async (): Promise<UpdateInformationResult> => {
@@ -67,6 +68,12 @@ export const lineService = {
       const failed = await postJson<ListResponse<string>>(
         "/api/v1/line/update-information",
         {},
+        // The one call that legitimately runs for minutes: one LLM pass per
+        // unread group, inside a single request. The 15s default would cut it
+        // off while the server is still working — and the server does not
+        // stop when we do, so that read as "failed" while rows were being
+        // written.
+        { timeoutMs: 10 * 60 * 1000 },
       );
       errorGroups = failed?.items ?? [];
     } catch (error) {
@@ -77,7 +84,7 @@ export const lineService = {
     }
 
     return {
-      coordinators: await coordinatorService.getCoordinatorsByGroup(),
+      employees: await employeeService.getEmployeesByCompany(),
       errorGroups,
       postError,
     };

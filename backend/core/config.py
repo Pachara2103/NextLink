@@ -57,6 +57,15 @@ CORS_ORIGINS = [
 HOST = _get("HOST", "127.0.0.1")
 PORT = _int("PORT", 8000)
 
+# ทุกกี่วินาทีที่ worker เบื้องหลังจะไล่เก็บงานเขียนกราฟที่ค้าง
+# (services/outbox.py) งานปกติถูกยิงทันทีหลัง commit อยู่แล้ว รอบนี้มีไว้
+# เก็บงานของ process ที่ถูกฆ่ากลางคันกับตอนที่ neo4j ล่มชั่วคราว
+OUTBOX_INTERVAL_SECONDS = _int("OUTBOX_INTERVAL_SECONDS", 30)
+
+# dev: uvicorn --reload ปิด worker เก่าทิ้งทันทีที่ไฟล์เปลี่ยน request ที่
+# ค้างอยู่จึงถูกตัดกลางคำสั่ง ให้เวลามันทำงานให้จบก่อน
+GRACEFUL_SHUTDOWN_SECONDS = _int("GRACEFUL_SHUTDOWN_SECONDS", 30)
+
 
 
 _REQUIRED = (

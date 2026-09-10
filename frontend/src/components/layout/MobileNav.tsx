@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 import type { PanelKey } from "@/types";
 
 const SHORT_LABELS: Record<PanelKey, string> = {
-  contacts: "ผู้ประสานงาน",
+  contacts: "รออนุมัติ",
+  people: "บุคคลในบริษัท",
   groups: "กลุ่มไลน์",
   notes: "โน้ต",
   agent: "คุณขวัญใจ",

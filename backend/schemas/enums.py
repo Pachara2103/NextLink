@@ -1,26 +1,22 @@
-# schemas/enums.py
 from enum import StrEnum
 
-class ApprovalStatus(StrEnum):
-    PENDING = "pending"
-    APPROVED = "approved"
-    DECLINED = "declined"
-
 class RelevantType(StrEnum):
-    MOU = "mou"; 
-    ELECTIVE = "elective"; 
+    MOU = "mou"
+    ELECTIVE = "elective"
     INTERNSHIP = "internship"
-    COOP = "coop"; 
-    FRIDAY = "friday"; 
+    COOP = "coop"
+    FRIDAY = "friday"
+    GENERAL = "general"
+    
 
 class ContactRole(StrEnum):
-    """Who this company contact is to us. Mirrors the CHECK on contacts.role."""
     INSTRUCTOR = "instructor"
     SENIOR = "senior"
     ALUMNI = "alumni"
     INSIDER = "insider"
 
 class ContactStatus(StrEnum):
+    PENDING = "pending"
     ACTIVE = "active"
     RESIGNED = "resigned"
     TRANSFERRED = "transferred"
@@ -32,9 +28,7 @@ class NoteType(StrEnum):
     INTERNSHIP = "internship"
     COOP = "coop"; 
     FRIDAY = "friday"; 
-    HR = "hr"
-    COORDINATOR = "coordinator"; 
-    INSTRUCTOR = "instructor"
+    PERSON = "person"
 
 class NoteSource(StrEnum):
     INTERNAL = "internal";
@@ -65,6 +59,7 @@ class QuestionCategory(StrEnum):
     MOU = "mou"
     RELATIONSHIP = "relationship"
     ACTIVITY = "activity"
+    HISTORY = "history"
     OTHER = "other"
     
 class DocumentStatus(StrEnum):

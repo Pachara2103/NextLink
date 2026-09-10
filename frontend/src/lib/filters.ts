@@ -1,5 +1,5 @@
 import { ITEMS_PER_PAGE } from "@/lib/constants";
-import type { GroupLine, SortOption } from "@/types";
+import type { Employee, GroupLine, SortOption } from "@/types";
 
 /**
  * Case-insensitive substring match across the searchable fields: the LINE
@@ -16,6 +16,28 @@ export function searchGroups(groups: GroupLine[], term: string): GroupLine[] {
   return groups.filter((g) =>
     [g.displayName, g.companyTh, g.companyEn, ...(g.aliases ?? [])].some(
       (field) => (field ?? "").toLowerCase().includes(needle),
+    ),
+  );
+}
+
+/**
+ * Case-insensitive substring match over the three name fields, for the people
+ * directory's "ค้นหาชื่อบุคคล" mode. Nothing else is searched: a phone number
+ * or a job title is something you read off a card once you have found the
+ * person, not something you go looking for them by.
+ *
+ * A blank term matches nothing, the same way searchGroups does, so the results
+ * block stays hidden instead of listing everybody.
+ */
+export function searchEmployees(
+  employees: Employee[],
+  term: string,
+): Employee[] {
+  const needle = term.trim().toLowerCase();
+  if (!needle) return [];
+  return employees.filter((person) =>
+    [person.nameEn, person.nameTh, person.nickname].some((field) =>
+      (field ?? "").toLowerCase().includes(needle),
     ),
   );
 }
@@ -83,7 +105,7 @@ export function paginate<T>(
 }
 
 /**
- * Newest first, for the coordinator rows inside one group card. The reviewer
+ * Newest first, for the employee rows inside one group card. The reviewer
  * reads a group top-down, so the row that changed most recently has to be the
  * first one they see. Rows without updatedAt sink to the bottom, the same way
  * sortGroups treats them under time-desc.
@@ -96,4 +118,29 @@ export function sortByUpdatedDesc<
       time(b.updatedAt, Number.NEGATIVE_INFINITY) -
       time(a.updatedAt, Number.NEGATIVE_INFINITY),
   );
+}
+
+/**
+ * The people directory's own order: the company whose staff list changed most
+ * recently first.
+ *
+ * A group is ranked by its newest employee rather than by its own updatedAt,
+ * because `line_groups.updated_at` moves when the group is renamed or its
+ * company is rebound — neither of which is what this page is about. A group
+ * with nobody in it has no employee to rank by, so it falls back to its own
+ * timestamp and naturally sinks below the ones being worked on.
+ */
+export function sortByLatestPerson<T extends { updatedAt: string | null }>(
+  rows: { group: T; people: { updatedAt: string | null }[] }[],
+): { group: T; people: { updatedAt: string | null }[] }[] {
+  const rank = (row: { group: T; people: { updatedAt: string | null }[] }) =>
+    row.people.length > 0
+      ? Math.max(
+          ...row.people.map((person) =>
+            time(person.updatedAt, Number.NEGATIVE_INFINITY),
+          ),
+        )
+      : time(row.group.updatedAt, Number.NEGATIVE_INFINITY);
+
+  return [...rows].sort((a, b) => rank(b) - rank(a));
 }

@@ -84,6 +84,43 @@
   /* Hover for the soft-filled destructive button. */
   --color-danger-strong: #3f272e;
 
+  /* ------------------------------------------------------------------------
+   * TAG HUES — six colours that mean nothing on their own
+   *
+   * The four above are meanings: ok is matched, warn is pending, danger is
+   * destructive. These six are the opposite — they carry no meaning at all,
+   * they only tell two values apart. `lib/utils.ts::tagTone` hashes a string
+   * onto one of them, which is what makes every "ผู้ประสานงาน" badge in the
+   * console the same colour and every "ผู้บริหาร" badge a different one,
+   * without anybody writing down a colour per job title.
+   *
+   * Deliberately clear of accent (cyan), ok (green) and warn (amber), so a
+   * tag is never mistaken for a status.
+   * --------------------------------------------------------------------- */
+  --color-tag-1: #a78bfa;
+  --color-tag-1-soft: #241f33;
+  --color-tag-1-line: #55488c;
+
+  --color-tag-2: #38bdf8;
+  --color-tag-2-soft: #12252f;
+  --color-tag-2-line: #2a6a8c;
+
+  --color-tag-3: #2dd4bf;
+  --color-tag-3-soft: #102b29;
+  --color-tag-3-line: #226b64;
+
+  --color-tag-4: #fb923c;
+  --color-tag-4-soft: #2e2016;
+  --color-tag-4-line: #7a4f28;
+
+  --color-tag-5: #f472b6;
+  --color-tag-5-soft: #2d1c26;
+  --color-tag-5-line: #7c4460;
+
+  --color-tag-6: #a3e635;
+  --color-tag-6-soft: #1f2a15;
+  --color-tag-6-line: #55702a;
+
   /* The glow behind the top of the page, and the lift under a modal or a
      floating button. Both are part of the palette: on this near-black ground
      a shadow reads as depth only when it is this dark. */

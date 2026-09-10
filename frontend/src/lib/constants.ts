@@ -1,7 +1,8 @@
 import type {
   ContactPersonStatus,
   ContactRole,
-  CoordinatorUpdate,
+  EmployeeStatus,
+  EmployeeUpdate,
   RelevantType,
   SortOption,
 } from "@/types";
@@ -27,6 +28,7 @@ export const RELEVANT_LABELS = {
   internship: "ฝึกงาน",
   coop: "สหกิจ",
   friday: "บรรยาย",
+  general: "ทั่วไป"
 } as const satisfies Record<RelevantType, string>;
 
 /** Options for the activity select, with "ไม่ระบุ" as the empty choice. */
@@ -58,7 +60,7 @@ export const CONTACT_ROLE_OPTIONS: { value: ContactRole; label: string }[] = (
 export const CONTACT_STATUS_LABELS = {
   active: "ยังติดต่อได้",
   resigned: "ลาออกแล้ว",
-  transferred: "ย้ายหน่วยงาน",
+  transferred: "ย้ายบริษัท",
   inactive: "ติดต่อไม่ได้",
 } as const satisfies Record<ContactPersonStatus, string>;
 
@@ -70,41 +72,107 @@ export const CONTACT_STATUS_OPTIONS: {
 );
 
 /**
- * The one declaration of the coordinator's editable fields: their names, their
- * order, and their labels. `COORDINATOR_FIELDS` and `CoordinatorField` are
+ * `employees.status` for a person who has been reviewed, with the label each
+ * value reads as. `pending` is deliberately absent: it is not a state anyone
+ * picks, it is the state a row arrives in, and the only ways out of it are the
+ * approve button and the delete button.
+ */
+export const EMPLOYEE_STATUS_LABELS = {
+  active: "ยังทำงานอยู่",
+  resigned: "ลาออกแล้ว",
+  transferred: "ย้ายบริษัท",
+  inactive: "ติดต่อไม่ได้",
+} as const satisfies Record<EmployeeStatus, string>;
+
+export const EMPLOYEE_STATUS_OPTIONS: {
+  value: EmployeeStatus;
+  label: string;
+}[] = (Object.keys(EMPLOYEE_STATUS_LABELS) as EmployeeStatus[]).map(
+  (value) => ({ value, label: EMPLOYEE_STATUS_LABELS[value] }),
+);
+
+/** How each reviewed status reads on a card: its badge tone and whether it dims the row. */
+export const EMPLOYEE_STATUS_TONES = {
+  active: "matched",
+  resigned: "unmatched",
+  transferred: "neutral",
+  inactive: "muted",
+} as const satisfies Record<EmployeeStatus, string>;
+
+/**
+ * `employees.job_title` is free text — the extraction pass writes whatever the
+ * chat said — but three titles come up often enough to be worth offering
+ * rather than retyping.
+ *
+ * Labelled in English, unlike `relevant` and `contacts.role`: a job title is
+ * what goes on a business card, and the free-text titles this column already
+ * holds ("Software Engineer", "HR Manager") are English too — a Thai label
+ * beside them would make the three presets look like a different kind of
+ * value than the rest of the column.
+ */
+export const JOB_TITLE_LABELS = {
+  executive: "Executive",
+  coordinator: "Coordinator",
+  senior: "Senior",
+} as const;
+
+export type JobTitlePreset = keyof typeof JOB_TITLE_LABELS;
+
+export const JOB_TITLE_PRESETS = Object.keys(
+  JOB_TITLE_LABELS,
+) as JobTitlePreset[];
+
+export const JOB_TITLE_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "— เลือกตำแหน่ง —" },
+  ...JOB_TITLE_PRESETS.map((value) => ({
+    value,
+    label: JOB_TITLE_LABELS[value],
+  })),
+];
+
+/**
+ * The one declaration of the employee's editable fields: their names, their
+ * order, and their labels. `EMPLOYEE_FIELDS` and `EmployeeField` are
  * derived from it, so adding a field here is the whole change — the form, the
  * summary grid and the draft type all follow.
  */
-export const COORDINATOR_FIELD_LABELS = {
+export const EMPLOYEE_FIELD_LABELS = {
   nameTh: "ชื่อผู้ประสานงาน (TH)",
   nameEn: "ชื่อผู้ประสานงาน (EN)",
+  // Two to a row in both forms, so the pairs are chosen rather than fallen
+  // into: the two names, then who they are to us, then the two ways to reach
+  // them — which also keeps the two mono fields side by side.
   nickname: "ชื่อเล่น",
-  jobTitle: "ตำแหน่ง",
+  relevant: "กิจกรรมที่เกี่ยวข้อง",
   phone: "เบอร์โทร",
   email: "อีเมล",
-  relevant: "กิจกรรมที่เกี่ยวข้อง",
+  // Last on purpose. It is the one field with two inputs behind it, so on the
+  // review form it takes a full-width row of its own — and a full-width row in
+  // the middle of a two-column grid leaves the cell beside its neighbour
+  // empty. Putting it at the end leaves the six above it as three clean rows.
+  jobTitle: "ตำแหน่ง",
 } as const satisfies Record<string, string>;
 
-export type CoordinatorField = keyof typeof COORDINATOR_FIELD_LABELS;
+export type EmployeeField = keyof typeof EMPLOYEE_FIELD_LABELS;
 
 /** Field order drives both the summary list and the two-column form. */
-export const COORDINATOR_FIELDS = Object.keys(
-  COORDINATOR_FIELD_LABELS,
-) as CoordinatorField[];
+export const EMPLOYEE_FIELDS = Object.keys(
+  EMPLOYEE_FIELD_LABELS,
+) as EmployeeField[];
 
 /**
  * Fails to compile if a field above stops existing on the PUT body — which is
  * how a rename in backend/schemas/ reaches this file instead of turning into a
  * silent 422 at runtime.
  */
-type _FieldsExistOnApi = CoordinatorField extends keyof CoordinatorUpdate
+type _FieldsExistOnApi = EmployeeField extends keyof EmployeeUpdate
   ? true
   : never;
 const _fieldsExistOnApi: _FieldsExistOnApi = true;
 void _fieldsExistOnApi;
 
 /** Form state: every field is a string, because an empty input is "" not null. */
-export type CoordinatorDraft = Record<CoordinatorField, string>;
+export type EmployeeDraft = Record<EmployeeField, string>;
 
 export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "time-desc", label: "เวลา (ใหม่สุด)" },
@@ -123,9 +191,22 @@ export const ITEMS_PER_PAGE = 5;
 export const GRID_ITEMS_PER_PAGE = 6;
 
 export const MESSAGES = {
-  requireCoordinatorName: "กรุณากรอกชื่อผู้ประสานงาน (อย่างน้อยหนึ่งภาษา)",
+  // ── สถานะการเชื่อมต่อกับ backend (store/console-store.tsx) ──────────────
+  /** แบนเนอร์ตอนเรียก API ไม่ถึง หรือ backend ตอบ 503 เพราะยัง start ไม่เสร็จ */
+  serverDownTitle: "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้",
+  serverDownDetail:
+    "กำลังลองเชื่อมต่อใหม่อัตโนมัติทุก 2 วินาที ข้อมูลบนหน้าจอตอนนี้อาจไม่ตรงกับฐานข้อมูล จึงปิดการบันทึกไว้ชั่วคราว",
+  /** กดปุ่มที่เขียนข้อมูลระหว่างที่ยังติดต่อไม่ได้ */
+  serverDownBlocked:
+    "ยังเชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณารอจนกลับมาเชื่อมต่อได้แล้วลองใหม่",
+  /** กลับมาติดต่อได้ เป็น process เดิม */
+  serverBack: "เชื่อมต่อเซิร์ฟเวอร์ได้แล้ว กำลังโหลดข้อมูลใหม่",
+  /** กลับมาติดต่อได้ แต่เป็น process ใหม่ (เช่น dev server รีสตาร์ต) */
+  serverRestarted: "เซิร์ฟเวอร์เริ่มระบบใหม่ กำลังโหลดข้อมูลทั้งหมดอีกครั้ง",
+
+  requireEmployeeName: "กรุณากรอกชื่อผู้ประสานงาน (อย่างน้อยหนึ่งภาษา)",
   requireCompanyName: "กรุณากรอกหรือเลือกชื่อบริษัท",
-  coordinatorSaveFailed: "เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง",
+  employeeSaveFailed: "เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง",
   companySaveFailed: "เกิดข้อผิดพลาดในการเพิ่มชื่อบริษัท กรุณาลองใหม่อีกครั้ง",
 
   /**
@@ -134,7 +215,7 @@ export const MESSAGES = {
    * console knows which action the user was taking when it happened.
    */
   syncPrefix: "โหลดข้อมูลไม่สำเร็จ",
-  coordinatorPrefix: "บันทึกข้อมูลผู้ประสานงานไม่สำเร็จ",
+  employeePrefix: "บันทึกข้อมูลผู้ประสานงานไม่สำเร็จ",
   declinePrefix: "ลบข้อมูลผู้ประสานงานไม่สำเร็จ",
   companyPrefix: "บันทึกชื่อบริษัทไม่สำเร็จ",
   loginPrefix: "เข้าสู่ระบบไม่สำเร็จ",
@@ -147,13 +228,13 @@ export const MESSAGES = {
     "บันทึกชื่อบริษัทไม่สำเร็จ: ฐานข้อมูลมีปัญหา กรุณาลองใหม่อีกครั้ง",
   companyNotFound: "บันทึกผู้ประสานงานแล้ว แต่ไม่พบบริษัทของกลุ่มนี้ในฐานข้อมูล",
   /** API answered 404: no Company node carries this company id. */
-  coordinatorGroupNotMatched:
+  employeeGroupNotMatched:
     "บันทึกข้อมูลไม่สำเร็จ: ไม่พบบริษัทของกลุ่มนี้ในฐานข้อมูล กรุณาเพิ่มชื่อบริษัทก่อน",
   /** API answered 5xx: the Neo4j write itself failed. */
-  coordinatorDbFailed:
+  employeeDbFailed:
     "บันทึกข้อมูลไม่สำเร็จ: ฐานข้อมูลมีปัญหา กรุณาลองใหม่อีกครั้ง",
   /** Never reached the API at all (network down, dev server not running). */
-  coordinatorNetworkFailed:
+  employeeNetworkFailed:
     "บันทึกข้อมูลไม่สำเร็จ: เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบการเชื่อมต่อ",
   /** A /api/v1/line/* read answered 5xx: Postgres or the extraction chain broke. */
   syncServerFailed:
@@ -193,23 +274,42 @@ export const MESSAGES = {
   /** Any other non-2xx. */
   loginFailed: "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
 
-  // --- coordinator approval ---
-  coordinatorApproved: "อนุมัติและบันทึกข้อมูลผู้ประสานงานเรียบร้อยแล้ว",
+  // --- employee approval ---
+  employeeApproved: "อนุมัติและบันทึกข้อมูลผู้ประสานงานเรียบร้อยแล้ว",
 
-  // --- coordinator edit ---
-  coordinatorUpdated: "แก้ไขข้อมูลผู้ประสานงานสำเร็จ",
+  // --- employee create (ผู้ติดต่อและบุคคลในบริษัท) ---
+  employeeCreated: "เพิ่มบุคคลในบริษัทเรียบร้อยแล้ว",
+  employeeCreatePrefix: "เพิ่มบุคคลในบริษัทไม่สำเร็จ",
+  employeeCreateFailed: "เพิ่มบุคคลในบริษัทไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
+  employeeCreateNetworkFailed:
+    "เพิ่มบุคคลในบริษัทไม่สำเร็จ: เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบการเชื่อมต่อ",
+  employeeCreateNoCompany:
+    "เพิ่มบุคคลในบริษัทไม่สำเร็จ: ไม่พบบริษัทนี้ในฐานข้อมูลกราฟ กรุณาผูกบริษัทกับกลุ่มไลน์นี้อีกครั้ง",
+  employeeCreateDbFailed:
+    "เพิ่มบุคคลในบริษัทไม่สำเร็จ: ฐานข้อมูลมีปัญหา กรุณาลองใหม่อีกครั้ง",
+
+  // --- employee delete (ผู้ติดต่อและบุคคลในบริษัท) ---
+  employeeDeleted: "ลบบุคคลในบริษัทเรียบร้อยแล้ว",
+  /** Caught in the form, before the request goes out. */
+  requireEmployeeCompany: "ไม่พบบริษัทของกลุ่มไลน์นี้ กรุณาผูกบริษัทก่อน",
+
+  // --- employee edit ---
+  employeeUpdated: "แก้ไขข้อมูลผู้ประสานงานสำเร็จ",
   /** Leads every failure toast for the edit form, whatever the cause. */
-  coordinatorUpdatePrefix: "แก้ไขข้อมูลผู้ประสานงานไม่สำเร็จ",
-  coordinatorUpdateFailed:
+  employeeUpdatePrefix: "แก้ไขข้อมูลผู้ประสานงานไม่สำเร็จ",
+  employeeUpdateFailed:
     "แก้ไขข้อมูลผู้ประสานงานไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
-  coordinatorUpdateNetworkFailed:
+  employeeUpdateNetworkFailed:
     "แก้ไขข้อมูลผู้ประสานงานไม่สำเร็จ: เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบการเชื่อมต่อ",
-  coordinatorUpdateNotFound:
+  employeeUpdateNotFound:
     "แก้ไขข้อมูลผู้ประสานงานไม่สำเร็จ: ไม่พบรายการนี้แล้ว กรุณากดรีเฟรช",
-  coordinatorUpdateDbFailed:
+  employeeUpdateDbFailed:
     "แก้ไขข้อมูลผู้ประสานงานไม่สำเร็จ: ฐานข้อมูลมีปัญหา กรุณาลองใหม่อีกครั้ง",
-  coordinatorDeclined: "ลบข้อมูลผู้ประสานงานออกจากรายการรออนุมัติแล้ว",
-  coordinatorDeclineFailed: "ลบข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
+  employeeDeclined: "ลบข้อมูลผู้ประสานงานออกจากรายการรออนุมัติแล้ว",
+  employeeDeclineFailed: "ลบข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง",
+  /** The add form is only offered on a linked group, but state can drift. */
+  employeeNeedsCompany:
+    "ต้องผูกกลุ่มนี้กับบริษัทก่อน จึงจะเพิ่มบุคคลในบริษัทได้",
 
   // --- company unlink ---
   companyUnlinked: "ยกเลิกการผูกบริษัทกับกลุ่มไลน์นี้แล้ว",

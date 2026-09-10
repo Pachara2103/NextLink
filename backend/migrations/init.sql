@@ -80,11 +80,10 @@ CREATE TABLE IF NOT EXISTS companies (
 -- ผู้ประสานงานที่ AI สรุปมาจากแชท LINE รอคนอนุมัติ
 -- ==========================================================================
 
-CREATE TABLE IF NOT EXISTS coordinators (
+CREATE TABLE IF NOT EXISTS employees (
     id BIGSERIAL PRIMARY KEY,
-    group_id TEXT NOT NULL REFERENCES line_groups(group_id) ON DELETE CASCADE,
-    -- NULL = ยังไม่มีใครอนุมัติ (approve_pg เติม user_id ตอนกดอนุมัติ)
-    -- ห้ามใช้เลข 0 แทนความหมายนี้ 0 ไม่ใช่ id ที่มีอยู่จริงใน users
+    company_id BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+
     user_id BIGINT NULL REFERENCES users(id) ON DELETE SET NULL,
     status TEXT NOT NULL DEFAULT 'pending',
     name_th TEXT NULL,
@@ -96,19 +95,18 @@ CREATE TABLE IF NOT EXISTS coordinators (
     relevant TEXT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT ck_coordinators_status
-        CHECK (status IN ('pending', 'approved', 'declined')),
-    CONSTRAINT ck_coordinators_relevant
-        CHECK (relevant IS NULL
-               OR relevant IN ('mou', 'elective', 'internship', 'coop', 'friday')),
+    CONSTRAINT ck_employees_status
+        CHECK (status IN ('pending', 'active', 'resigned', 'transferred', 'inactive')),
+    CONSTRAINT ck_employees_relevant
+        CHECK (relevant IS NULL OR relevant IN ('mou', 'elective', 'internship', 'coop', 'friday', 'general')),
     -- แถวที่ไม่มีทั้งสามชื่อ อ่านไม่ออกว่าเป็นใคร
-    CONSTRAINT ck_coordinators_has_name
+    CONSTRAINT ck_employees_has_name
         CHECK (name_th IS NOT NULL OR name_en IS NOT NULL OR nickname IS NOT NULL)
 );
 
 
 -- ==========================================================================
--- ผู้ติดต่อที่คนกรอกเข้ามาเอง (คนละเรื่องกับ coordinators)
+-- ผู้ติดต่อที่คนกรอกเข้ามาเอง (คนละเรื่องกับ employees)
 -- ==========================================================================
 
 CREATE TABLE IF NOT EXISTS contacts (
@@ -171,8 +169,12 @@ CREATE TABLE IF NOT EXISTS notes (
     content TEXT NOT NULL,
     -- RESTRICT ไม่ใช่ CASCADE: โน้ตเป็นของที่คนพิมพ์เอง การลบกลุ่ม LINE
     -- ไม่ควรกินโน้ตหายไปเงียบ ๆ ให้ error ออกมาให้เห็นดีกว่า
-    group_id TEXT NOT NULL REFERENCES line_groups(group_id) ON DELETE RESTRICT,
-    person_id BIGINT NULL REFERENCES coordinators(id) ON DELETE CASCADE,
+  
+    company_id BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    employee_id BIGINT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    -- group_id TEXT NOT NULL REFERENCES line_groups(group_id) ON DELETE RESTRICT,
+    -- person_id BIGINT NULL REFERENCES employees(id) ON DELETE CASCADE,
+
     type TEXT NOT NULL DEFAULT 'mou',
     sentiment TEXT NOT NULL DEFAULT 'neutral',
     source TEXT NOT NULL DEFAULT 'external',
@@ -180,25 +182,20 @@ CREATE TABLE IF NOT EXISTS notes (
     term INTEGER NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT ck_notes_type CHECK (
-        type IN ('mou', 'elective', 'internship', 'coop', 'friday',
-                 'hr', 'coordinator', 'instructor')
-    ),
+   
     CONSTRAINT ck_notes_sentiment
         CHECK (sentiment IN ('positive', 'neutral', 'warning', 'negative')),
     CONSTRAINT ck_notes_source
         CHECK (source IN ('internal', 'external')),
     CONSTRAINT ck_notes_term CHECK (term IN (1, 2, 3)),
-    -- ปี ค.ศ. (utils/academic_year.py คืน dt.year)
     CONSTRAINT ck_notes_academic_year CHECK (academic_year BETWEEN 2000 AND 2100),
     CONSTRAINT ck_notes_content_not_blank CHECK (btrim(content) <> ''),
-    -- กฎเดียวกับ services/note.py::_validate:
-    -- โน้ตของคน (hr/coordinator/instructor) ต้องมี person_id
-    -- โน้ตของบริษัทต้องไม่มี
-    CONSTRAINT ck_notes_person_binding CHECK (
-        (type IN ('hr', 'coordinator', 'instructor') AND person_id IS NOT NULL)
-        OR
-        (type NOT IN ('hr', 'coordinator', 'instructor') AND person_id IS NULL)
+
+    CONSTRAINT ck_notes_type CHECK (
+        type IN ('mou', 'elective', 'internship', 'coop', 'friday','person')
+    ),
+    CONSTRAINT ck_notes_employee_binding CHECK (
+        (type IN ('person') AND employee_id IS NOT NULL) OR (type NOT IN ('person') AND employee_id IS NULL)
     )
 );
 
@@ -275,11 +272,11 @@ CREATE INDEX IF NOT EXISTS idx_contacts_company_id
 
 -- services/note.py::SELECT_NOTES
 --   LEFT JOIN companies ON c.group_id = n.group_id
---   LEFT JOIN coordinators ON p.id = n.person_id
-CREATE INDEX IF NOT EXISTS idx_notes_group_id
-    ON notes (group_id);
-CREATE INDEX IF NOT EXISTS idx_notes_person_id
-    ON notes (person_id) WHERE person_id IS NOT NULL;
+--   LEFT JOIN employees ON p.id = n.person_id
+
+CREATE INDEX idx_notes_company_id ON notes(company_id);
+CREATE INDEX idx_notes_employee_id 
+    ON notes(employee_id) WHERE employee_id IS NOT NULL;
 
 -- services/note.py::get_notes
 --   ORDER BY academic_year DESC NULLS LAST, term DESC NULLS LAST, updated_at DESC
@@ -287,14 +284,15 @@ CREATE INDEX IF NOT EXISTS idx_notes_person_id
 CREATE INDEX IF NOT EXISTS idx_notes_listing
     ON notes (academic_year DESC NULLS LAST, term DESC NULLS LAST, updated_at DESC);
 
--- FK ของ coordinators + ใช้หาว่ากลุ่มนี้มีใครบ้าง
-CREATE INDEX IF NOT EXISTS idx_coordinators_group_id
-    ON coordinators (group_id);
-CREATE INDEX IF NOT EXISTS idx_coordinators_user_id
-    ON coordinators (user_id) WHERE user_id IS NOT NULL;
+-- FK ของ employees + ใช้หาว่ากลุ่มนี้มีใครบ้าง
+CREATE INDEX IF NOT EXISTS idx_employees_company_id 
+    ON employees(company_id);
+
+CREATE INDEX IF NOT EXISTS idx_employees_user_id
+    ON employees (user_id) WHERE user_id IS NOT NULL;
 -- partial: หน้ารออนุมัติเปิดบ่อย และ pending เป็นส่วนน้อยของตาราง
-CREATE INDEX IF NOT EXISTS idx_coordinators_pending
-    ON coordinators (created_at DESC) WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_employees_pending
+    ON employees (created_at DESC) WHERE status = 'pending';
 
 -- services/line.py::get_update_logs - ORDER BY created_at DESC, id DESC
 CREATE INDEX IF NOT EXISTS idx_update_logs_created
@@ -322,3 +320,34 @@ CREATE INDEX IF NOT EXISTS idx_token_logs_group_created
 -- (ปิดไว้เพราะไฟล์นี้ไม่มี DO block ไว้เช็คว่าตารางมีอยู่ไหม จะพังกับ DB เปล่า)
 -- CREATE INDEX IF NOT EXISTS idx_line_messages_unread
 --     ON line_messages (group_id, created_at) WHERE is_read = false;
+
+
+-- ==========================================================================
+-- คิวงานเขียนกราฟ (ดูหัวไฟล์ migrations/outbox.sql และ services/outbox.py)
+--
+-- postgres คือแหล่งความจริง การเขียน Neo4j ทุกครั้งจึงถูกจองไว้ที่นี่ใน
+-- transaction เดียวกับข้อมูลจริง ถ้า process ตายก่อนเขียนกราฟสำเร็จ
+-- แถวในนี้ยังอยู่ และ replay จะทำต่อให้เอง
+-- ==========================================================================
+
+CREATE TABLE IF NOT EXISTS graph_outbox (
+    id BIGSERIAL PRIMARY KEY,
+    entity TEXT NOT NULL,
+    entity_id BIGINT NOT NULL,
+    op TEXT NOT NULL,
+    payload JSONB NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    tries INT NOT NULL DEFAULT 0,
+    last_error TEXT NULL,
+    next_try_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- services/outbox.py::replay_pending
+CREATE INDEX IF NOT EXISTS idx_graph_outbox_pending
+    ON graph_outbox (next_try_at, id) WHERE status = 'pending';
+
+-- services/outbox.py::flush
+CREATE INDEX IF NOT EXISTS idx_graph_outbox_entity
+    ON graph_outbox (entity, entity_id, id) WHERE status = 'pending';

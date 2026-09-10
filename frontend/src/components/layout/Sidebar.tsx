@@ -21,6 +21,7 @@ interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { key: "contacts", label: "สรุปข้อมูลจากไลน์", icon: "inbox" },
   { key: "groups", label: "กลุ่มไลน์และบริษัท", icon: "building" },
+  { key: "people", label: "ผู้ติดต่อและบุคคลในบริษัท", icon: "users" },
   { key: "notes", label: "โน้ตบันทึกข้อมูล", icon: "note" },
   { key: "agent", label: "คุณขวัญใจ", icon: "bot" },
   // { key: "library", label: "คลังสถานะ & Component", icon: "layers" },
@@ -33,8 +34,13 @@ export function Sidebar({
   active: PanelKey;
   onNavigate: (panel: PanelKey) => void;
 }) {
-  const { groupLines, linkedGroups, pendingCount, unlinkedGroups } =
-    useConsole();
+  const {
+    groupLines,
+    linkedGroups,
+    pendingCount,
+    staffCount,
+    unlinkedGroups,
+  } = useConsole();
   const { user, signOut } = useAuth();
   const router = useRouter();
 
@@ -52,6 +58,9 @@ export function Sidebar({
 
   const counts: Partial<Record<PanelKey, { value: number; tone: string }>> = {
     contacts: { value: pendingCount, tone: "bg-accent-soft text-accent" },
+    // Not a queue like the other two — nothing here needs attention — so it
+    // is the neutral chip rather than one that reads as a backlog.
+    people: { value: staffCount, tone: "bg-surface-2 text-text-3" },
     groups: {
       value: unlinkedGroups.length,
       tone: "bg-warn-soft text-warn",

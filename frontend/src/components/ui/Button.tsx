@@ -75,16 +75,36 @@ export function Button({
   );
 }
 
+/**
+ * The two tones a square icon button comes in.
+ *
+ * A prop rather than something a caller passes through `className`: both
+ * options set border-color, background and text-color, so the two sets are
+ * exactly the utilities that conflict. `cn` only joins strings — it cannot
+ * drop the ones it is overriding — and between two equally specific classes
+ * the winner is whichever Tailwind emitted later in the stylesheet, not
+ * whichever came last in the attribute. A `className` override of these is
+ * therefore a coin toss; this is not.
+ */
+const ICON_BUTTON_TONES = {
+  default:
+    "border-line bg-surface-2 text-text-2 hover:border-text-4 hover:bg-surface",
+  danger:
+    "border-danger-line bg-danger-soft text-danger hover:border-danger hover:bg-danger-strong",
+} as const;
+
 /** Square button that holds nothing but an icon. */
 export function IconButton({
   icon,
   label,
+  tone = "default",
   className,
   disabled,
   ...rest
 }: Omit<ComponentProps<"button">, "children"> & {
   icon: IconName;
   label: string;
+  tone?: keyof typeof ICON_BUTTON_TONES;
 }) {
   return (
     <button
@@ -96,7 +116,7 @@ export function IconButton({
         "grid size-9 place-items-center rounded-xl border transition",
         disabled
           ? "cursor-not-allowed border-line-soft bg-surface-2 text-text-4"
-          : "border-line bg-surface-2 text-text-2 hover:border-text-4 hover:bg-surface",
+          : ICON_BUTTON_TONES[tone],
         className,
       )}
       {...rest}

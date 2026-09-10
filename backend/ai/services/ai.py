@@ -17,15 +17,19 @@ logger = logging.getLogger(__name__)
 
 node_mapping = {
     "classify": "กำลังทำความเข้าใจคำถาม",
-    "search_contact": "กำลังค้นหาข้อมูลผู้ติดต่อ",
-    "mou": "กำลังค้นหาสถานะ MOU",
+    "person_contact": "กำลังค้นหาข้อมูลการติดต่อของบุคคล",
+    "company_contact": "กำลังค้นหาช่องทางการติดต่อบริษัท",
+    "history": "กำลังค้นหาประวัติของบริษัท",
+    # "mou": "กำลังค้นหาสถานะ MOU",
     "agent": "กำลังเรียบเรียงคำตอบ",
 }
 
 NODE_STEP = {
     "classify": "classify",
-    "search_contact": "search",
-    "mou": "search",
+    "person_contact": "search",
+    "company_contact": "search",
+    "history": "search",
+    # "mou": "search",
     "agent": "agent",
 }
 

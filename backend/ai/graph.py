@@ -1,12 +1,10 @@
-# ไม่มี sys.path.append("..") และ load_dotenv() ที่นี่แล้ว: อันแรกผูกกับ CWD
-# (รันจากโฟลเดอร์อื่นแล้ว import เพี้ยน) อันหลังย้ายไปอยู่ core/config.py
-# ซึ่ง core.ai import ให้อยู่แล้ว
 import operator
 from typing import TypedDict, Dict, Any, Annotated
 from langgraph.graph import StateGraph, START, END
 from ai.chains.classify import get_classify_chain
 from schemas.enums import QuestionCategory
-from ai.services.search import get_person_contact,search_company, get_mou_status
+from ai.services.search import search_company, search_person
+from ai.services.tool import get_mou_status,  get_company_contacts, get_company_notes
 from core.ai import get_llm
 from ai.services.prompt import get_rag_prompt, get_other_prompt
 import logging
@@ -14,19 +12,10 @@ import threading
 
 logger = logging.getLogger(__name__)
 
-# retry เฉพาะของที่พังชั่วคราว (429 quota / 503 / timeout)
 LLM_RETRY = {"stop_after_attempt": 3, "wait_exponential_jitter": True}
-
+NOT_FOUND = "ไม่พบข้อมูล"
 
 def _llm():
-    """LLM + retry
-
-    เรียกทุกครั้งที่ใช้ได้ ไม่แพง: get_llm() คืน instance เดิมของ process
-    และ with_retry() เป็น wrapper บาง ๆ ไม่ได้โหลดโมเดลใหม่
-
-    ที่ไม่เก็บไว้เป็นตัวแปร module-level เพราะการเรียก get_llm() ตอน import
-    ทำให้ไฟล์นี้ import ไม่ผ่านเมื่อไม่มี GOOGLE_API_KEY ซึ่งลากทั้ง API ล้ม
-    """
     return get_llm().with_retry(**LLM_RETRY)
 
 class AgentState(TypedDict):
@@ -69,29 +58,49 @@ def classify_node(state: AgentState) ->  Dict[str, Any]:
         "total_tokens": _token_count(usage),
     }
 
-def search_contact_node(state: AgentState) -> Dict[str, Any]:
+def search_person_contact_node(state: AgentState) -> Dict[str, Any]:
     person_name = state.get("person_name")
     if not person_name:
-        return {"context": None}
+        return {"context": NOT_FOUND}
 
     try:
-        return {"context": get_person_contact(person_name)}
+        return {"context": search_person(person_name)}
     except Exception:
-        logger.exception("search_contact failed (person_name=%s)", person_name)
-        return {"context": None}
-
-
-def search_mou_node(state: AgentState) -> Dict[str, Any]:
+        logger.exception("search person contact failed (person_name=%s)", person_name)
+        return {"context": NOT_FOUND}
+    
+def search_company_contact_node(state: AgentState) -> Dict[str, Any]:
     company_name = state.get("company_name")
     if not company_name:
-        return {"context": None}
+        return {"context": NOT_FOUND}
 
     try:
-        company_list  = search_company(company_name)
-        return {"context":  get_mou_status(company_list)}
+        return {"context": get_company_contacts(company_name)}
     except Exception:
-        logger.exception("search_mou_node failed (company_name=%s)", company_name)
-        return {"context": None}
+        logger.exception("search company contact failed (company_name=%s)", company_name)
+        return {"context": NOT_FOUND}
+
+def search_history_node(state: AgentState) -> Dict[str, Any]:  # only company
+    company_name = state.get("company_name")
+    if not company_name:
+        return {"context": NOT_FOUND}
+
+    try:
+        return {"context": get_company_notes(company_name)}
+    except Exception:
+        logger.exception("search company history failed (company_name=%s)", company_name)
+        return {"context": NOT_FOUND}
+# def search_mou_node(state: AgentState) -> Dict[str, Any]:
+#     company_name = state.get("company_name")
+#     if not company_name:
+#         return {"context": None}
+
+#     try:
+#         company_list  = search_company(company_name)
+#         return {"context":  get_mou_status(company_list)}
+#     except Exception:
+#         logger.exception("search_mou_node failed (company_name=%s)", company_name)
+#         return {"context": None}
 
 def agent_node(state: AgentState) -> Dict[str, Any]:
     question = state["question"]
@@ -110,9 +119,13 @@ def agent_node(state: AgentState) -> Dict[str, Any]:
 
 def route_category(state: AgentState):
     if state.get("category") == QuestionCategory.PERSONAL_CONTACT:
-        return "search_contact"
-    elif state.get("category") == QuestionCategory.MOU:
-        return "mou"
+        return "person_contact"
+    elif state.get("category") == QuestionCategory.RELATIONSHIP:
+        return "company_contact"
+    elif state.get("category") == QuestionCategory.HISTORY:
+        return "history"
+      # elif state.get("category") == QuestionCategory.MOU:
+    #     return "mou"
     elif state.get("category") == QuestionCategory.OTHER:
         return "agent"
 
@@ -122,23 +135,26 @@ def _build_graph():
     workflow = StateGraph(AgentState)
 
     workflow.add_node("classify", classify_node)
-    workflow.add_node("search_contact", search_contact_node)
+    workflow.add_node("person_contact", search_person_contact_node) #personal contact
+    workflow.add_node("company_contact", search_company_contact_node) #relationship
+    workflow.add_node("history", search_history_node) #history
+    # workflow.add_node("mou", search_mou_node)
     workflow.add_node("agent", agent_node)
-    # route_category can return "mou", so the node it names has to exist - with it
-    # commented out, every MOU question died in the router instead of being answered.
-    workflow.add_node("mou", search_mou_node)
 
     workflow.add_edge(START, "classify")
-    workflow.add_edge("search_contact", "agent")
-    workflow.add_edge("mou", "agent")
+    workflow.add_edge("person_contact", "agent")
+    workflow.add_edge("company_contact", "agent")
+    workflow.add_edge("history", "agent")
+    # workflow.add_edge("mou", "agent")
 
     workflow.add_conditional_edges(
         "classify",
         route_category,
         {
-            "search_contact": "search_contact",
-            "mou": "mou",
-            "other": "agent",
+            "person_contact": "person_contact",
+            "company_contact": "company_contact",
+            "history": "history",
+            # "mou": "mou",
             "agent": "agent",
         },
     )

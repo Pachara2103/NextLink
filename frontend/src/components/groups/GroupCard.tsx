@@ -7,7 +7,6 @@ import {
   GroupChip,
   Highlight,
 } from "@/components/groups/GroupIdentity";
-import { ManageContactsButton } from "@/components/groups/ManageContactsButton";
 import { UnlinkCompanyButton } from "@/components/groups/UnlinkCompanyButton";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
@@ -129,18 +128,20 @@ export function GroupCard({
         <span className="tabular-nums">{formatThaiDate(group.updatedAt)}</span>
       </p>
 
-      <div className="mt-2.5 flex items-center gap-2 border-t border-line-soft pt-3.5">
+  
+      <div className="mt-2.5 grid grid-cols-2 gap-2 border-t border-line-soft pt-3.5">
         {linked ? (
           <>
-            <ManageContactsButton group={group} className="flex-1" />
             <Button
               icon="pencil"
               size="sm"
-              title="แก้ไขชื่อบริษัท"
-              aria-label="แก้ไขชื่อบริษัท"
+              fullWidth
+              className="min-w-0"
               onClick={() => openCompanyForm(scope, group.groupId)}
-            />
-            <UnlinkCompanyButton group={group} />
+            >
+              แก้ไขชื่อบริษัท
+            </Button>
+            <UnlinkCompanyButton group={group} className="w-full min-w-0" />
           </>
         ) : (
           <Button
@@ -148,6 +149,7 @@ export function GroupCard({
             icon="plus"
             size="sm"
             fullWidth
+            className="col-span-2"
             onClick={() => openCompanyForm(scope, group.groupId)}
           >
             เพิ่มบริษัท

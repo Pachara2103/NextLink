@@ -2,7 +2,6 @@
 
 import { CompanyForm } from "@/components/groups/CompanyForm";
 import { GroupChip, GroupIdentity } from "@/components/groups/GroupIdentity";
-import { ManageContactsButton } from "@/components/groups/ManageContactsButton";
 import { UnlinkCompanyButton } from "@/components/groups/UnlinkCompanyButton";
 import { Button } from "@/components/ui/Button";
 import { cn, groupLabel } from "@/lib/utils";
@@ -11,7 +10,7 @@ import type { GroupLine, PanelKey } from "@/types";
 
 /**
  * Compact directory row. Same identity block as the accordion card, but no
- * expansion: this list is about the company link, not the coordinators.
+ * expansion: this list is about the company link, not the employees.
  */
 export function GroupRow({
   group,
@@ -53,15 +52,16 @@ export function GroupRow({
         onCompanyClick={() => openCompanyForm(scope, group.groupId)}
       />
 
+      {/* จัดการผู้ติดต่อ lives on ผู้ติดต่อและบุคคลในบริษัท now — see the
+          note in GroupCard. */}
       {linked ? (
         <div className="flex flex-wrap items-center gap-2">
-          <ManageContactsButton group={group} />
           <Button
             icon="pencil"
             size="sm"
             onClick={() => openCompanyForm(scope, group.groupId)}
           >
-            
+            แก้ไขชื่อบริษัท
           </Button>
           <UnlinkCompanyButton group={group} />
         </div>

@@ -47,35 +47,49 @@ export function NotesPanel() {
   const [pendingDelete, setPendingDelete] = useState<Note | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  /** groupId -> the LINE group's name, so the search can match on it too. */
-  const groupNames = useMemo(
-    () => new Map(groupLines.map((g) => [g.groupId, g.displayName])),
-    [groupLines],
-  );
+  /**
+   * companyId -> the LINE group that points at that company.
+   *
+   * A note carries `companyId`, not a group id: it is filed under the company,
+   * and the group is only how we happen to have met them. So the group is
+   * looked up through the company rather than stored on the note, and a
+   * company whose group has since been unlinked simply has no entry here.
+   */
+  const groupByCompany = useMemo(() => {
+    const map = new Map<number, (typeof groupLines)[number]>();
+    for (const group of groupLines) {
+      if (group.companyId !== null && group.companyId !== undefined) {
+        map.set(group.companyId, group);
+      }
+    }
+    return map;
+  }, [groupLines]);
 
   const sections = useMemo(() => {
     const visible = notes.filter(
       (n) =>
-        matchesSearch(n, search, n.groupId ? groupNames.get(n.groupId) : null) &&
-        matchesFilters(n, filters),
+        matchesSearch(
+          n,
+          search,
+          groupByCompany.get(n.companyId)?.displayName ?? null,
+        ) && matchesFilters(n, filters),
     );
 
     // Group by company, then order the companies by their most recent note —
     // whatever changed last is what the reader came for.
-    const buckets = new Map<string, Note[]>();
+    const buckets = new Map<number, Note[]>();
     for (const note of visible) {
-      if (!note.groupId) continue;
-      const bucket = buckets.get(note.groupId);
+      const bucket = buckets.get(note.companyId);
       if (bucket) bucket.push(note);
-      else buckets.set(note.groupId, [note]);
+      else buckets.set(note.companyId, [note]);
     }
 
     const latest = (list: Note[]) =>
       Math.max(...list.map((n) => (n.updatedAt ? +new Date(n.updatedAt) : 0)));
 
     return [...buckets.entries()]
-      .map(([groupId, list]) => ({
-        group: groupLines.find((g) => g.groupId === groupId),
+      .map(([companyId, list]) => ({
+        group: groupByCompany.get(companyId),
         notes: list,
       }))
       .filter(
@@ -83,7 +97,7 @@ export function NotesPanel() {
           Boolean(entry.group),
       )
       .sort((a, b) => latest(b.notes) - latest(a.notes));
-  }, [notes, groupLines, groupNames, search, filters]);
+  }, [notes, groupByCompany, search, filters]);
 
   const visibleCount = sections.reduce(
     (sum, section) => sum + section.notes.length,
@@ -223,7 +237,7 @@ export function NotesPanel() {
             <EmptyState
               icon="note"
               title="ยังไม่มีโน้ตในระบบ"
-              detail="กด เพิ่มโน้ต เพื่อบันทึกเรื่องที่คุยกับบริษัทหรือผู้ประสานงาน"
+              detail="เพิ่มโน้ต เพื่อบันทึกเรื่องราวที่น่าสนใจ"
               action={
                 <Button
                   variant="primary"

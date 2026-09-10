@@ -7,15 +7,18 @@ from core.callbacks import TokenTrackerHandler
 
 from schemas.line import LineGroup, UpdateLog
 from schemas.company import CompanyName
-from schemas.coordinator import CoordinatorCreate
+from schemas.employee import EmployeeBase
+from schemas.enums import ContactStatus
 from schemas.base import ListResponse
 
 from services.company import create_company_pg
-from services.coordinator import create_pending_coordinator
+from services.employee import create_employee_pg
 
 from typing import Any
 from utils.mapping import columns_of, rows_to_models
 
+
+import datetime
 
 def get_group_messages(conn: Any = None):
     if not conn:
@@ -59,7 +62,6 @@ def update_read_group_messages(group_id: str = None, conn: Any = None):
     with conn.cursor() as cursor:
         cursor.execute(query, {"group_id": group_id})
             
-
 def get_line_groups() -> ListResponse[LineGroup]:
     query = """
     SELECT 
@@ -71,7 +73,7 @@ def get_line_groups() -> ListResponse[LineGroup]:
       lg.group_id,
       lg.display_name,
       COALESCE(c.is_linked, false) AS is_linked,
-      c.id AS company_id,
+      c.id as company_id,
       lg.picture_url
     FROM line_groups lg
     LEFT JOIN companies c ON lg.group_id = c.group_id;
@@ -129,7 +131,10 @@ def create_update_logs(user_id: int, error_groups: list[str], conn: Any = None):
            raise BadRequestError(message="ไม่สามารถสร้างเพิ่มประวัติการอัปเดตข้อมูลได้")
 
 
-def update_information(user_id: int = 0) ->  ListResponse[str]:
+def update_information(user_id: int) ->  ListResponse[str]:
+    if not user_id:
+        raise BadRequestError()
+    
     line_groups = get_line_groups()
 
     if not line_groups.items:
@@ -150,6 +155,7 @@ def update_information(user_id: int = 0) ->  ListResponse[str]:
                continue
 
             group_name = group_info.display_name or "<ไม่มีชื่อกลุ่ม>"
+            company_id = group_info.company_id
             
             summary = summarize_line_group_messages(
                 "\n".join(messages), 
@@ -163,13 +169,14 @@ def update_information(user_id: int = 0) ->  ListResponse[str]:
                 continue
             
             print(f"\nSummary group {group_name}\n")
-            
-            for i in contacts:  
-                for key  in i:
-                    print(f"{key}: {i.get(key, "<ไม่มีข้อมูล>")}")
-            
+
+            for i in contacts:
+                for key in i:
+                    print(f"{key}: {i.get(key) or '<ไม่มีข้อมูล>'}")
+
+           
             if not group_info.is_linked:
-                create_company_pg(
+                company_id = create_company_pg(
                     CompanyName(
                         company_th=summary.get("company_th"),
                         company_en=summary.get("company_en"),
@@ -181,14 +188,21 @@ def update_information(user_id: int = 0) ->  ListResponse[str]:
                 )
                 print("Create new unlinked company successfully\n")
             
+            if company_id is None:
+                raise NotFoundError( message=f"ไม่พบบริษัทของกลุ่ม {group_name} ในฐานข้อมูล")
+
             for contact in contacts:
-                create_pending_coordinator(
-                    CoordinatorCreate(**contact),
-                    group_id=group_id,
+                _ = create_employee_pg(
+                    EmployeeBase(
+                        **contact,
+                        status=ContactStatus.PENDING,
+                        company_id=company_id,
+                    ),
                     user_id=user_id,
                     conn=conn,
                 )
-                
+
+
             update_read_group_messages(group_id=group_id, conn=conn)
             conn.commit()
             print(f"Ectract Information for group: {group_name} successfully\n")
@@ -204,12 +218,11 @@ def update_information(user_id: int = 0) ->  ListResponse[str]:
             print(f"Roll back successfully\n")
             if error_group_name not in error_groups:
                error_groups.append(error_group_name)
-               continue
     try:
         with pg_db.get_connection() as conn:
           create_update_logs(user_id=user_id, error_groups=error_groups, conn=conn)
           conn.commit()
-    except Exception as e:
-        conn.rollback()
-        raise e
+    except Exception as e:   
+        print(f"Failed to create update logs: {e}")
+    
     return  ListResponse(items=error_groups, total=len(error_groups))

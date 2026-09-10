@@ -72,7 +72,7 @@ export function LibraryPanel() {
           <Alert tone="success" title="บันทึกข้อมูลคุณ พชร อุ้ยกิ้ม แล้ว" />
           <Alert
             tone="error"
-            title={MESSAGES.requireCoordinatorName}
+            title={MESSAGES.requireEmployeeName}
             onDismiss={() => undefined}
           />
           <Alert tone="warn" title={MESSAGES.companyNotFound} />
@@ -148,7 +148,7 @@ export function LibraryPanel() {
               mono
               hint="ไม่มีการตรวจรูปแบบเบอร์โทร"
             />
-            <TextField label="Error" error={MESSAGES.requireCoordinatorName} />
+            <TextField label="Error" error={MESSAGES.requireEmployeeName} />
             <SelectField
               label="Select"
               options={RELEVANT_OPTIONS}
