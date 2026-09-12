@@ -32,7 +32,11 @@ export function PlanStorage() {
           const selected = event.target.files?.[0];
           event.target.value = "";
           if (!selected || !window.confirm("แทนที่แผนปัจจุบันด้วยไฟล์นี้? สามารถเลิกทำรายการล่าสุดได้")) return;
-          await plan.importPlan(await selected.text());
+          try {
+            await plan.importPlan(await selected.text());
+          } catch {
+            plan.reportError("อ่านไฟล์แผนไม่ได้ กรุณาเลือกไฟล์ใหม่ แผนปัจจุบันยังอยู่");
+          }
         }} />
       </div>
       {plan.error ? (

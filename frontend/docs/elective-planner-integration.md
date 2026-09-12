@@ -74,20 +74,18 @@ session validation. Unexpected API calls fail the test. It does not log in to a
 real service, modify company data or verify a deployment. Results, downloads and
 screenshots are written to ignored `output/browser/`.
 
-The full-project lint currently includes an existing `react-hooks/set-state-in-effect`
-error in `src/components/ui/ActionMenu.tsx` (present on base commit `4eee0df`) and
-pre-existing unused import/image warnings. The migrated feature and new theme/frame
-components have no lint errors. Keep this baseline separate from integration checks.
+Full-project ESLint passes with zero errors and 13 pre-existing warnings for
+unused imports/variables and the existing image elements. The ActionMenu effect
+error on base commit `4eee0df` is fixed as part of the final review.
 
 ### Verified result
 
 On 2026-09-12, the integration passed the production Next.js build (including
-TypeScript), all 78 domain regression checks, and 19 browser regression scenarios.
+TypeScript), all 78 domain regression checks, and 22 browser regression scenarios.
 The browser run had no uncaught page errors, failed Next.js assets or unexpected
 API requests. See `elective-planner-verification.json` for the recorded scenarios.
-Changed-file ESLint passed with four existing `<img>` warnings in the login and
-sidebar components. Full-project ESLint still reports the unrelated ActionMenu
-baseline described above.
+Full-project ESLint passes with zero errors and the 13 warnings described above.
+The browser suite also checks the three final-review fixes below.
 
 Integration-specific issues fixed during verification:
 
@@ -103,5 +101,27 @@ Integration-specific issues fixed during verification:
 - Planner room/booking dialogs reset local state in effects, which conflicted
   with the host's React rules. A mounted form now initializes from its target and
   uses an effect only to synchronize the native dialog.
+
+### Final review findings
+
+| Priority | Trigger and issue | Resolution and evidence |
+| --- | --- | --- |
+| P2 | Shrink an already-open desktop planner to mobile: the active navigation link stayed outside the horizontal viewport because its effect only ran when the selected page changed. | Reproduced against the previous build, then fixed with a ResizeObserver. The browser test resizes the same page and verifies both edges of the active link remain visible. |
+| P2 | Import a backup whose file cannot be read: the rejected File.text() promise escaped the event handler without a useful message. | Catch the read failure and report it through the planner store. Fault injection verifies the saved document remains unchanged, a visible error appears and a subsequent valid import works. |
+| P3 | ActionMenu reset state inside an effect when disabled, leaving full-project lint failing. | Reset the open state before React commits children. A fixture contact request verifies that a keyboard-triggered pending operation closes the menu and a failed request does not reopen it. |
+
+### Follow-up improvements
+
+- Before using this as a shared operational planner, add an authenticated backend
+  for plans with explicit ownership/term boundaries and transactional concurrency.
+  Browser-local storage currently has neither account isolation nor device sync.
+- Replace the bundled example courses/rooms and archives with an approved data
+  source when the operational schema is ready; preserve the visible example-data
+  label until that integration is verified.
+- Run the existing domain, build and browser checks in CI so later host-console
+  changes cannot silently break planner navigation or theme isolation.
+- Consider loading the initial planner dataset on first entry after measuring the
+  login/core-page payload. The current root provider deliberately keeps the draft
+  alive across routes and also sends the small seed payload to non-planner pages.
 
 No deployment or real-backend verification was performed.

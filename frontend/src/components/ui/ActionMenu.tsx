@@ -69,10 +69,9 @@ export function ActionMenu({
     };
   }, [open]);
 
-  // A menu left open on a disabled card could still be clicked through.
-  useEffect(() => {
-    if (disabled) setOpen(false);
-  }, [disabled]);
+  // Reset before committing children so a newly disabled card cannot retain
+  // an actionable menu, or reopen it when its pending request finishes.
+  if (disabled && open) setOpen(false);
 
   return (
     <div ref={root} className={cn("relative", className)}>

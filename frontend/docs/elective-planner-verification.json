@@ -1,14 +1,15 @@
 {
-  "verifiedAt": "2026-09-12T08:52:00.177413+00:00",
+  "verifiedAt": "2026-09-12T09:04:42.537129+00:00",
   "baseCommit": "4eee0dfdcb8d3a2c5cdd37da65ef1a20f5073161",
   "plannerSourceCommit": "df48be432687a8bbfe1cf94d8ae95420e4250aff",
   "productionBuild": "passed",
   "domainChecks": 78,
   "browser": {
-    "passed": 19,
+    "passed": 22,
     "results": [
       "planner deep links require sign-in and return to the requested page",
       "integrated planner hydrates and loads its scheduler worker",
+      "active mobile navigation remains visible after resizing from desktop",
       "both themes reach the whole console, planner dialogs and cross-tab preferences",
       "duplicate session move is refused without changing ids",
       "onsite course cannot be moved into the online column",
@@ -23,15 +24,23 @@
       "deleting a room from detail can be undone after client navigation",
       "worker cancellation keeps the prior plan intact",
       "valid backup import and reset can both be undone",
+      "unreadable backup files preserve the current plan and report a recoverable error",
       "archive export, mobile layout and all production assets remain usable",
       "mobile theme controls and navigation work in both palettes",
-      "theme works with blocked localStorage and unsafe login return paths stay local"
+      "theme works with blocked localStorage and unsafe login return paths stay local",
+      "contact action menus close during a request and stay closed when it fails"
     ],
     "errors": [],
     "failedAssets": []
   },
   "backend": "local API fixtures only",
-  "changedFileLint": "0 errors; 4 existing image warnings",
-  "fullProjectLint": "existing ActionMenu.tsx react-hooks/set-state-in-effect error",
-  "deploymentVerified": false
+  "changedFileLint": "0 errors; existing image warnings",
+  "fullProjectLint": "passed: 0 errors, 13 existing warnings",
+  "deploymentVerified": false,
+  "reviewedIntegrationCommit": "d495f2cfd3fcc90124b54f9efd862ed2dafb5384",
+  "reviewFixes": [
+    "active mobile navigation after desktop resize",
+    "recover unreadable JSON backup imports without losing the plan",
+    "reset disabled action menus before committing children"
+  ]
 }

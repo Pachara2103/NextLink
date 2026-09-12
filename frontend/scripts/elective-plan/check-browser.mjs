@@ -81,6 +81,17 @@ try {
     assert.ok((await read()).assignments.length > 0);
     assert.deepEqual(failedAssets, []);
   });
+  await check('active mobile navigation remains visible after resizing from desktop', async () => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForFunction(() => {
+      const nav = document.querySelector('nav[aria-label="เมนูหลัก"]');
+      const current = nav?.querySelector('[aria-current="page"]');
+      if (!nav || !current) return false;
+      const a = nav.getBoundingClientRect(), b = current.getBoundingClientRect();
+      return b.left >= a.left && b.right <= a.right;
+    }, undefined, { timeout: 2000 });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+  });
   const scheduled = await read();
   await check('both themes reach the whole console, planner dialogs and cross-tab preferences', async () => {
     for (const theme of ['classic', 'dark']) {
@@ -289,7 +300,19 @@ try {
     await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).assignments.length > 0, key);
     assert.deepEqual((await read()).assignments, before.assignments);
   });
-  await check('archive export, mobile layout and all production assets remain usable', async () => {
+  await check('unreadable backup files preserve the current plan and report a recoverable error', async () => {
+    await go('/');
+    const before = await read();
+    await page.evaluate(() => { globalThis.originalFileText = File.prototype.text; File.prototype.text = async function () { throw new DOMException('Unreadable fixture', 'NotReadableError'); }; });
+    await page.locator('input[type=file]').setInputFiles({ name: 'unreadable.json', mimeType: 'application/json', buffer: Buffer.from('{}') });
+    await page.getByRole('region', { name: 'การบันทึกแผน' }).getByText('อ่านไฟล์แผนไม่ได้ กรุณาเลือกไฟล์ใหม่ แผนปัจจุบันยังอยู่', { exact: true }).waitFor();
+    assert.deepEqual(await read(), before);
+    await page.evaluate(() => { File.prototype.text = globalThis.originalFileText; });
+    await page.locator('input[type=file]').setInputFiles({ name: 'retry.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(before)) });
+    await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).revision > 0 && !document.querySelector('.plan-storage-error'), key);
+    assert.deepEqual((await read()).assignments, before.assignments);
+  });
+  await check('archive export, mobile layout and all production assets remain usable' , async () => {
     await go('/courses/list?term=2568-2');
     const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'ดาวน์โหลด Excel', exact: true }).click();
     await (await pending).saveAs('output/browser/archive.xlsx');
@@ -330,7 +353,35 @@ try {
     await themeIs('dark');
     assert.deepEqual(errors, []); assert.deepEqual(unexpectedApi, []);
   });
-  await writeFile('output/browser/results.json'  , JSON.stringify({ passed: results.length, results, errors, failedAssets }, null, 2));
+  await check('contact action menus close during a request and stay closed when it fails', async () => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    const employee = { id: 901, companyId: 902, status: 'pending', nameTh: 'ผู้ประสานงานทดสอบ', nameEn: null, nickname: null, jobTitle: null, relevant: null, email: null, phone: null, createdAt: '2026-09-12T00:00:00Z', updatedAt: '2026-09-12T00:00:00Z' };
+    const group = { groupId: 'fixture-group', displayName: 'กลุ่มทดสอบ', companyId: 902, companyTh: 'บริษัททดสอบ', companyEn: null, aliases: [], isLinked: true, pictureUrl: null, createdAt: employee.createdAt, updatedAt: employee.updatedAt };
+    await page.route('**/api/v1/employees', route => route.fulfill({ json: { items: [employee] } }));
+    await page.route('**/api/v1/line/groups', route => route.fulfill({ json: { items: [group] } }));
+    let reply;
+    const pending = new Promise(resolve => { reply = resolve; });
+    await page.route('**/api/v1/employees/901/approve', async route => {
+      assert.equal(route.request().method(), 'POST');
+      await pending;
+      await route.fulfill({ status: 409, json: { detail: 'Simulated approval conflict' } });
+    });
+    await page.goto(base + '/?panel=contacts');
+    await page.getByRole('button', { name: 'ดูข้อมูลผู้ประสานงาน', exact: true }).click();
+    const trigger = page.getByRole('button', { name: 'ตัวเลือกเพิ่มเติมของ ผู้ประสานงานทดสอบ', exact: true });
+    await trigger.click(); await page.getByRole('menu').waitFor();
+    // Keyboard activation does not fire the menu's outside-pointer handler.
+    await page.getByRole('button', { name: 'ยืนยันและบันทึก', exact: true }).press('Enter');
+    await page.waitForFunction(() => document.querySelector('button[aria-haspopup="menu"]')?.disabled === true);
+    assert.equal(await page.getByRole('menu').count(), 0);
+    reply();
+    await page.waitForFunction(() => document.querySelector('button[aria-haspopup="menu"]')?.disabled === false);
+    assert.equal(await page.getByRole('menu').count(), 0);
+    await trigger.click(); await page.getByRole('menu').waitFor();
+    await page.keyboard.press('Escape'); assert.equal(await page.getByRole('menu').count(), 0);
+    assert.deepEqual(errors, []); assert.deepEqual(unexpectedApi, []);
+  });
+  await writeFile('output/browser/results.json'   , JSON.stringify({ passed: results.length, results, errors, failedAssets }, null, 2));
   await rm('output/browser/failure.json', { force: true });
   console.log(`browser: ok (${results.length} production regression checks)`);
 } catch (error) {

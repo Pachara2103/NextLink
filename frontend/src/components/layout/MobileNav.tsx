@@ -34,8 +34,19 @@ export function MobileNav({
 }) {
   const nav = useRef<HTMLElement>(null);
   useEffect(() => {
-    const current = nav.current?.querySelector<HTMLElement>('[aria-current="page"]');
-    if (nav.current && current) nav.current.scrollLeft += current.getBoundingClientRect().left - nav.current.getBoundingClientRect().left - 8;
+    const element = nav.current;
+    if (!element) return;
+    const revealCurrent = () => {
+      const current = element.querySelector<HTMLElement>('[aria-current="page"]');
+      if (current && element.clientWidth > 0) {
+        element.scrollLeft += current.getBoundingClientRect().left - element.getBoundingClientRect().left - 8;
+      }
+    };
+    revealCurrent();
+    // The mobile navigation also becomes visible when a desktop window shrinks.
+    const observer = new ResizeObserver(revealCurrent);
+    observer.observe(element);
+    return () => observer.disconnect();
   }, [active]);
 
   return (
