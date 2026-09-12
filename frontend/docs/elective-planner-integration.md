@@ -124,4 +124,40 @@ Integration-specific issues fixed during verification:
   login/core-page payload. The current root provider deliberately keeps the draft
   alive across routes and also sends the small seed payload to non-planner pages.
 
-No deployment or real-backend verification was performed.
+The regression suite above uses API fixtures. Live hosting checks are recorded
+separately below; fixture results do not verify the production database.
+
+## Hosting in the frontend owner's account
+
+The separate Vercel project `nano109s-projects/nextlink-console` uses the Next.js
+preset and `frontend` as its Root Directory. Production and Preview both set
+`API_ORIGIN=https://next-link-backend.vercel.app`, as requested by the owner to
+reuse the existing team's API and database. The variable is server-side: requests
+to `/api/v1/*` are proxied through Next.js, preserving the existing login flow.
+
+The public API origin was recovered from this repository's history and verified
+on 2026-09-12: `/api/v1/health` returned HTTP 200 with `ready=true`; unauthenticated
+`/api/v1/auth/me` returned HTTP 401. At that check the health response matched the
+API behind the team's existing console, including its process boot identifier.
+The Railway project accessible to this owner contains the LINE bot and Postgres;
+the LINE bot's hostname returns 404 for the Graph_RAG authentication route and
+must not be substituted for `API_ORIGIN`. No database credentials are needed by
+the frontend, and this setup does not change the backend or database.
+
+Run deployment commands from the Graph_RAG repository root, where the ignored
+`.vercel/project.json` links this checkout to the new project:
+
+```sh
+vercel link --yes --project nextlink-console --scope nano109s-projects
+vercel deploy --dry --json --scope nano109s-projects
+vercel deploy --prod --yes --scope nano109s-projects
+```
+
+`.vercelignore` excludes local environment files, dependencies and browser-test
+artifacts from CLI uploads. The project's production `API_ORIGIN` must be set
+before building; the localhost target in the regression commands is a fixture
+target and is not a deployment configuration.
+
+Automatic Git deployment is not connected: Vercel rejected the attempt to connect
+`Pachara2103/NextLink` from this owner's account. CLI deployment can still use the
+reviewed local checkout. Do not assume pushing this PR updates the new host.
