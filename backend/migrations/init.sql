@@ -1,20 +1,6 @@
--- ==========================================================================
--- NextLink - PostgreSQL schema
---
--- ไฟล์นี้มีแต่ CREATE TABLE IF NOT EXISTS + CREATE INDEX IF NOT EXISTS
--- ไม่มี ALTER TABLE, ไม่มี function, ไม่มี trigger
---
--- แปลว่ามันสร้างของที่ยังไม่มีได้ แต่ "ไม่แก้" ตารางที่มีอยู่แล้ว
--- ถ้าโครงตารางในฐานข้อมูลไม่ตรงกับไฟล์นี้ ต้องลบแล้วสร้างใหม่:
---
---   pg_dump "$DATABASE_PUBLIC_URL" > backup.sql          # สำรองก่อน
---   psql "$DATABASE_PUBLIC_URL" -v ON_ERROR_STOP=1 -f migrations/delete.sql
---   psql "$DATABASE_PUBLIC_URL" -v ON_ERROR_STOP=1 -f migrations/init.sql
---
+
 -- ไม่มี trigger updated_at (trigger ต้องมี function) ทุก UPDATE จึงต้องเขียน
 -- `updated_at = now()` ในคำสั่ง SQL เอง เหมือนที่ services/*.py ทำอยู่
--- ==========================================================================
-
 
 -- ==========================================================================
 -- ตารางของฝั่ง LINE webhook
@@ -38,13 +24,7 @@ CREATE TABLE IF NOT EXISTS line_groups (
 );
 
 
--- ==========================================================================
--- ผู้ใช้ console
--- ==========================================================================
-
 CREATE TABLE IF NOT EXISTS users (
-    -- BIGSERIAL: ทุกตารางที่เก็บ user_id เป็น BIGINT ถ้าฝั่งนี้เป็น int4
-    -- การ join u.id = l.user_id จะข้ามชนิดกันตลอด
     id BIGSERIAL PRIMARY KEY,
     username TEXT NOT NULL UNIQUE,
     display_name TEXT NULL,
@@ -54,9 +34,6 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 
--- ==========================================================================
--- บริษัท ผูกกับกลุ่ม LINE หนึ่งกลุ่ม
--- ==========================================================================
 
 CREATE TABLE IF NOT EXISTS companies (
     id BIGSERIAL PRIMARY KEY,
@@ -65,20 +42,15 @@ CREATE TABLE IF NOT EXISTS companies (
     group_id TEXT NULL UNIQUE REFERENCES line_groups(group_id) ON DELETE SET NULL,
     company_th TEXT NULL,
     company_en TEXT NULL,
-    -- NULL ได้ ไม่ใช่ '{}' บังคับ: UPDATE ใช้ COALESCE บนคอลัมน์นี้
-    aliases TEXT[] NULL DEFAULT '{}'::text[],
+    aliases TEXT[] NULL DEFAULT '{}'::text[],  -- NULL ได้ ไม่ใช่ '{}' บังคับ: UPDATE ใช้ COALESCE บนคอลัมน์นี้
     is_linked BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
     -- create_company_pg / update_company_pg เช็คเงื่อนไขนี้ใน Python อยู่แล้ว
-    CONSTRAINT ck_companies_has_name
-        CHECK (company_th IS NOT NULL OR company_en IS NOT NULL)
+    CONSTRAINT ck_companies_has_name CHECK (company_th IS NOT NULL OR company_en IS NOT NULL)
 );
 
-
--- ==========================================================================
--- ผู้ประสานงานที่ AI สรุปมาจากแชท LINE รอคนอนุมัติ
--- ==========================================================================
 
 CREATE TABLE IF NOT EXISTS employees (
     id BIGSERIAL PRIMARY KEY,
@@ -104,10 +76,10 @@ CREATE TABLE IF NOT EXISTS employees (
         CHECK (name_th IS NOT NULL OR name_en IS NOT NULL OR nickname IS NOT NULL)
 );
 
-
--- ==========================================================================
--- ผู้ติดต่อที่คนกรอกเข้ามาเอง (คนละเรื่องกับ employees)
--- ==========================================================================
+CREATE INDEX IF NOT EXISTS idx_employees_company_id ON employees(company_id);
+CREATE INDEX IF NOT EXISTS idx_employees_user_id ON employees (user_id) WHERE user_id IS NOT NULL;
+-- partial: หน้ารออนุมัติเปิดบ่อย และ pending เป็นส่วนน้อยของตาราง
+CREATE INDEX IF NOT EXISTS idx_employees_pending ON employees (created_at DESC) WHERE status = 'pending';
 
 CREATE TABLE IF NOT EXISTS contacts (
     id BIGSERIAL PRIMARY KEY,
@@ -128,10 +100,10 @@ CREATE TABLE IF NOT EXISTS contacts (
     CONSTRAINT ck_contacts_name_not_blank CHECK (btrim(name) <> '')
 );
 
+-- services/contact.py::get_contacts (WHERE company_id = %s) + รองรับ FK
+CREATE INDEX IF NOT EXISTS idx_contacts_company_id ON contacts (company_id);
 
--- ==========================================================================
--- สถานะ MOU หนึ่งบริษัทหนึ่งแถว
--- ==========================================================================
+
 
 CREATE TABLE IF NOT EXISTS mous (
     id BIGSERIAL PRIMARY KEY,
@@ -160,49 +132,35 @@ CREATE TABLE IF NOT EXISTS mous (
 );
 
 
--- ==========================================================================
--- โน้ต ผูกกับบริษัท (ผ่าน group_id) หรือกับผู้ประสานงานหนึ่งคน
--- ==========================================================================
-
 CREATE TABLE IF NOT EXISTS notes (
     id BIGSERIAL PRIMARY KEY,
     content TEXT NOT NULL,
-    -- RESTRICT ไม่ใช่ CASCADE: โน้ตเป็นของที่คนพิมพ์เอง การลบกลุ่ม LINE
-    -- ไม่ควรกินโน้ตหายไปเงียบ ๆ ให้ error ออกมาให้เห็นดีกว่า
-  
     company_id BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     employee_id BIGINT NULL REFERENCES employees(id) ON DELETE CASCADE,
-    -- group_id TEXT NOT NULL REFERENCES line_groups(group_id) ON DELETE RESTRICT,
-    -- person_id BIGINT NULL REFERENCES employees(id) ON DELETE CASCADE,
-
     type TEXT NOT NULL DEFAULT 'mou',
     sentiment TEXT NOT NULL DEFAULT 'neutral',
     source TEXT NOT NULL DEFAULT 'external',
-    academic_year INTEGER NOT NULL,
-    term INTEGER NOT NULL,
+    year INTEGER NOT NULL,
+    semester INTEGER NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
    
-    CONSTRAINT ck_notes_sentiment
-        CHECK (sentiment IN ('positive', 'neutral', 'warning', 'negative')),
-    CONSTRAINT ck_notes_source
-        CHECK (source IN ('internal', 'external')),
-    CONSTRAINT ck_notes_term CHECK (term IN (1, 2, 3)),
-    CONSTRAINT ck_notes_academic_year CHECK (academic_year BETWEEN 2000 AND 2100),
+    CONSTRAINT ck_notes_sentiment  CHECK (sentiment IN ('positive', 'neutral', 'warning', 'negative')),
+    CONSTRAINT ck_notes_source CHECK (source IN ('internal', 'external')),
+    CONSTRAINT ck_notes_semester CHECK (semester IN (1, 2, 3)),
+    CONSTRAINT ck_notes_year CHECK (year BETWEEN 2000 AND 2100),
     CONSTRAINT ck_notes_content_not_blank CHECK (btrim(content) <> ''),
-
-    CONSTRAINT ck_notes_type CHECK (
-        type IN ('mou', 'elective', 'internship', 'coop', 'friday','person')
-    ),
+    CONSTRAINT ck_notes_type CHECK (type IN ('mou', 'elective', 'internship', 'coop', 'friday','person')),
     CONSTRAINT ck_notes_employee_binding CHECK (
         (type IN ('person') AND employee_id IS NOT NULL) OR (type NOT IN ('person') AND employee_id IS NULL)
     )
 );
 
+CREATE INDEX IF NOT EXISTS idx_notes_company_id ON notes(company_id); --   LEFT JOIN companies c ON c.id = n.company_id
+CREATE INDEX IF NOT EXISTS idx_notes_employee_id ON notes(employee_id) WHERE employee_id IS NOT NULL; --   LEFT JOIN employees ON p.id = n.person_id
+CREATE INDEX IF NOT EXISTS idx_notes_listing ON notes (year DESC NULLS LAST, semester DESC NULLS LAST, updated_at DESC);
 
--- ==========================================================================
--- ประวัติแชทกับ agent
--- ==========================================================================
+
 
 CREATE TABLE IF NOT EXISTS chat_histories (
     id BIGSERIAL PRIMARY KEY,
@@ -212,11 +170,8 @@ CREATE TABLE IF NOT EXISTS chat_histories (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT ck_chat_histories_role CHECK (role IN ('user', 'ai'))
 );
+CREATE INDEX IF NOT EXISTS idx_chat_histories_user_created ON chat_histories (user_id, created_at DESC);
 
-
--- ==========================================================================
--- log การใช้ token ของ LLM
--- ==========================================================================
 
 CREATE TABLE IF NOT EXISTS token_logs (
     -- BIGSERIAL: ตารางนี้โตเร็วที่สุดในระบบ (1 แถวต่อ 1 การเรียก LLM)
@@ -236,11 +191,9 @@ CREATE TABLE IF NOT EXISTS token_logs (
         input_tokens >= 0 AND output_tokens >= 0 AND total_tokens >= 0
     )
 );
-
-
--- ==========================================================================
--- ประวัติการกดปุ่ม "อัปเดตข้อมูล"
--- ==========================================================================
+CREATE INDEX IF NOT EXISTS idx_token_logs_created ON token_logs (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_token_logs_user_created ON token_logs (user_id, created_at DESC) WHERE user_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_token_logs_group_created ON token_logs (group_id, created_at DESC) WHERE group_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS update_logs (
     id BIGSERIAL PRIMARY KEY,
@@ -249,64 +202,16 @@ CREATE TABLE IF NOT EXISTS update_logs (
     error_groups TEXT[] NULL DEFAULT '{}'::text[],
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
-
--- ==========================================================================
--- index
---
--- ทุกตัวมาจาก query ที่ backend ยิงจริง เขียนชื่อฟังก์ชันกำกับไว้
--- PK / UNIQUE มี index ให้แล้วโดยปริยาย ไม่ต้องสร้างซ้ำที่
--- users.username, companies.group_id, mous.company_id
--- ==========================================================================
-
--- services/chat_history.py::get_chat_histories
---   WHERE user_id = %s ORDER BY created_at DESC LIMIT 20
--- user_id ใช้กรอง created_at ใช้เรียง -> อ่าน 20 แถวแรกของ index ได้เลย
--- ไม่ต้อง sort ประวัติทั้งหมดของคนนั้น
-CREATE INDEX IF NOT EXISTS idx_chat_histories_user_created
-    ON chat_histories (user_id, created_at DESC);
-
--- services/contact.py::get_contacts (WHERE company_id = %s) + รองรับ FK
-CREATE INDEX IF NOT EXISTS idx_contacts_company_id
-    ON contacts (company_id);
-
--- services/note.py::SELECT_NOTES
---   LEFT JOIN companies ON c.group_id = n.group_id
---   LEFT JOIN employees ON p.id = n.person_id
-
-CREATE INDEX idx_notes_company_id ON notes(company_id);
-CREATE INDEX idx_notes_employee_id 
-    ON notes(employee_id) WHERE employee_id IS NOT NULL;
-
--- services/note.py::get_notes
---   ORDER BY academic_year DESC NULLS LAST, term DESC NULLS LAST, updated_at DESC
--- ต้องใส่ NULLS LAST ให้ตรงกับ ORDER BY เป๊ะ ไม่งั้น planner ใช้เรียงไม่ได้
-CREATE INDEX IF NOT EXISTS idx_notes_listing
-    ON notes (academic_year DESC NULLS LAST, term DESC NULLS LAST, updated_at DESC);
-
--- FK ของ employees + ใช้หาว่ากลุ่มนี้มีใครบ้าง
-CREATE INDEX IF NOT EXISTS idx_employees_company_id 
-    ON employees(company_id);
-
-CREATE INDEX IF NOT EXISTS idx_employees_user_id
-    ON employees (user_id) WHERE user_id IS NOT NULL;
--- partial: หน้ารออนุมัติเปิดบ่อย และ pending เป็นส่วนน้อยของตาราง
-CREATE INDEX IF NOT EXISTS idx_employees_pending
-    ON employees (created_at DESC) WHERE status = 'pending';
-
 -- services/line.py::get_update_logs - ORDER BY created_at DESC, id DESC
-CREATE INDEX IF NOT EXISTS idx_update_logs_created
-    ON update_logs (created_at DESC, id DESC);
-CREATE INDEX IF NOT EXISTS idx_update_logs_user_id
-    ON update_logs (user_id);
+CREATE INDEX IF NOT EXISTS idx_update_logs_created ON update_logs (created_at DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_update_logs_user_id ON update_logs (user_id);
+
+
+
+
 
 -- token_logs: ตารางรายงาน อ่านเป็นช่วงเวลา / รายคน / รายกลุ่ม
-CREATE INDEX IF NOT EXISTS idx_token_logs_created
-    ON token_logs (created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_token_logs_user_created
-    ON token_logs (user_id, created_at DESC) WHERE user_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_token_logs_group_created
-    ON token_logs (group_id, created_at DESC) WHERE group_id IS NOT NULL;
+
 
 -- line_messages เป็นตารางของฝั่ง LINE webhook แต่
 -- services/line.py::get_group_messages ยิง query หนักใส่มันทุกครั้งที่กด
@@ -345,9 +250,6 @@ CREATE TABLE IF NOT EXISTS graph_outbox (
 );
 
 -- services/outbox.py::replay_pending
-CREATE INDEX IF NOT EXISTS idx_graph_outbox_pending
-    ON graph_outbox (next_try_at, id) WHERE status = 'pending';
-
+CREATE INDEX IF NOT EXISTS idx_graph_outbox_pending ON graph_outbox (next_try_at, id) WHERE status = 'pending';
 -- services/outbox.py::flush
-CREATE INDEX IF NOT EXISTS idx_graph_outbox_entity
-    ON graph_outbox (entity, entity_id, id) WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_graph_outbox_entity ON graph_outbox (entity, entity_id, id) WHERE status = 'pending';

@@ -3,7 +3,7 @@ import type { ListResponse, Note, NoteInput, StatusResponse } from "@/types";
 
 export const noteService = {
   /**
-   * Every note, unfiltered. The panel filters by year/term/level/source on the
+   * Every note, unfiltered. The panel filters by year/semester/level/source on the
    * client and shows "แสดง N จาก TOTAL" over the whole set, so it needs all of
    * them — and there are far fewer notes than LINE messages.
    */

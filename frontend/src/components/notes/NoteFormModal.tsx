@@ -10,17 +10,17 @@ import {
   NOTE_TYPES,
   SENTIMENTS,
   SOURCES,
-  academicYearOptions,
-  getCurrentAcademicTerm,
+  getCurrentYearSemester,
   isPersonNote,
   notePersonLabel,
+  yearOptions,
 } from "@/lib/notes";
 import { cn, companyLabel, groupLabel } from "@/lib/utils";
 import { useConsole } from "@/store/console-store";
 import type { Employee, GroupLine, Note, NoteInput, NoteType } from "@/types";
 
 /**
- * Everything the form holds while it is open. Not NoteInput: term/year are
+ * Everything the form holds while it is open. Not NoteInput: semester/year are
  * always set here, and the company/employee start out unchosen.
  *
  * `companyId`, not a group id — that is what `notes.company_id` stores. The
@@ -31,21 +31,21 @@ interface Draft {
   type: NoteType;
   source: NoteInput["source"];
   sentiment: NoteInput["sentiment"];
-  academicYear: number;
-  term: 1 | 2 | 3;
+  year: number;
+  semester: 1 | 2 | 3;
   companyId: number | null;
   employeeId: number | null;
   content: string;
 }
 
 export function emptyNoteDraft(): Draft {
-  const current = getCurrentAcademicTerm();
+  const current = getCurrentYearSemester();
   return {
     type: "mou",
     source: "external",
     sentiment: "neutral",
-    academicYear: current.academicYear,
-    term: current.term,
+    year: current.year,
+    semester: current.semester,
     companyId: null,
     employeeId: null,
     content: "",
@@ -53,13 +53,13 @@ export function emptyNoteDraft(): Draft {
 }
 
 function draftFrom(note: Note): Draft {
-  const current = getCurrentAcademicTerm();
+  const current = getCurrentYearSemester();
   return {
     type: note.type ?? "mou",
     source: note.source ?? "external",
     sentiment: note.sentiment ?? "neutral",
-    academicYear: note.academicYear ?? current.academicYear,
-    term: (note.term ?? current.term) as 1 | 2 | 3,
+    year: note.year ?? current.year,
+    semester: (note.semester ?? current.semester) as 1 | 2 | 3,
     companyId: note.companyId,
     employeeId: note.employeeId ?? null,
     content: note.content ?? "",
@@ -180,7 +180,7 @@ export function NoteFormModal({
    * is filed under and the person it points at. PUT /notes/{id} refuses a type
    * change outright, and moving a note to another company or person would
    * rewrite the graph edge underneath it — so on an edit those three are shown
-   * as they are and only the content, level, source, year and term stay open.
+   * as they are and only the content, level, source, year and semester stay open.
    */
   const locked = editing !== null;
 
@@ -191,8 +191,8 @@ export function NoteFormModal({
   if (draft.content.trim() === "") blockers.push("กรอกเนื้อหาโน้ต");
   const canSave = blockers.length === 0;
 
-  const current = getCurrentAcademicTerm();
-  const years = academicYearOptions(current.academicYear);
+  const current = getCurrentYearSemester();
+  const years = yearOptions(current.year);
 
   async function handleSave() {
     if (saving || !canSave) return;
@@ -203,8 +203,8 @@ export function NoteFormModal({
         type: draft.type,
         sentiment: draft.sentiment,
         source: draft.source,
-        academicYear: draft.academicYear,
-        term: draft.term,
+        year: draft.year,
+        semester: draft.semester,
         // Non-null by canSave, which blocks the button until a company is
         // picked — notes.company_id is NOT NULL.
         companyId: draft.companyId!,
@@ -326,22 +326,20 @@ export function NoteFormModal({
         <div>
           <SelectField
             label="ปีการศึกษา"
-            value={String(draft.academicYear)}
-            onChange={(event) =>
-              patch({ academicYear: Number(event.target.value) })
-            }
+            value={String(draft.year)}
+            onChange={(event) => patch({ year: Number(event.target.value) })}
             options={years.map((y) => ({
               value: String(y),
-              label: y === current.academicYear ? `${y} (ปัจจุบัน)` : String(y),
+              label: y === current.year ? `${y} (ปัจจุบัน)` : String(y),
             }))}
           />
         </div>
         <div>
           <SelectField
             label="ภาคเรียน"
-            value={String(draft.term)}
+            value={String(draft.semester)}
             onChange={(event) =>
-              patch({ term: Number(event.target.value) as 1 | 2 | 3 })
+              patch({ semester: Number(event.target.value) as 1 | 2 | 3 })
             }
             options={[
               { value: "1", label: "ภาคเรียนที่ 1" },

@@ -4,9 +4,9 @@ import { Icon } from "@/components/icons";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import {
+  SEMESTER_LABEL,
   SENTIMENT,
   SOURCE,
-  TERM_LABEL,
   noteTypeMeta,
   notePersonLabel,
 } from "@/lib/notes";
@@ -78,7 +78,7 @@ export function NoteCard({
           </div>
         </div>
 
-        {/* Controls on top, the term chip pushed to the bottom-right corner. */}
+        {/* Controls on top, the semester chip pushed to the bottom-right corner. */}
         <div className="flex shrink-0 flex-col items-end gap-2 self-stretch">
           <div className="flex items-center gap-1.5">
             <Button size="sm" icon="pencil" onClick={() => onEdit(note)}>
@@ -95,12 +95,12 @@ export function NoteCard({
           </div>
           <span
             className="mt-auto inline-flex items-center gap-1.5 rounded-full border border-line bg-sunken px-2.5 py-1 font-mono text-[11px] tabular-nums text-text-2"
-            title={`ปีการศึกษา ${note.academicYear ?? "-"} · ${
-              TERM_LABEL[note.term ?? 0] ?? "ไม่ระบุภาคเรียน"
+            title={`ปีการศึกษา ${note.year ?? "-"} · ${
+              SEMESTER_LABEL[note.semester ?? 0] ?? "ไม่ระบุภาคเรียน"
             }`}
           >
             <Icon name="calendar" className="size-3.5" />
-            {note.academicYear ?? "-"} · เทอม {note.term ?? "-"}
+            {note.year ?? "-"} · เทอม {note.semester ?? "-"}
           </span>
         </div>
       </div>

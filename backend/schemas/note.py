@@ -13,8 +13,8 @@ class NoteBase(ApiBaseModel):
     type: NoteType 
     sentiment: Sentiment 
     source: NoteSource 
-    academic_year: int
-    term: Literal[1, 2, 3] 
+    year: int
+    semester: Literal[1, 2, 3] 
 
 class NoteCreate(NoteBase):
     company_id: int
