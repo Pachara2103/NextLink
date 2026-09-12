@@ -82,12 +82,17 @@ Only this explicitly named disposable local database is accepted by the fixture.
 
 ## Local verification on 2026-09-12
 
-- 17 regression cases passed against disposable native PostgreSQL. The Uvicorn
+- 18 regression cases passed against disposable native PostgreSQL after merging
+  upstream `fc99739`. The added case exercises its `update_password` helper:
+  a wrong current password preserves sessions; a successful change revokes both
+  old sessions, preserves another user's session and allows the new password.
+  Upstream `year`/`semester` changes and password-update behavior are preserved.
+  The Uvicorn
   forwarded-header regression failed before the launcher fix (three 401 responses)
   and passed afterward (401, 401, 429), confirming the bypass and its correction.
 - Python compilation and `git diff --check` passed. All 30 protected versioned
   routes retain the shared session dependency; frontend and LINE code are unchanged.
 - The test runner emitted two dependency deprecation warnings, with no failures.
-- GitHub Actions is configured but has not run remotely. Production migration,
+- GitHub Actions reports remote results on the PR separately. Production migration,
   proxy topology and deployment behavior have not been verified. The full AI
   application's startup and unrelated frontend workflows were outside these tests.

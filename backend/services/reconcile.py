@@ -81,7 +81,7 @@ def _note_payload(id: int) -> dict | None:
         with conn.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT content, type, sentiment, source, academic_year, term,
+                SELECT content, type, sentiment, source, year, semester,
                        company_id, employee_id
                 FROM notes WHERE id = %s;
                 """,

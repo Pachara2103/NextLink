@@ -4,8 +4,8 @@ import { SortSelect } from "@/components/ui/Field";
 import {
   SENTIMENTS,
   SOURCES,
-  academicYearOptions,
-  getCurrentAcademicTerm,
+  getCurrentYearSemester,
+  yearOptions,
   type NoteFilters,
 } from "@/lib/notes";
 
@@ -18,17 +18,17 @@ type Field = keyof NoteFilters;
  */
 function optionsFor(field: Field): { value: string; label: string }[] {
   switch (field) {
-    case "academicYear": {
-      const current = getCurrentAcademicTerm().academicYear;
+    case "year": {
+      const current = getCurrentYearSemester().year;
       return [
         { value: "all", label: "ทุกปีการศึกษา" },
-        ...academicYearOptions(current).map((y) => ({
+        ...yearOptions(current).map((y) => ({
           value: String(y),
           label: `ปีการศึกษา ${y}`,
         })),
       ];
     }
-    case "term":
+    case "semester":
       return [
         { value: "all", label: "ทุกภาคเรียน" },
         { value: "1", label: "ภาคเรียนที่ 1" },
@@ -49,8 +49,8 @@ function optionsFor(field: Field): { value: string; label: string }[] {
 }
 
 const ARIA: Record<Field, string> = {
-  academicYear: "กรองตามปีการศึกษา",
-  term: "กรองตามภาคเรียน",
+  year: "กรองตามปีการศึกษา",
+  semester: "กรองตามภาคเรียน",
   sentiment: "กรองตามระดับของโน้ต",
   source: "กรองตามที่มาของเรื่อง",
 };

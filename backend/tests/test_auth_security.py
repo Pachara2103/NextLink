@@ -70,6 +70,32 @@ def test_logout_preserves_other_sessions_and_profile_workflow(client):
     assert client.delete("/protected", headers=second).status_code == 200
 
 
+def test_upstream_password_change_revokes_old_sessions_and_allows_new_login(client):
+    from services.user import update_password
+    from core.exceptions import InvalidCredentialsError
+
+    first, second = sign_in(client), sign_in(client)
+    other_user = sign_in(client, "bob")
+    with pytest.raises(InvalidCredentialsError):
+        update_password(1, "replacement-password", "incorrect-current-password")
+    assert client.get("/api/v1/auth/me", headers=first).status_code == 200
+
+    update_password(1, "replacement-password", "correct-password")
+    for headers in (first, second):
+        assert client.get("/api/v1/auth/me", headers=headers).status_code == 401
+    assert client.get("/api/v1/auth/me", headers=other_user).status_code == 200
+    assert client.post("/api/v1/auth/login", json={
+        "username": "alice", "password": "correct-password",
+    }).status_code == 401
+    response = client.post("/api/v1/auth/login", json={
+        "username": "alice", "password": "replacement-password",
+    })
+    assert response.status_code == 200
+    assert client.get("/api/v1/auth/me", headers={
+        "Authorization": "Bearer " + response.json()["accessToken"],
+    }).status_code == 200
+
+
 @pytest.mark.parametrize("change", ["delete", "password", "expiry"])
 def test_session_lifecycle_fails_closed(client, change):
     headers = sign_in(client)

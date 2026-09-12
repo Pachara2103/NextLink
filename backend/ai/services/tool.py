@@ -86,8 +86,8 @@ def get_company_notes(company_name: str):
        {
       "content": "test note",
       "note_type": "mou",
-      "academic_year": 2026,
-      "term": 1,
+      "year": 2026,
+      "semester": 1,
       "created_at": "2026-09-10 16:57:16",
       "updated_at": "2026-09-10 16:57:16"
         }
@@ -101,11 +101,11 @@ def get_company_notes(company_name: str):
     RETURN 
      n.content AS content,  
      n.type as note_type, 
-     n.academicYear as academic_year, 
-     n.term as term,
+     n.year as year, 
+     n.semester as semester,
      n.createdAt as created_at, 
      n.updatedAt as updated_at
-    ORDER BY n.academicYear DESC, n.term DESC, n.createdAt DESC"""
+    ORDER BY n.year DESC, n.semester DESC, n.createdAt DESC"""
     for company in company_list:
         company_id = company.get("id")
         company_key = get_company_name(company)

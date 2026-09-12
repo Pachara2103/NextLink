@@ -27,8 +27,8 @@ SELECT_NOTES = """
         n.type,
         n.sentiment,
         n.source,
-        n.academic_year,
-        n.term,
+        n.year,
+        n.semester,
         
         n.company_id,
         n.employee_id,
@@ -78,7 +78,7 @@ def get_note(id: int, conn: Any = None) -> Note:
         return rows[0]
 
 def get_notes() -> ListResponse[Note]:
-    query = f"{SELECT_NOTES} ORDER BY n.academic_year DESC NULLS LAST, n.term DESC NULLS LAST, n.updated_at DESC;"
+    query = f"{SELECT_NOTES} ORDER BY n.year DESC NULLS LAST, n.semester DESC NULLS LAST, n.updated_at DESC;"
 
     with pg_db.get_connection() as conn:
         with conn.cursor() as cursor:

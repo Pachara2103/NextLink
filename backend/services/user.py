@@ -136,3 +136,58 @@ RETURNING id, username, display_name;
         raise BadRequestError("Failed to create user.")
 
     return _profile(result)
+
+
+def update_password(user_id: int, new_password: str, current_password: str | None = None) -> None:
+    if not new_password:
+        raise BadRequestError("กรุณาระบุรหัสผ่านใหม่")
+
+    if len(new_password) < 8:
+        raise BadRequestError("รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 8 ตัวอักษร")
+
+    with pg_db.get_connection() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT password FROM users WHERE id = %s;", (user_id,))
+            row = cursor.fetchone()
+            if not row:
+                raise NotFoundError(message="ไม่พบข้อมูลผู้ใช้")
+
+            stored_hash = row[0]
+
+            if current_password is not None:
+                try:
+                    matched = bcrypt.checkpw(
+                        current_password.encode("utf-8"), stored_hash.encode("utf-8")
+                    )
+                except (ValueError, TypeError, AttributeError) as e:
+                    logger.error(
+                        "[Update Password Error] stored hash for user_id %s is unusable: %s",
+                        user_id,
+                        e,
+                    )
+                    raise PasswordHashError() from e
+
+                if not matched:
+                    raise InvalidCredentialsError(message="รหัสผ่านเดิมไม่ถูกต้อง")
+
+            try:
+                salt = bcrypt.gensalt()
+                new_hashed_password = bcrypt.hashpw(
+                    new_password.encode("utf-8"), salt
+                ).decode("utf-8")
+            except Exception as e:
+                logger.error(
+                    "[Update Password Error] hashing failed for user_id %s: %s",
+                    user_id,
+                    e,
+                )
+                raise PasswordHashError() from e
+
+            update_query = """
+                UPDATE users
+                SET password = %(password)s,
+                    updated_at = now()
+                WHERE id = %(id)s;
+            """
+            cursor.execute(update_query, {"id": user_id, "password": new_hashed_password})
+            conn.commit()

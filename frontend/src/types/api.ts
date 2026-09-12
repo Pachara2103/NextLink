@@ -589,10 +589,10 @@ export interface components {
              * @default external
              */
             source: components["schemas"]["NoteSource"];
-            /** Academicyear */
-            academicYear: number;
-            /** Term */
-            term: 1 | 2 | 3;
+            /** Year */
+            year: number;
+            /** Semester */
+            semester: 1 | 2 | 3;
             /** Companyid */
             companyId: number;
             /** Employeeid */
@@ -640,10 +640,10 @@ export interface components {
              * @default external
              */
             source: components["schemas"]["NoteSource"];
-            /** Academicyear */
-            academicYear: number;
-            /** Term */
-            term: 1 | 2 | 3;
+            /** Year */
+            year: number;
+            /** Semester */
+            semester: 1 | 2 | 3;
             /** Companyid */
             companyId: number;
             /** Employeeid */
