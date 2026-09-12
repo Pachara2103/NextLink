@@ -22,7 +22,10 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "anon") router.replace("/login");
+    if (status === "anon") {
+      const destination = window.location.pathname + window.location.search;
+      router.replace(`/login?next=${encodeURIComponent(destination)}`);
+    }
   }, [status, router]);
 
   if (status === "offline") return <BackendUnreachable onRetry={retry} onSignOut={signOut} />;

@@ -1,0 +1,819 @@
+.elective-planner {
+  /* Native controls inherit the website theme. */
+  color-scheme: inherit;
+
+  --ink: #172033;
+  /* Secondary and tertiary text. Both clear 4.5:1 on white, so any label can
+     use them without a per-case contrast check. Prefer these over a new grey. */
+  --muted: #5b667c;
+  --muted-2: #657086;
+  --line: #e7eaf0;
+  --surface: #ffffff;
+  --canvas: #f6f7fb;
+  --navy: #182b49;
+  --blue: #3b70dc;
+  --green: #1c9b75;
+  --purple: #7657ce;
+  --orange: #d98235;
+  --red: #d95460;
+  --shadow: 0 18px 50px rgba(30, 49, 80, 0.08);
+
+  /* Type scale. 12px is the floor: Thai stacks vowels and tone marks three
+     levels deep, and below 12px the top mark stops resolving. */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 15px;
+
+  /* Minimum comfortable touch target. */
+  --tap-min: 44px;
+  /* A focus ring is a state indicator, so it owes the page 3:1. */
+  --focus-ring: var(--blue);
+
+  /* One rail for the whole page. The header and the content below it derive
+     their edges from the same pair of values, so they cannot drift apart, and
+     these are percentages rather than vw so the scrollbar is excluded — vw
+     counts it, which shifted the layout sideways whenever it appeared. */
+  --page-max: 1440px;
+  --page-width: min(var(--page-max), 89%);
+  --page-gutter: max(5.5%, calc((100% - var(--page-max)) / 2));
+
+  font-family: var(--font-anuphan), ui-sans-serif, system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--canvas);
+  }
+
+.elective-planner * { box-sizing: border-box; }
+/* Reserve the scrollbar track so a page that grows past the viewport does not
+jolt the layout sideways as it appears. */
+.elective-planner { scrollbar-gutter: stable; }
+/* Thai needs more leading than Latin at the same size; 1.55 keeps tone marks
+clear of the line above without loosening the dense table rows too much. */
+.elective-planner { margin: 0; background: var(--canvas); line-height: 1.55; }
+.elective-planner button, .elective-planner input, .elective-planner select { font: inherit; }
+/* A bare <small> inherits the UA's 0.833 scale and lands under the 12px floor. */
+.elective-planner small { font-size: var(--text-xs); }
+.elective-planner button { cursor: pointer; }
+.elective-planner .app-shell { min-height: 100vh; }
+/* Three columns with matched outer tracks keep the nav on the centre line no
+matter how wide the brand text or the timestamp beside it happen to be.
+Under space-between it shifted on every section change, because each page
+has a different eyebrow, title and update time. */
+.elective-planner .topbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; padding: 22px var(--page-gutter); color: #fff; background: var(--navy); }
+.elective-planner .topbar > .header-meta { justify-self: end; }
+.elective-planner .brand-lockup, .elective-planner .header-meta, .elective-planner .intro-row, .elective-planner .panel-heading, .elective-planner .control-heading { display: flex; align-items: center; }
+.elective-planner .brand-lockup { gap: 13px; }
+.elective-planner .brand-mark { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; color: var(--navy); background: var(--ep-blue-soft, #cbe1ff); font-size: 22px; font-weight: 850; }
+.elective-planner .eyebrow, .elective-planner .section-kicker { margin: 0; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+.elective-planner .topbar .eyebrow { color: var(--ep-muted, #96a6c4); }
+.elective-planner h1, .elective-planner h2, .elective-planner h3, .elective-planner p { margin-top: 0; }
+.elective-planner h1 { margin: 4px 0 0; font-size: 21px; letter-spacing: -.02em; }
+.elective-planner .header-meta { gap: 18px; color: var(--ep-muted, #b6c2d6); font-size: 14px; }
+.elective-planner .demo-badge { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid rgba(255,255,255,.13); border-radius: 999px; color: #c4f5df; font-size: 12px; font-weight: 800; letter-spacing: .09em; }
+.elective-planner .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ep-green, #62d3a7); box-shadow: 0 0 0 4px rgba(98,211,167,.14); }
+.elective-planner .local-edit-note { display: inline-flex; align-items: center; gap: 9px; padding: 5px 6px 5px 11px; border: 1px solid rgba(255,255,255,.16); border-radius: 999px; color: #ffd9a8; font-size: 13px; white-space: nowrap; }
+.elective-planner .local-edit-reset { min-height: 30px; padding: 4px 10px; border: 1px solid rgba(255,255,255,.28); border-radius: 999px; color: #fff; background: var(--ep-overlay, rgba(255,255,255,.08)); font-size: 12px; font-weight: 800; }
+.elective-planner .local-edit-reset:hover { border-color: rgba(255,255,255,.6); background: var(--ep-overlay, rgba(255,255,255,.18)); }
+.elective-planner .page-content { width: var(--page-width); margin: 0 auto; padding: 44px 0 70px; }
+.elective-planner .intro-row { justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+.elective-planner .intro-row h2 { margin: 7px 0 8px; font-size: clamp(25px, 3vw, 37px); letter-spacing: -.04em; }
+.elective-planner .intro-copy { margin-bottom: 0; color: var(--muted); font-size: 14px; }
+.elective-planner .note-icon { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; color: #fff; background: var(--muted-2); font-size: 14px; font-weight: 800; }
+.elective-planner .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 23px; }
+.elective-planner .kpi-card, .elective-planner .panel, .elective-planner .control-panel { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); }
+.elective-planner .kpi-card { position: relative; overflow: hidden; min-height: 134px; padding: 19px 19px 16px; }
+.elective-planner .kpi-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--blue); }
+.elective-planner .kpi-card.green::before { background: var(--green); }.elective-planner .kpi-card.purple::before { background: var(--purple); }.elective-planner .kpi-card.orange::before { background: var(--orange); }.elective-planner .kpi-card.red::before { background: var(--red); }
+.elective-planner .kpi-label { color: var(--muted); font-size: 14px; font-weight: 650; }
+.elective-planner .kpi-topline { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.elective-planner .kpi-context { color: var(--muted); font-size: 12px; font-weight: 750; }
+.elective-planner .kpi-alert-icon { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; color: var(--ep-red, #b93445); background: var(--ep-pink-soft, #ffe9ed); font-size: 14px; font-weight: 900; }
+.elective-planner .kpi-value { margin: 16px 0 6px; color: var(--ink); font-size: 27px; font-weight: 800; letter-spacing: -.04em; }
+.elective-planner .kpi-value.compact { font-size: 23px; }
+.elective-planner .kpi-note { color: var(--muted); font-size: 13px; line-height: 1.5; }
+.elective-planner .kpi-progress { display: block; height: 6px; margin: 11px 0 8px; overflow: hidden; border-radius: 999px; background: var(--ep-raised, #edf0f5); }
+.elective-planner .kpi-progress-fill { display: block; height: 100%; min-width: 2px; border-radius: inherit; background: var(--blue); }
+.elective-planner .kpi-progress-fill.green { background: var(--green); }.elective-planner .kpi-progress-fill.purple { background: var(--purple); }
+.elective-planner .control-panel { margin-bottom: 23px; padding: 20px 22px; box-shadow: 0 12px 30px rgba(30, 49, 80, .05); }
+.elective-planner .control-heading { justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+.elective-planner .control-heading h3, .elective-planner .panel-heading h3 { margin: 4px 0 0; font-size: 17px; letter-spacing: -.02em; }
+.elective-planner .text-button { padding: 0; border: 0; color: var(--blue); background: transparent; font-size: 14px; font-weight: 750; }.elective-planner .text-button:disabled { cursor: not-allowed; color: var(--ep-muted, #858e9e); }
+.elective-planner .filters { display: grid; grid-template-columns: minmax(240px, 1.6fr) repeat(3, minmax(160px, 1fr)); gap: 13px; }
+/* One search box doing the work of four, so it earns the width — and the day
+   and period pickers hold at most seven short options each. */
+.elective-planner .filters.filters-list { grid-template-columns: minmax(280px, 2.4fr) minmax(150px, 1fr) minmax(118px, .62fr) minmax(118px, .62fr); }
+.elective-planner .filters label { display: grid; gap: 7px; color: var(--muted); font-size: 13px; font-weight: 700; }
+.elective-planner .filters input, .elective-planner .filters select { width: 100%; min-height: var(--tap-min); padding: 0 12px; border: 1px solid var(--ep-line, #dce2ec); border-radius: 10px; outline: 0; color: var(--ink); background: var(--ep-blue-soft, #fbfcfe); }
+.elective-planner .filters input:focus, .elective-planner .filters select:focus { border-color: var(--ep-blue-line, #81a7ef); box-shadow: 0 0 0 3px rgba(59,112,220,.12); }
+.elective-planner .filter-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 15px; color: var(--muted); font-size: 13px; }
+.elective-planner .filter-summary button { padding: 5px 8px; border: 1px solid var(--ep-line, #dce5f2); border-radius: 999px; color: var(--ep-muted, #49628e); background: var(--ep-blue-soft, #f5f8fd); font-size: 12px; }
+.elective-planner .filter-summary button:hover { border-color: var(--ep-blue-line, #9bb7ed); color: var(--blue); background: var(--ep-blue-soft, #edf3ff); }
+.elective-planner .panel { padding: 21px 22px; }
+.elective-planner .panel-heading { justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.elective-planner .panel-caption { color: var(--muted); font-size: 13px; }
+.elective-planner .bar-fill { display: block; height: 100%; min-width: 6px; border-radius: inherit; background: linear-gradient(90deg, var(--ep-blue, #4d83e5), var(--ep-blue-soft, #8caeeb)); }
+.elective-planner .readiness-heading-meta { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.elective-planner .selection-chip-list { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+.elective-planner .selection-chip { padding: 5px 8px; border: 1px solid var(--ep-blue-line, #b9ccef); border-radius: 999px; color: var(--ep-blue, #315faf); background: var(--ep-blue-soft, #f1f5ff); font-size: 12px; font-weight: 800; }
+.elective-planner .selection-chip:hover { border-color: var(--ep-blue-line, #7da0e8); background: var(--ep-blue-soft, #e8efff); }
+.elective-planner .readiness-fill { display: block; height: 100%; border-radius: inherit; background: var(--blue); }.elective-planner .readiness-fill.green { background: var(--green); }.elective-planner .readiness-fill.orange { background: var(--orange); }.elective-planner .readiness-fill.red { background: var(--red); }
+/* Every dashboard leads its table with the same follow-up panel. */
+/* Panels stacked on one page need air between them, and until now each one that
+   happened to need it carried its own margin — so the board, added later,
+   touched the course table below it. One rule for every pair instead. */
+.elective-planner .panel + .panel { margin-top: 22px; }
+.elective-planner .queue-heading-actions { display: flex; align-items: center; gap: 12px; }
+.elective-planner .count-chip { padding: 7px 10px; border-radius: 999px; color: var(--ep-red, #ac3441); background: var(--ep-red-soft, #fff0f1); font-size: 13px; font-weight: 800; }
+.elective-planner .queue-filter-group { display: flex; flex-wrap: wrap; gap: 7px; margin: -3px 0 15px; }
+.elective-planner .queue-filter-button { display: inline-flex; align-items: center; gap: 7px; padding: 6px 9px; border: 1px solid var(--ep-line, #e3e8f0); border-radius: 999px; color: var(--muted); background: var(--ep-surface, #fff); font-size: 12px; font-weight: 750; }
+.elective-planner .queue-filter-button strong { color: var(--ep-ink, #3d4b65); font-size: 12px; }
+.elective-planner .queue-filter-button:hover, .elective-planner .queue-filter-button.is-active { border-color: var(--ep-blue-line, #adc2eb); color: var(--ep-blue, #2f5cb8); background: var(--ep-blue-soft, #f4f7ff); }
+.elective-planner .queue-filter-button.is-active strong { color: var(--ep-blue, #2f5cb8); }
+/* A fixed square, sized to itself. It used to be `height: 100%` with an
+   aspect-ratio, which made the icon as wide as the row was tall — so a row
+   whose title wrapped grew a 50px icon inside a 25px column and pushed it
+   over the text beside it. */
+.elective-planner .follow-up-icon { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; color: var(--ep-red, #b93445); background: var(--ep-red-soft, #fff0f1); font-size: 14px; font-weight: 850; }
+.elective-planner .follow-up-icon.queue-waiting { color: var(--ep-orange, #8f5410); background: var(--ep-orange-soft, #fff3e5); }.elective-planner .follow-up-icon.queue-progress { color: var(--ep-blue, #3568c4); background: var(--ep-blue-soft, #edf3ff); }
+.elective-planner .pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0 7px; border-top: 1px solid var(--ep-line, #edf0f4); }
+.elective-planner .pager-range { color: var(--muted); font-size: 13px; }
+.elective-planner .pager-controls { display: flex; align-items: center; gap: 10px; }
+.elective-planner .pager-position { color: var(--ink); font-size: 13px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.elective-planner .pager .row-action:disabled { cursor: not-allowed; color: var(--ep-muted, #858e9e); border-color: var(--ep-line, #eef1f6); }
+.elective-planner .table-panel { padding-bottom: 7px; }.elective-planner .table-heading { padding: 0 0 14px; margin-bottom: 0; }
+/* `overflow-x: auto` already makes this a scroll container, so the header
+can only stick inside it — give it a vertical bound and the header holds
+while the rows move. Short tables never reach the cap, so nothing
+changes at demo size. */
+.elective-planner .table-wrap { max-height: min(72vh, 780px); overflow: auto; margin: 0 -22px; }
+/* macOS and every touch device hide the scrollbar until you scroll, so a
+bounded table gives the reader no sign that the rows continue: the MOU page
+showed three of ten with the count beside it reading "10 รายการ".
+The pair of `local` gradients paints over the shadows at each end, so the
+shadow only shows on the side that still has rows behind it and clears
+itself when you reach them. No script, and nothing to keep in sync. */
+.elective-planner .table-wrap {
+  background:
+  linear-gradient(var(--surface) 30%, rgba(255, 255, 255, 0)) center top / 100% 26px no-repeat local,
+  linear-gradient(rgba(255, 255, 255, 0), var(--surface) 70%) center bottom / 100% 26px no-repeat local,
+  radial-gradient(farthest-side at 50% 0, rgba(14, 27, 53, .13), rgba(14, 27, 53, 0)) center top / 100% 11px no-repeat scroll,
+  radial-gradient(farthest-side at 50% 100%, rgba(14, 27, 53, .13), rgba(14, 27, 53, 0)) center bottom / 100% 11px no-repeat scroll;
+  }
+/* Once the viewport is wide enough for the widest table to fit, drop the
+wrapper's scrolling entirely so the header sticks to the page instead.
+Two nested scroll areas on one long page is worse than no sticky header. */
+@media (min-width: 1400px) { .elective-planner .table-wrap { max-height: none; overflow: visible; } }
+.elective-planner .table-heading-actions { display: flex; align-items: center; gap: 14px; }
+.elective-planner table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 930px; } .elective-planner th, .elective-planner td { padding: 14px 14px; border-bottom: 1px solid var(--ep-line, #edf0f4); text-align: left; vertical-align: middle; } .elective-planner tbody tr:last-child td { border-bottom: 0; } .elective-planner th { position: sticky; top: 0; z-index: 1; color: var(--muted); background: var(--surface); box-shadow: inset 0 -1px 0 #e3e7ee; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; } .elective-planner td { color: var(--ep-ink, #38445b); font-size: 14px; }
+.elective-planner .course-link { display: grid; gap: 4px; padding: 0; border: 0; text-align: left; color: inherit; background: transparent; text-decoration: none; }.elective-planner .course-link:hover strong { color: var(--blue); }.elective-planner .course-link strong { color: var(--ep-ink, #202c42); font-size: 15px; }.elective-planner .course-code { color: var(--muted-2); font-size: 12px; }
+.elective-planner td small { display: block; } .elective-planner td small { margin-top: 4px; color: var(--muted-2); font-size: 12px; }.elective-planner .schedule-text { display: block; max-width: 190px; color: var(--ep-muted, #536077); line-height: 1.4; }.elective-planner .mini-progress { display: block; height: 5px; overflow: hidden; border-radius: 999px; background: var(--ep-raised, #edf0f5); }.elective-planner .mini-progress i { display: block; height: 100%; border-radius: inherit; background: var(--ep-blue, #7198e7); }
+/* One pill, one tone set, shared by all three dashboards. Each dashboard maps
+its own vocabulary onto these tones; only the mapping is domain-specific. */
+.elective-planner .status-pill { display: inline-flex; align-items: center; width: fit-content; padding: 5px 8px; border-radius: 7px; font-size: 12px; font-weight: 850; line-height: 1.45; white-space: nowrap; }.elective-planner .status-pill-subtle { padding: 3px 6px; font-size: 12px; }.elective-planner .status-stack { display: grid; justify-items: start; gap: 5px; }
+/* Tones come after .status-select on purpose: the select sets `color: inherit`
+to shed the UA default, and the tone has to win that. */
+.elective-planner .tone-green { color: var(--ep-green, #0e6b4f); background: var(--ep-green-soft, #e8f8f1); }
+.elective-planner .tone-blue { color: var(--ep-blue, #3568c4); background: var(--ep-blue-soft, #edf3ff); }
+.elective-planner .tone-purple { color: var(--ep-blue, #7657ce); background: var(--ep-blue-soft, #f1edff); }
+.elective-planner .tone-orange { color: var(--ep-orange, #8f5410); background: var(--ep-orange-soft, #fff3e5); }
+.elective-planner .tone-red { color: var(--ep-red, #b93445); background: var(--ep-pink-soft, #ffe9ed); }
+.elective-planner .tone-neutral { color: var(--ep-muted, #59637d); background: var(--ep-raised, #eff2f6); }
+.elective-planner .tone-dot { display: inline-flex; flex: 0 0 auto; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; }
+.elective-planner .tone-dot.tone-green { background: var(--ep-green, #1c9b75); }.elective-planner .tone-dot.tone-blue { background: var(--ep-blue, #3b70dc); }.elective-planner .tone-dot.tone-purple { background: var(--ep-blue, #7657ce); }
+.elective-planner .tone-dot.tone-orange { background: var(--ep-orange, #d98235); }.elective-planner .tone-dot.tone-red { background: var(--ep-red, #d95460); }.elective-planner .tone-dot.tone-neutral { background: var(--muted); }
+.elective-planner .row-action { padding: 6px 9px; border: 1px solid var(--ep-line, #dfe5ee); border-radius: 7px; color: var(--ep-muted, #5c6a83); background: var(--ep-surface, #fff); font-size: 13px; }.elective-planner .row-action:hover { border-color: var(--ep-blue-line, #8cafed); color: var(--blue); }
+.elective-planner .empty-state, .elective-planner .load-error { padding: 24px; color: var(--muted-2); text-align: center; font-size: 15px; }
+.elective-planner .empty-state { display: grid; justify-items: center; gap: 13px; }
+.elective-planner .empty-state p { margin: 0; max-width: 42ch; }
+.elective-planner .load-error { display: grid; justify-items: center; gap: 12px; grid-column: 1 / -1; color: var(--ep-red, #b93445); }
+.elective-planner .load-error p { margin: 0; }
+.elective-planner .skeleton { display: block; border-radius: 7px; background: linear-gradient(90deg, var(--ep-raised, #eef0f5) 25%, var(--ep-raised, #f6f7fa) 50%, var(--ep-raised, #eef0f5) 75%); background-size: 260% 100%; animation: ep-skeleton-sweep 1.4s ease-in-out infinite; }
+.elective-planner .skeleton-card { display: grid; align-content: center; gap: 12px; }
+.elective-planner .skeleton-line { height: 13px; }
+.elective-planner .skeleton-sm { width: 45%; }.elective-planner .skeleton-md { width: 30%; height: 19px; }.elective-planner .skeleton-lg { width: 70%; height: 27px; }
+.elective-planner .skeleton-rows { display: grid; gap: 10px; margin-top: 20px; }
+.elective-planner .skeleton-row { height: 44px; }
+@keyframes ep-skeleton-sweep { from { background-position: 130% 0; } to { background-position: -30% 0; } }
+@media (prefers-reduced-motion: reduce) { .elective-planner .skeleton { animation: none; background: var(--ep-raised, #eef0f5); } }
+.elective-planner .course-dialog { width: min(650px, calc(100vw - 28px)); padding: 0; border: 0; border-radius: 18px; color: var(--ink); box-shadow: 0 30px 100px rgba(14, 27, 53, .25); }.elective-planner .course-dialog::backdrop { background: rgba(14, 27, 53, .42); backdrop-filter: blur(3px); }.elective-planner .dialog-header { display: flex; justify-content: space-between; gap: 18px; padding: 25px 26px 20px; border-bottom: 1px solid var(--line); }.elective-planner .dialog-header h2 { margin: 7px 0 0; font-size: 22px; letter-spacing: -.03em; }.elective-planner .icon-button { width: 32px; height: 32px; border: 0; border-radius: 9px; color: var(--ep-muted, #5d6a81); background: var(--ep-raised, #f2f4f8); font-size: 22px; line-height: 1; }.elective-planner .dialog-content { padding: 21px 26px 27px; }.elective-planner .detail-section h3 { color: var(--muted-2); font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }.elective-planner .detail-section { margin-top: 22px; }.elective-planner .detail-section h3 { margin-bottom: 10px; }
+.elective-planner .course-dialog { max-height: min(88vh, 780px); overflow: hidden; }
+.elective-planner .dialog-header { background: var(--ep-surface, #fff); }
+/* Height belongs to the dialog; the body takes whatever the header and status
+bar leave behind. Sizing .dialog-content off the viewport instead let it
+claim more height than the dialog actually had, and overflow:hidden clipped
+the surplus — with no scrollbar, because the content box itself was never
+the thing overflowing. The last fields and the save button were unreachable. */
+.elective-planner .course-dialog[open] { display: flex; flex-direction: column; }
+/* Only the body flexes. The blanket `> *` this replaces also turned the header
+   into a column, which stood the close button underneath the title instead of
+   opposite it — the header sets its own row direction two rules up and was
+   being overridden by a rule that never meant to touch it. */
+.elective-planner .dialog-header { flex: 0 0 auto; }
+.elective-planner .dialog-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.elective-planner .intro-badges { display: grid; justify-items: end; gap: 8px; }
+.elective-planner .scope-chip { display: inline-flex; align-items: center; gap: 5px; padding: 7px 10px; border: 1px solid var(--ep-line, #e4e9f3); border-radius: 999px; color: var(--ep-muted, #53617a); background: var(--ep-blue-soft, #f9fbff); font-size: 12px; font-weight: 750; }
+.elective-planner .scope-chip-label { color: var(--muted); font-weight: 650; }
+.elective-planner .course-link:focus-visible, .elective-planner .row-action:focus-visible, .elective-planner .icon-button:focus-visible, .elective-planner .text-button:focus-visible, .elective-planner .filter-summary button:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+.elective-planner :where(button, a, input, select, textarea):focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+.elective-planner .section-kicker { font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .elective-planner *, .elective-planner *::before, .elective-planner *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+/* Clear of the floating "add a course" button, which sits in the same corner.
+   84px is that button plus a gap; on pages without it the toast simply sits a
+   little higher, which costs nothing. */
+.elective-planner .toast { position: fixed; right: 18px; bottom: 84px; z-index: 40; display: flex; align-items: center; gap: 14px; max-width: min(420px, calc(100vw - 36px)); padding: 12px 14px; border-radius: 10px; color: #fff; background: var(--ep-navy, #1d2c45); box-shadow: 0 14px 38px rgba(14, 27, 53, .28); font-size: 14px; line-height: 1.5; animation: ep-toast-in .18s ease-out; }
+.elective-planner .toast-message { min-width: 0; }
+.elective-planner .toast-undo { flex: 0 0 auto; min-height: 32px; padding: 5px 11px; border: 1px solid rgba(255,255,255,.28); border-radius: 7px; color: #fff; background: var(--ep-overlay, rgba(255,255,255,.08)); font-size: 13px; font-weight: 800; }
+.elective-planner .toast-undo:hover { border-color: rgba(255,255,255,.55); background: var(--ep-overlay, rgba(255,255,255,.16)); }
+.elective-planner .toast-dismiss { flex: 0 0 auto; width: 28px; height: 28px; border: 0; border-radius: 7px; color: #c7d2e4; background: transparent; font-size: 20px; line-height: 1; }
+.elective-planner .toast-dismiss:hover { color: #fff; background: var(--ep-overlay, rgba(255,255,255,.12)); }
+@keyframes ep-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.elective-planner .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (max-width: 1050px) { .elective-planner .kpi-grid { grid-template-columns: repeat(3, 1fr); } .elective-planner .filters { grid-template-columns: minmax(220px, 1.5fr) repeat(2, minmax(145px, 1fr)); } }
+/* Tighter columns where the screen is the constraint. The board already
+   scrolls at every width — see .matrix-scroll — so this only decides how much
+   of the week fits before it has to. */
+@media (max-width: 1100px) {
+  .elective-planner .matrix-room, .elective-planner .matrix-cell { min-width: 116px; }
+      .elective-planner .matrix-corner, .elective-planner .matrix-slot { width: 88px; min-width: 88px; }
+}
+
+@media (max-width: 760px) {
+  .elective-planner { --page-max: 680px; --page-width: min(var(--page-max), 94%); --page-gutter: max(3%, calc((100% - var(--page-max)) / 2)); }
+
+          /* Every control gets a 44px target. Applied only on small screens so the
+             desktop tables stay compact. */
+          .elective-planner .row-action, .elective-planner .queue-filter-button, .elective-planner .text-button, .elective-planner .filter-summary button, .elective-planner .selection-chip, .elective-planner .secondary-button, .elective-planner .primary-button, .elective-planner .icon-button, .elective-planner .app-nav a, .elective-planner .course-link { min-height: var(--tap-min); }
+          .elective-planner .course-link { padding-block: 4px; }
+          .elective-planner .row-action, .elective-planner .queue-filter-button, .elective-planner .filter-summary button { padding-block: 9px; }
+          .elective-planner .text-button { display: inline-flex; align-items: center; }
+
+          .elective-planner .topbar, .elective-planner .intro-row { display: flex; align-items: flex-start; flex-direction: column; }
+          /* Source badge and timestamp share one line so the header stops eating half
+             the first screen before any content appears. */
+          .elective-planner .topbar { gap: 14px; padding-block: 16px; }
+          .elective-planner .header-meta { width: 100%; align-items: center; flex-direction: row; flex-wrap: wrap; justify-content: flex-start; gap: 10px; }
+          .elective-planner .brand-mark { width: 36px; height: 36px; border-radius: 11px; font-size: 19px; }
+          .elective-planner .page-content { padding-top: 28px; }
+          .elective-planner .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+          .elective-planner .kpi-card { min-height: 118px; padding: 16px 15px 14px; }
+          .elective-planner .kpi-card:last-child { grid-column: auto; }
+          .elective-planner .kpi-value { margin-top: 14px; font-size: 24px; }
+          .elective-planner .kpi-value.compact { font-size: 20px; }
+          .elective-planner .filters { grid-template-columns: 1fr; }
+          .elective-planner .readiness-heading-meta { align-items: flex-end; flex-direction: column; gap: 5px; }.elective-planner .selection-chip-list { justify-content: flex-end; }
+          .elective-planner .dialog-header { padding: 20px 18px 16px; }
+          .elective-planner .dialog-content { padding: 18px; }
+          .elective-planner .table-heading-actions { align-items: flex-end; flex-direction: column; gap: 6px; }
+        /* This used to be `display: none`, paired with a card list that rendered the
+           same rows in a phone-shaped layout. The card list went with the v1
+           dashboards and the rule stayed, so the course table was simply absent on a
+           phone — 18 courses, filters, a pager, and nothing between them. The table
+           scrolls sideways inside its own box instead; the page does not. */
+        .elective-planner .table-wrap { display: block; margin-inline: 0; }
+        .elective-planner .table-panel table { min-width: 620px; }
+}
+
+@media (max-width: 480px) {
+  .elective-planner .kpi-grid { grid-template-columns: 1fr 1fr; }
+          .elective-planner .kpi-label { font-size: 13px; }
+          .elective-planner .panel, .elective-planner .control-panel { padding-left: 16px; padding-right: 16px; }
+}
+
+/* MOU dashboard */
+.elective-planner .app-nav { display: flex; align-items: center; gap: 5px; padding: 4px; border: 1px solid rgba(255,255,255,.12); border-radius: 11px; background: var(--ep-overlay, rgba(255,255,255,.06)); }
+.elective-planner .app-nav a { padding: 7px 10px; border-radius: 7px; color: var(--ep-muted, #aebbd1); font-size: 13px; font-weight: 800; text-decoration: none; transition: color .15s ease, background-color .15s ease; }
+.elective-planner .app-nav a:hover, .elective-planner .app-nav a.is-active { color: var(--ep-ink, #203252); background: var(--ep-blue-soft, #e5efff); }
+@media (max-width: 760px) {
+  .elective-planner .topbar { flex-wrap: wrap; }
+          .elective-planner .app-nav { order: 3; width: 100%; }
+          .elective-planner .app-nav a { flex: 1; text-align: center; }
+}
+
+.elective-planner .secondary-button, .elective-planner .primary-button { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 800; cursor: pointer; }
+.elective-planner .secondary-button { border: 1px solid var(--ep-line, #dce4f0); color: var(--ep-blue, #315faf); background: var(--ep-blue-soft, #f7faff); }
+.elective-planner .secondary-button:hover { border-color: var(--ep-blue-line, #b9cceb); background: var(--ep-blue-soft, #edf3ff); }
+.elective-planner .primary-button { border: 1px solid var(--ep-blue-line, #315faf); color: #fff; background: var(--ep-blue, #315faf); box-shadow: 0 3px 8px rgba(49,95,175,.18); }
+.elective-planner .primary-button:hover { background: var(--ep-blue, #284f9a); }
+.elective-planner .edit-mode-note { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--ep-blue-line, #dce8fb); border-radius: 9px; color: var(--ep-muted, #49638f); background: var(--ep-blue-soft, #f5f8ff); font-size: 13px; line-height: 1.4; }
+.elective-planner .secondary-button:focus-visible, .elective-planner .primary-button:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+
+/* Schedule plan — the week grid, the room pages and the availability editor */
+
+/* One track table shared by the header row and the three period rows. The
+header used to sit directly in .week-grid as loose children, which meant its
+columns were laid out by a different rule from the rows below it and drifted
+apart the moment a day name changed width. */
+.elective-planner .week-grid { display: grid; gap: 9px; }
+/* The phone layout below swaps these two. Both are always in the DOM, so the
+default has to say which one is off — leaving it to the media query alone is
+how a page ends up rendering every row twice. */
+.elective-planner .week-day-list { display: none; }
+.elective-planner .week-grid-row { display: grid; grid-template-columns: 74px repeat(6, minmax(0, 1fr)); gap: 9px; align-items: stretch; }
+.elective-planner .week-grid-header-row { position: sticky; top: 0; z-index: 2; padding-bottom: 4px; background: var(--surface); }
+.elective-planner .week-grid-corner { display: block; }
+.elective-planner .week-grid-head { display: grid; place-items: center; padding: 7px 4px; border-radius: 9px; color: var(--muted); background: var(--ep-raised, #f4f6fa); font-size: 12px; font-weight: 800; letter-spacing: .06em; }
+.elective-planner .week-day-short { display: none; }
+.elective-planner .period-label { display: grid; align-content: center; gap: 3px; padding-right: 6px; color: var(--muted); }
+.elective-planner .period-label strong { color: var(--ep-ink, #3d4b65); font-size: 13px; }
+.elective-planner .period-label small { color: var(--muted-2); font-size: 12px; }
+.elective-planner .week-grid-cell { display: grid; min-width: 0; }
+
+/* A period in one room. `is-empty` keeps the dashed outline of an invitation
+rather than looking like a disabled control; `is-blocked` is flat grey
+because nothing here is actionable. */
+.elective-planner .slot-cell { display: grid; align-content: start; gap: 6px; min-height: 62px; padding: 7px; border: 1px solid var(--ep-line, #eaeef4); border-radius: 11px; background: var(--ep-blue-soft, #fcfdff); }
+.elective-planner .slot-cell.is-empty { border-style: dashed; border-color: var(--ep-line, #dfe5ee); background: var(--ep-blue-soft, #fbfcfe); }
+.elective-planner .slot-cell.is-blocked { align-content: center; border-style: solid; border-color: var(--ep-line, #e6e9ef); background: repeating-linear-gradient(135deg, var(--ep-raised, #f4f6fa), var(--ep-raised, #f4f6fa) 6px, var(--ep-raised, #eef1f6) 6px, var(--ep-raised, #eef1f6) 12px); }
+.elective-planner .slot-cell.is-conflict { border-color: var(--ep-red-line, #e7b1b7); background: var(--ep-pink-soft, #fffafb); }
+.elective-planner .slot-blocked-label { color: var(--ep-muted, #6d778c); font-size: 12px; font-weight: 800; }
+.elective-planner .slot-cell.is-blocked small { color: var(--muted-2); font-size: 12px; line-height: 1.4; }
+.elective-planner .slot-add { display: grid; place-items: center; min-height: 34px; padding: 6px; border: 0; border-radius: 9px; color: var(--ep-muted, #5c6a83); background: var(--ep-raised, #f2f5fa); font-size: 15px; font-weight: 800; }
+.elective-planner .slot-add:hover { color: var(--blue); background: var(--ep-blue-soft, #eaf1ff); }
+.elective-planner .slot-add.is-move-target { min-height: var(--tap-min); border: 1px solid var(--ep-blue-line, #9bb7ed); color: var(--ep-blue, #2f5cb8); background: var(--ep-blue-soft, #edf3ff); font-size: 12px; }
+
+/* The chip carries its own lock button because locking is the most frequent
+action on this page and belongs one press from the thing it applies to. */
+/* Title on its own row, actions beneath it. Side by side, three 26px buttons
+   ate half of a ~160px grid cell and every course read "Cloud …" — the one
+   piece of information the cell exists to carry. */
+.elective-planner .course-chip { display: grid; gap: 5px; padding: 7px 8px; border: 1px solid var(--ep-line, #dfe6f2); border-radius: 9px; background: var(--ep-surface, #fff); }
+.elective-planner .course-chip.is-locked { border-color: var(--ep-green-line, #a8ddc6); background: var(--ep-green-soft, #f4fcf8); }
+.elective-planner .course-chip.is-conflict { border-color: var(--ep-red-line, #e7b1b7); background: var(--ep-red-soft, #fff6f7); }
+.elective-planner .chip-body { display: grid; min-width: 0; gap: 2px; padding: 0; border: 0; text-align: left; color: inherit; background: transparent; }
+.elective-planner .chip-body strong { display: -webkit-box; overflow: hidden; color: var(--ep-ink, #26324a); font-size: 13px; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.elective-planner .chip-body small { overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.elective-planner .chip-body:hover strong { color: var(--blue); }
+.elective-planner .chip-actions { display: flex; align-items: center; justify-content: flex-end; gap: 3px; }
+.elective-planner .chip-action { display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 7px; color: var(--ep-muted, #64708a); background: transparent; font-size: 13px; line-height: 1; cursor: pointer; }
+.elective-planner .chip-action:hover { color: var(--ep-ink, #2b3750); background: var(--ep-raised, #eef1f7); }
+.elective-planner .chip-action.is-on { color: var(--ep-green, #0e6b4f); background: var(--ep-green-soft, #e8f8f1); }
+
+/* Every row names the course or room in the way, and the buttons underneath
+act on it — a list of problems with no handles is the failure mode this
+panel exists to avoid. */
+.elective-planner .conflict-list { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+.elective-planner .conflict-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: start; gap: 10px 16px; padding: 12px; border: 1px solid var(--ep-line, #edf0f5); border-radius: 12px; background: var(--ep-blue-soft, #fcfcfe); }
+.elective-planner .conflict-row:has(> .conflict-copy:last-child) { grid-template-columns: 26px minmax(0, 1fr); }
+.elective-planner .conflict-copy { display: grid; min-width: 0; gap: 5px; }
+.elective-planner .conflict-title { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.elective-planner .conflict-copy strong { color: var(--ep-ink, #283349); font-size: 14px; line-height: 1.4; }
+/* Same three colours as the icon on the left, as a badge rather than a word:
+   beside a heading it needs an edge of its own to read as a label. */
+.elective-planner .conflict-badge { flex: 0 0 auto; padding: 2px 8px; border-radius: 999px; color: var(--ep-red, #b93445); background: var(--ep-red-soft, #fff0f1); font-size: 11px; font-weight: 850; letter-spacing: .02em; white-space: nowrap; }
+.elective-planner .conflict-badge.queue-waiting { color: var(--ep-orange, #8f5410); background: var(--ep-orange-soft, #fff3e5); }
+.elective-planner .conflict-badge.queue-progress { color: var(--ep-blue, #3568c4); background: var(--ep-blue-soft, #edf3ff); }
+.elective-planner .conflict-copy small { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.elective-planner .conflict-provider { color: var(--ep-ink, #4a5766); font-weight: 800; }
+.elective-planner .conflict-slot-list { display: grid; gap: 4px; margin: 2px 0 0; padding: 0; list-style: none; color: var(--muted-2); font-size: 12px; line-height: 1.5; }
+.elective-planner .conflict-slot-name { margin-right: 7px; color: var(--ep-ink, #4a5766); font-weight: 800; }
+.elective-planner .conflict-side { display: flex; align-items: flex-start; flex-wrap: wrap; justify-content: flex-end; gap: 7px; padding-left: 8px; }
+
+.elective-planner .room-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
+.elective-planner .room-card { display: grid; align-content: start; gap: 7px; padding: 15px; border: 1px solid var(--line); border-radius: 13px; background: var(--ep-surface, #fff); text-decoration: none; color: inherit; transition: transform .15s, border-color .15s; }
+@media (hover: hover) and (pointer: fine) {
+  .elective-planner .room-card:hover { transform: translateY(-2px); border-color: var(--ep-blue-line, #9bb7ed); }
+}
+.elective-planner .room-card-head { display: flex; align-items: center; justify-content: space-between; gap: 9px; }
+.elective-planner .room-card-head strong { color: var(--ep-ink, #202c42); font-size: 15px; }
+.elective-planner .room-card-meta { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+.elective-planner .room-card-meta .note-icon { width: 15px; height: 15px; font-size: 11px; }
+.elective-planner .room-card-usage { color: var(--ep-ink, #3d4b65); font-size: 13px; font-weight: 700; }
+
+.elective-planner .assign-dialog { width: min(620px, calc(100vw - 28px)); max-height: min(88vh, 760px); }
+.elective-planner .assign-option-list { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.elective-planner .assign-option { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; padding: 11px 12px; border: 1px solid var(--ep-line, #e6eaf1); border-radius: 10px; text-align: left; color: inherit; background: var(--ep-surface, #fff); }
+.elective-planner .assign-option:hover { border-color: var(--ep-blue-line, #9bb7ed); background: var(--ep-blue-soft, #f7faff); }
+.elective-planner .assign-option-copy { display: grid; min-width: 0; gap: 3px; }
+.elective-planner .assign-option-copy strong { color: var(--ep-ink, #26324a); font-size: 14px; }
+.elective-planner .assign-option-copy small { color: var(--muted); font-size: 12px; }
+.elective-planner .assign-option-warnings { display: flex; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; gap: 4px; max-width: 210px; }
+/* Collapsed by default: an out-of-availability pick has to be a deliberate act,
+not something the eye slides onto while scanning one long list. */
+.elective-planner .assign-other { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.elective-planner .assign-other summary { color: var(--ep-ink, #4a5766); font-size: 13px; font-weight: 800; cursor: pointer; }
+.elective-planner .assign-other summary:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+.elective-planner .assign-other .edit-mode-note { margin: 11px 0; }
+
+.elective-planner .course-availability-list { display: grid; gap: 15px; }
+.elective-planner .course-availability-card .panel-heading { align-items: flex-start; }
+.elective-planner .availability-grid { display: grid; gap: 6px; }
+.elective-planner .availability-row { display: grid; grid-template-columns: 88px repeat(6, minmax(0, 1fr)); gap: 6px; align-items: center; }
+.elective-planner .availability-corner { display: block; }
+.elective-planner .availability-head { display: grid; place-items: center; color: var(--muted); font-size: 12px; font-weight: 800; }
+.elective-planner .availability-period { display: grid; gap: 2px; color: var(--muted); font-size: 13px; font-weight: 700; }
+.elective-planner .availability-period small { color: var(--muted-2); font-size: 12px; font-weight: 500; }
+.elective-planner .availability-slot { display: grid; place-items: center; min-height: 38px; border: 1px solid var(--ep-line, #dfe5ee); border-radius: 9px; color: var(--ep-muted, #9aa4b7); background: var(--ep-blue-soft, #fbfcfe); font-size: 14px; font-weight: 800; }
+.elective-planner .availability-slot:hover { border-color: var(--ep-blue-line, #9bb7ed); background: var(--ep-blue-soft, #f2f6ff); }
+.elective-planner .availability-slot.is-on { border-color: var(--ep-green-line, #7fc9ab); color: var(--ep-green, #0e6b4f); background: var(--ep-green-soft, #e8f8f1); }
+/* A period this course is already timetabled into. Removing the availability
+under a placed class is allowed — it is how you record that a company pulled
+out — but it should never happen without the reader seeing it. */
+.elective-planner .availability-slot.is-used { border-color: var(--ep-blue-line, #3b70dc); color: var(--blue); background: var(--ep-blue-soft, #edf3ff); }
+
+@media (max-width: 1050px) {
+  /* Between the phone layout and a full desktop the header meta had nowhere to
+           go: nav, edit note, source badge and timestamp on one line ran past the
+           right edge and scrolled the whole page sideways. Let it wrap here — the
+           nowrap above is only worth having while there is room for it. */
+        .elective-planner .header-meta { flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+        .elective-planner .local-edit-note { white-space: normal; }
+        .elective-planner .week-grid-row { grid-template-columns: 62px repeat(6, minmax(0, 1fr)); gap: 6px; }
+          .elective-planner .week-day-full { display: none; }
+          .elective-planner .week-day-short { display: inline; }
+          .elective-planner .availability-row { grid-template-columns: 74px repeat(6, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  /* Six columns on a phone either scroll sideways — taking the day heading off
+             screen with them — or squeeze each column below the width of a Thai course
+             title. The day list keeps both. */
+          .elective-planner .week-grid { display: none; }
+          .elective-planner .week-day-list { display: grid; gap: 12px; }
+          .elective-planner .week-day-card { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--ep-line, #e9edf3); border-radius: 13px; background: var(--ep-blue-soft, #fcfdff); }
+          .elective-planner .week-day-card h4 { margin: 0; color: var(--ep-ink, #26324a); font-size: 15px; }
+          .elective-planner .week-day-period { display: grid; grid-template-columns: 88px minmax(0, 1fr); align-items: start; gap: 10px; }
+          .elective-planner .week-day-slot { min-width: 0; }
+          .elective-planner .conflict-row { grid-template-columns: 26px minmax(0, 1fr); }
+          .elective-planner .room-grid { grid-template-columns: 1fr; }
+          .elective-planner .assign-option { grid-template-columns: 1fr; }
+          .elective-planner .assign-option-warnings { justify-content: flex-start; max-width: none; }
+          .elective-planner .availability-row { grid-template-columns: 64px repeat(6, minmax(0, 1fr)); gap: 4px; }
+          .elective-planner .availability-period small { display: none; }
+          .elective-planner .availability-slot { min-height: var(--tap-min); }
+          .elective-planner .slot-add { min-height: var(--tap-min); }
+          .elective-planner .chip-action { width: 34px; height: 34px; }
+}
+
+/* The board — a column per room, a row per period */
+
+/* The board is the widest thing in the product and the page column is sized for
+   reading prose. Ten room columns inside 880px means scrolling sideways to see
+   the week, so this one panel breaks out of the column and takes the viewport. */
+.elective-planner .matrix-panel { margin-inline: calc((100% - min(98vw, 2100px)) / 2); }
+/* `min-width: 0` on both, or the board does not scroll — it pushes.
+   A grid item defaults to min-width:auto, so the max-content table inside made
+   .matrix-scroll grow past the panel instead of scrolling inside it, and the
+   whole document ended up 2000px wide on a phone. */
+.elective-planner .matrix-block { display: grid; min-width: 0; gap: 13px; }
+.elective-planner .matrix-tray-empty { margin: 0; color: var(--muted); font-size: 13px; }
+/* A button that stays put while the page moves, because the empty period you
+   are hunting for can be anywhere in a board this tall. */
+.elective-planner .picker-fab { position: fixed; right: 22px; bottom: 22px; z-index: 55; display: inline-flex; align-items: center; gap: 9px; min-height: var(--tap-min); padding: 0 18px; border: 0; border-radius: 999px; color: #fff; background: var(--navy); box-shadow: 0 14px 34px rgba(14, 27, 53, .28); font-size: 14px; font-weight: 750; }
+.elective-planner .picker-fab:hover { background: var(--ep-navy, #1b2b4d); }
+.elective-planner .picker-fab-count { padding: 2px 9px; border-radius: 999px; color: #ffd9a8; background: var(--ep-overlay, rgba(255,255,255,.14)); font-size: 12px; }
+/* Fixed, not sticky: sticky would scroll away with whatever it was declared in,
+   and the whole point is that the list stays reachable from any row. */
+.elective-planner .picker-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 60; display: grid; gap: 10px; padding: 13px 22px 15px; border-bottom: 1px solid var(--ep-line, #d9e0ec); background: var(--ep-overlay, rgba(252,253,255,.97)); box-shadow: 0 12px 34px rgba(14, 27, 53, .16); backdrop-filter: blur(6px); }
+.elective-planner .picker-bar-head { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.elective-planner .picker-bar-head strong { color: var(--ep-ink, #26324a); font-size: 14px; }
+.elective-planner .picker-bar-hint { flex: 1 1 auto; color: var(--muted); font-size: 12px; }
+.elective-planner .picker-bar-close { min-height: 32px; padding: 0 14px; border: 1px solid var(--ep-line, #dce2ec); border-radius: 999px; color: var(--ep-muted, #49628e); background: var(--ep-surface, #fff); font-size: 13px; font-weight: 750; }
+.elective-planner .picker-bar-close:hover { border-color: var(--ep-blue-line, #9bb7ed); color: var(--blue); }
+/* The bar scrolls but shows no bar of its own: it sits over the page, and a
+   scrollbar there reads as a second page rather than a shelf of cards. */
+.elective-planner .picker-list { display: flex; overflow-x: auto; flex-wrap: nowrap; gap: 8px; margin: 0; padding: 0; list-style: none; scrollbar-width: none; -ms-overflow-style: none; }
+.elective-planner .picker-list::-webkit-scrollbar { display: none; }
+.elective-planner .picker-list > li { flex: 0 0 auto; }
+.elective-planner .tray-chip { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 232px; padding: 8px 9px; border: 1px solid var(--ep-orange-line, #e0d5b8); border-radius: 10px; background: var(--ep-orange-soft, #fffdf6); cursor: grab; -webkit-user-select: none; user-select: none; }
+.elective-planner .tray-chip[draggable="true"] { -webkit-user-drag: element; }
+.elective-planner .tray-chip.is-held { border-color: var(--ep-blue-line, #3b70dc); background: var(--ep-blue-soft, #edf3ff); }
+.elective-planner .tray-chip-copy { display: grid; min-width: 0; gap: 2px; }
+.elective-planner .tray-chip-copy strong { display: -webkit-box; overflow: hidden; color: var(--ep-ink, #26324a); font-size: 13px; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.elective-planner .tray-chip-copy small { display: block; color: var(--muted); font-size: 12px; line-height: 1.4; }
+.elective-planner .tray-chip-slots { color: var(--ep-orange, #6b5a2a); font-weight: 750; white-space: nowrap; }
+.elective-planner .matrix-holding { margin: 7px 0 0; padding: 5px 10px; border-radius: 8px; color: var(--ep-blue, #2f5cb8); background: var(--ep-blue-soft, #edf3ff); font-size: 13px; }
+
+/* `position: relative` is load-bearing, not decoration.
+   Every button on the board carries a .sr-only label, and .sr-only is
+   absolutely positioned. With no positioned ancestor inside the scroller their
+   containing block was the page itself, so overflow:auto never clipped them —
+   the labels of cells 2000px to the right stretched the document and the whole
+   page scrolled sideways on every screen size. */
+/* The board scrolls inside its own box, sideways and down.
+   Room count stopped being a layout constant the day rooms became editable: a
+   full-width fixed table divides whatever room it has by however many rooms
+   exist, so adding a floor of ตึกร้อยปี would squeeze every column until a
+   course title is four characters wide. Columns keep a readable width instead
+   and the box scrolls.
+   The height cap is not decoration. An element that scrolls on one axis
+   scrolls on both, and the sticky header inside then sticks to this box rather
+   than to the page — so without a height it would never stick to anything.
+   With one, the room names and the period column stay put while the week moves
+   under them, which is the only way a 16-column board stays readable. */
+.elective-planner .matrix-scroll { position: relative; min-width: 0; max-height: min(78vh, 900px); overflow: auto; border: 1px solid var(--line); border-radius: 13px; }
+.elective-planner .matrix { width: max-content; min-width: 100%; table-layout: auto; border-collapse: separate; border-spacing: 0; }
+/* Back to roughly the width the old fixed-layout board gave each column.
+   Wider columns read better one at a time and worse as a week: every extra
+   pixel per column is another column pushed off the screen, and the board is
+   for comparing rooms against each other. */
+.elective-planner .matrix-room, .elective-planner .matrix-cell { min-width: 124px; max-width: 152px; }
+/* The shared table header style is built for a wide reference table: nowrap,
+   uppercase, wide tracking. On a fixed-layout board that meant the room names
+   were cut off mid-word instead of wrapping onto a second line. */
+.elective-planner .matrix th { letter-spacing: 0; text-transform: none; white-space: normal; }
+.elective-planner .matrix th, .elective-planner .matrix td { border-bottom: 1px solid var(--ep-line, #edf0f5); border-right: 1px solid var(--ep-line, #edf0f5); }
+.elective-planner .matrix-corner { position: sticky; top: 0; left: 0; z-index: 4; width: 108px; padding: 8px 10px; color: var(--muted); background: var(--ep-raised, #f4f6fa); font-size: 11px; text-align: left; }
+.elective-planner .matrix-room { position: sticky; top: 0; z-index: 3; padding: 8px 26px 8px 9px; color: var(--ep-ink, #3d4b65); background: var(--ep-raised, #f4f6fa); font-size: 11px; font-weight: 800; line-height: 1.4; text-align: left; vertical-align: top; }
+.elective-planner .matrix-room span { display: block; }
+.elective-planner .matrix-room small { display: block; color: var(--muted); font-size: 11px; font-weight: 700; }
+.elective-planner .matrix-day th { position: sticky; left: 0; z-index: 2; padding: 6px 11px; color: var(--ep-ink, #2b3750); background: var(--ep-raised, #eef1f7); font-size: 12px; font-weight: 800; letter-spacing: .04em; text-align: left; }
+.elective-planner .matrix-day-label { position: sticky; left: 11px; display: inline-block; }
+.elective-planner .matrix-slot { position: sticky; left: 0; z-index: 2; display: table-cell; width: 108px; padding: 8px 10px; background: var(--ep-blue-soft, #fbfcfe); text-align: left; vertical-align: top; }
+.elective-planner .matrix-slot strong { display: block; color: var(--ep-ink, #3d4b65); font-size: 13px; }
+/* Wide enough, and small enough, for "09:00–12:00" to hold one line — it has no
+   break opportunity of its own, so the column has to make room for all of it. */
+.elective-planner .matrix-slot small { display: block; color: var(--muted-2); font-size: 11px; line-height: 1.45; white-space: nowrap; }
+.elective-planner .matrix-cell { padding: 6px; vertical-align: top; background: var(--ep-surface, #fff); }
+.elective-planner .matrix-cell.is-blocked { background: repeating-linear-gradient(135deg, var(--ep-raised, #f4f6fa), var(--ep-raised, #f4f6fa) 6px, var(--ep-raised, #eef1f6) 6px, var(--ep-raised, #eef1f6) 12px); }
+/* Live answer to "can this go here", given while the cursor is still moving —
+   the check has to arrive before the drop, not after it. */
+/* The two verdicts are shown differently on purpose. Green stays on every
+   period that will take the class, so the answer to "where can this go" is the
+   shape of the board rather than something to go hunting for with the pointer.
+   Red is the answer to "not there", which is only a question about the one cell
+   being aimed at — painting all 160-odd of them would bury the green. :hover
+   covers a click-selected class, .is-drop-hovered covers a drag, where the
+   browser stops updating :hover. */
+.elective-planner .matrix-cell.is-drop-ok { outline: 2px solid var(--ep-green-line, #7dc4a4); outline-offset: -2px; background: var(--ep-green-soft, #f2fbf7); cursor: copy; }
+.elective-planner .matrix-cell.is-drop-ok:hover, .elective-planner .matrix-cell.is-drop-ok.is-drop-hovered { outline: 2px solid var(--ep-green-line, #3aa06f); background: var(--ep-green-soft, #e4f6ed); }
+.elective-planner .matrix-cell.is-drop-blocked { cursor: copy; }
+.elective-planner .matrix-cell.is-drop-blocked:hover, .elective-planner .matrix-cell.is-drop-blocked.is-drop-hovered { outline: 2px solid var(--ep-red-line, #c2394a); outline-offset: -2px; background: var(--ep-red-soft, #fff5f6); }
+.elective-planner .matrix-cell.is-drop-ok:focus-visible, .elective-planner .matrix-cell.is-drop-blocked:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: -3px; }
+.elective-planner .matrix-blocked { display: grid; gap: 2px; width: 100%; padding: 5px 6px; border: 1px solid var(--ep-line, #e3e7ee); border-radius: 8px; color: var(--ep-muted, #6d778c); background: var(--ep-overlay, rgba(255,255,255,.75)); font-size: 12px; text-align: left; }
+.elective-planner .matrix-blocked:hover { border-color: var(--ep-line, #b9c8e4); color: var(--ep-blue, #3f6bcd); }
+.elective-planner .matrix-blocked-tag { font-size: 11px; font-weight: 850; letter-spacing: .04em; }
+.elective-planner .matrix-blocked small { color: var(--muted-2); font-size: 11px; line-height: 1.35; }
+/* The card is the drag surface, so nothing inside it may start a text
+   selection instead — a press that begins a selection never becomes a
+   drag, which is what made the middle of the card feel dead. */
+.elective-planner .matrix-chip { position: relative; display: grid; gap: 4px; padding: 7px 8px; border: 1px solid var(--ep-line, #dfe6f2); border-radius: 9px; background: var(--ep-surface, #fff); cursor: grab; -webkit-user-select: none; user-select: none; }
+.elective-planner .matrix-chip[draggable="true"] { -webkit-user-drag: element; }
+/* Top-right, away from the lock and move buttons: removing a class is the one
+   action here you cannot undo by pressing it again. */
+.elective-planner .chip-remove { position: absolute; top: 3px; right: 3px; z-index: 1; display: grid; place-items: center; width: 20px; height: 20px; border: 0; border-radius: 6px; color: var(--ep-muted, #97a1b4); background: transparent; font-size: 14px; line-height: 1; cursor: pointer; }
+.elective-planner .chip-remove:hover { color: var(--ep-red, #a3313c); background: var(--ep-red-soft, #fdeef0); }
+.elective-planner .matrix-chip-copy { display: grid; min-width: 0; gap: 2px; padding: 0 20px 0 0; text-align: left; color: inherit; }
+.elective-planner .matrix-chip.is-held .matrix-chip-copy strong { color: var(--blue); }
+/* Hidden until a keyboard reaches it, then an ordinary button. Never shown
+   to a mouse, which has the whole card to drag and click instead. */
+.elective-planner .chip-pick { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.elective-planner .chip-pick:focus-visible { position: static; width: auto; height: auto; padding: 3px 7px; overflow: visible; clip: auto; border-radius: 6px; color: var(--ep-blue, #1c4bb0); background: var(--ep-blue-soft, #e8f0ff); font-size: 11px; white-space: normal; outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+.elective-planner .matrix-chip + .matrix-chip { margin-top: 6px; }
+.elective-planner .matrix-chip.is-locked { border-color: var(--ep-green-line, #a8ddc6); background: var(--ep-green-soft, #f4fcf8); cursor: default; }
+.elective-planner .matrix-chip.is-conflict { border-color: var(--ep-red-line, #e7b1b7); background: var(--ep-red-soft, #fff6f7); }
+.elective-planner .matrix-chip.is-held { border-color: var(--ep-blue-line, #3b70dc); background: var(--ep-blue-soft, #edf3ff); }
+.elective-planner .matrix-chip-copy strong { display: -webkit-box; overflow: hidden; color: var(--ep-ink, #26324a); font-size: 12px; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.elective-planner .matrix-chip-copy small { display: -webkit-box; overflow: hidden; color: var(--muted); font-size: 11px; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.elective-planner .matrix-chip .chip-action { width: 23px; height: 23px; font-size: 12px; }
+/* Left plain on purpose. Painting all 180 "put it here" buttons orange because
+   they each break some rule turns the whole board into a warning and hides the
+   green ones, which are the answer to the question being asked. Blocked cells
+   colour on hover, when the reader is actually considering one. */
+
+/* One tag shape wherever a room is named outside the board itself. */
+.elective-planner .room-tag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border: 1px solid var(--ep-line, #e6eaf1); border-radius: 999px; color: var(--ep-ink, #3d4b65); background: var(--ep-raised, #f7f9fc); font-size: 12px; font-weight: 750; }
+/* Day colour, on the other hand, is the traditional one — see lib/day-colors.ts
+   for why each is restated as ink + wash rather than used raw. */
+.elective-planner .day-chip-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.elective-planner .day-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border: 1px solid var(--day-border); border-radius: 7px; color: var(--day-ink); background: var(--day-bg); font-size: 12px; font-weight: 800; white-space: nowrap; }
+.elective-planner .day-chip.is-locked { border-width: 2px; padding: 2px 7px; }
+.elective-planner .day-chip-lock { font-size: 10px; line-height: 1; }
+.elective-planner .provider-link { color: var(--blue); font-weight: 700; text-decoration: none; }
+.elective-planner .provider-link:hover { text-decoration: underline; }
+
+/* A red border says something is wrong; this says what. */
+.elective-planner .slot-conflict-note { margin: 2px 0 0; color: var(--ep-red, #a3313c); font-size: 12px; line-height: 1.45; }
+.elective-planner .availability-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 7px 10px; margin: 0; color: var(--muted); font-size: 12px; }
+.elective-planner .availability-legend .availability-slot { width: 26px; min-height: 26px; pointer-events: none; }
+
+@media (max-width: 1050px) {
+  .elective-planner .room-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  .elective-planner .room-grid { grid-template-columns: 1fr; }
+      .elective-planner .filters.filters-list { grid-template-columns: 1fr; }
+      .elective-planner .picker-bar { padding: 11px 16px 13px; }
+      .elective-planner .picker-fab { right: 14px; bottom: 14px; }
+      .elective-planner .tray-chip { max-width: none; }
+      /* Two columns on a phone, so the actions take their own full-width row
+         rather than being wrung out in the 26px icon column. */
+      .elective-planner .conflict-side { grid-column: 1 / -1; justify-content: flex-start; padding-left: 0; }
+}
+
+/* Past terms — the read-only mode of the course list.
+   The term switcher sits with the count chip rather than in the filter row: it
+   picks which set of courses is on the table, and a control that changes what
+   the row count counts should not look like one of the things counted. */
+.elective-planner .term-switcher { display: grid; gap: 6px; justify-items: end; }
+.elective-planner .term-switcher-label { color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.elective-planner .term-switcher select { min-width: 244px; min-height: var(--tap-min); padding: 0 12px; border: 1px solid var(--ep-line, #dce2ec); border-radius: 10px; color: var(--ink); background: var(--ep-blue-soft, #fbfcfe); font-size: 14px; font-weight: 750; }
+.elective-planner .term-switcher select:focus { border-color: var(--ep-blue-line, #81a7ef); box-shadow: 0 0 0 3px rgba(59,112,220,.12); }
+.elective-planner .filters.filters-archive { grid-template-columns: minmax(280px, 2.4fr) minmax(118px, .62fr) minmax(118px, .62fr); }
+/* A row that leads nowhere still has to look like it leads nowhere on hover. */
+.elective-planner .course-link.is-static { cursor: default; }
+.elective-planner .course-link.is-static:hover strong { color: var(--ep-ink, #202c42); }
+
+@media (max-width: 760px) {
+  .elective-planner .term-switcher { width: 100%; justify-items: stretch; }
+      .elective-planner .term-switcher select { width: 100%; min-width: 0; }
+      .elective-planner .filters.filters-archive { grid-template-columns: 1fr; }
+}
+
+/* The count of matching rows and the way to take them with you, on one line.
+   The button sits by the count rather than with the filters because it acts on
+   the result, not on the query. */
+.elective-planner .list-toolbar { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 15px; }
+.elective-planner .list-toolbar .filter-summary { flex: 1 1 260px; margin-top: 0; }
+.elective-planner .secondary-button:disabled { cursor: not-allowed; border-color: var(--ep-line, #eef1f6); color: var(--ep-muted, #98a0ae); background: var(--ep-raised, #f7f8fa); }
+
+/* Editing the room list — from the board, the room cards and one room's page */
+.elective-planner .matrix-room-edit { position: absolute; top: 5px; right: 4px; width: 21px; height: 21px; padding: 0; border: 0; border-radius: 6px; color: var(--ep-muted, #7b8698); background: transparent; font-size: 12px; line-height: 1; }
+.elective-planner .matrix-room-edit:hover { color: var(--blue); background: var(--ep-blue-soft, #e8f0ff); }
+/* Hidden until the cell is pointed at: 16 rooms x 18 periods is 288 cells, and
+   a button drawn in every one of them would be the loudest thing on the board. */
+.elective-planner .matrix-book { width: 100%; min-height: 26px; padding: 4px; border: 1px dashed var(--ep-line, #dfe5ee); border-radius: 8px; color: var(--ep-muted, #7d879a); background: transparent; font-size: 11px; font-weight: 750; opacity: 0; transition: opacity .12s ease; }
+.elective-planner .matrix-cell:hover .matrix-book, .elective-planner .matrix-book:focus-visible { opacity: 1; }
+.elective-planner .matrix-book:hover { border-color: var(--ep-line, #b9c8e4); color: var(--ep-blue, #3f6bcd); background: var(--ep-blue-soft, #f4f8ff); }
+/* A pointer can reveal a control by hovering over it; a finger cannot. */
+@media (hover: none) {
+  .elective-planner .matrix-book { opacity: 1; }
+}
+.elective-planner .slot-actions { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+.elective-planner .slot-book { min-height: 34px; padding: 6px 9px; border: 1px dashed var(--ep-line, #dfe5ee); border-radius: 9px; color: var(--ep-muted, #7d879a); background: transparent; font-size: 12px; font-weight: 750; }
+.elective-planner .slot-book:hover { border-color: var(--ep-line, #b9c8e4); color: var(--ep-blue, #3f6bcd); background: var(--ep-blue-soft, #f4f8ff); }
+.elective-planner .slot-cell.is-blocked .slot-add { min-height: 30px; font-size: 12px; }
+.elective-planner .room-card-shell { position: relative; display: grid; }
+.elective-planner .room-card-shell > .room-card { padding-bottom: 44px; }
+.elective-planner .room-card-edit { position: absolute; right: 12px; bottom: 11px; min-height: 30px; padding: 5px 11px; border: 1px solid var(--ep-line, #dce4f0); border-radius: 8px; color: var(--ep-blue, #315faf); background: var(--ep-blue-soft, #f7faff); font-size: 12px; font-weight: 800; }
+.elective-planner .room-card-edit:hover { border-color: var(--ep-blue-line, #9bb7ed); background: var(--ep-blue-soft, #edf3ff); }
+
+/* The room form and the booking form */
+.elective-planner .room-dialog { width: min(560px, calc(100vw - 28px)); }
+.elective-planner .booking-dialog { width: min(480px, calc(100vw - 28px)); }
+.elective-planner .room-form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.elective-planner .room-form-wide { grid-column: 1 / -1; }
+.elective-planner .room-form label { display: grid; gap: 6px; color: var(--muted); font-size: 13px; font-weight: 700; }
+.elective-planner .room-form input[type="text"], .elective-planner .room-form input[type="number"] { width: 100%; min-height: var(--tap-min); padding: 0 12px; border: 1px solid var(--ep-line, #dce2ec); border-radius: 10px; outline: 0; color: var(--ink); background: var(--ep-blue-soft, #fbfcfe); font-size: 14px; }
+.elective-planner .room-form input[type="text"]:focus, .elective-planner .room-form input[type="number"]:focus { border-color: var(--ep-blue-line, #81a7ef); box-shadow: 0 0 0 3px rgba(59,112,220,.12); }
+/* More specific than `.room-form label` above, which would otherwise make
+   this a grid and stack the tick above its own sentence. */
+.elective-planner .room-form .room-form-check { display: flex; align-items: flex-start; gap: 10px; grid-column: 1 / -1; color: var(--ep-ink, #38445b); font-size: 14px; font-weight: 700; }
+.elective-planner .room-form-check input { width: 18px; height: 18px; margin-top: 3px; }
+.elective-planner .room-form-check small { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; font-weight: 650; line-height: 1.45; }
+.elective-planner .tier-choice { display: grid; gap: 10px; margin: 0; padding: 13px 14px; border: 1px solid var(--line); border-radius: 12px; }
+.elective-planner .tier-choice legend { padding: 0 6px; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.elective-planner .tier-choice label { display: flex; align-items: flex-start; gap: 10px; color: var(--ep-ink, #38445b); font-size: 14px; font-weight: 700; }
+.elective-planner .tier-choice input { width: 18px; height: 18px; margin-top: 3px; }
+.elective-planner .tier-choice small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; font-weight: 650; line-height: 1.45; }
+.elective-planner .room-form-error { grid-column: 1 / -1; margin: 0; padding: 10px 12px; border-radius: 9px; color: var(--ep-red, #a3313c); background: var(--ep-pink-soft, #ffe9ed); font-size: 13px; line-height: 1.5; }
+.elective-planner .dialog-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 4px; padding-top: 16px; border-top: 1px solid var(--line); }
+.elective-planner .dialog-actions-end { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.elective-planner .danger-text { color: var(--ep-red, #b93445); }
+.elective-planner .danger-text:hover { color: var(--ep-red, #94202f); }
+.elective-planner .danger-button { min-height: 34px; padding: 8px 12px; border: 1px solid var(--ep-red-line, #c2394a); border-radius: 8px; color: #fff; background: var(--ep-red, #c2394a); font-size: 13px; font-weight: 800; }
+.elective-planner .danger-button:hover { background: var(--ep-red, #a82f3f); }
+.elective-planner .delete-confirm { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; color: var(--ep-red, #8c3340); font-size: 13px; line-height: 1.5; }
+
+@media (max-width: 760px) {
+  .elective-planner .room-form { grid-template-columns: 1fr; }
+      .elective-planner .dialog-actions { align-items: stretch; flex-direction: column; }
+      .elective-planner .dialog-actions-end { margin-left: 0; }
+}
+
+/* Two views of one list: the schedule facts, and the paperwork behind them */
+.elective-planner .view-switch { display: inline-flex; gap: 4px; margin: -2px 0 16px; padding: 4px; border: 1px solid var(--line); border-radius: 11px; background: var(--ep-raised, #f4f6fa); }
+.elective-planner .view-switch-button { min-height: 34px; padding: 6px 14px; border: 0; border-radius: 8px; color: var(--muted); background: transparent; font-size: 13px; font-weight: 800; }
+.elective-planner .view-switch-button:hover { color: var(--ep-blue, #2f5cb8); }
+.elective-planner .view-switch-button.is-active { color: var(--ep-ink, #203252); background: var(--ep-surface, #fff); box-shadow: 0 1px 3px rgba(30, 49, 80, .12); }
+/* Fixed layout, widths declared in the markup's <colgroup>. Every status
+   column is then the same width whatever sits in it — with automatic layout
+   the two columns holding "กำลังดำเนินการ" came out wider than their
+   neighbours, and a row of identical controls read as a ragged one. The
+   min-width is the point below which the columns would be too narrow for
+   their own labels; under that the table scrolls inside its box. */
+.elective-planner .checklist-table { min-width: 1060px; table-layout: fixed; }
+/* The reference table bleeds into the panel's padding on purpose — it is a
+   wide table of text and the extra 44px is worth having. This one is a form,
+   and a control hard against the panel's edge reads as clipped, so the
+   checklist keeps the panel's own margins. Padding on the end cells would do
+   the same thing, except it would come out of those two columns and leave
+   their controls narrower than the five in the middle. */
+.elective-planner .table-wrap:has(.checklist-table) { margin-inline: 0; }
+/* The reference table's header style shouts in capitals, which is fine for
+   Thai and wrong for "instructor" and "Join MCV" — those are names of
+   things in MCV, and MCV does not write them that way. */
+/* `pre-line` so a header can say where it wants to break — see the "+" in
+   CHECKLIST_FIELDS. Left to itself, Chrome breaks Thai wherever it fits. */
+.elective-planner .checklist-table th { text-transform: none; white-space: pre-line; }
+.elective-planner .checklist-table th, .elective-planner .checklist-table td { padding-right: 7px; padding-left: 7px; }
+.elective-planner .checklist-table td { padding-top: 9px; padding-bottom: 9px; vertical-align: middle; }
+.elective-planner .checklist-table tr.is-complete td { background: var(--ep-green-soft, #f7fdfa); }
+/* One size for all seven, and the small one: the controls sit inside their
+   column rather than filling it, so the row reads as seven of the same thing
+   rather than seven boxes of assorted widths. */
+.elective-planner .checklist-select { width: 100%; max-width: 118px; min-height: 34px; padding: 0 6px; border: 1px solid var(--ep-line, #dce2ec); border-radius: 8px; font-size: 12px; font-weight: 800; }
+.elective-planner .checklist-select:focus { border-color: var(--ep-blue-line, #81a7ef); box-shadow: 0 0 0 3px rgba(59,112,220,.12); outline: 0; }
+/* A join code is copied character by character into another site, so it is
+   shown in a face where 0 and O are not the same shape. */
+.elective-planner .checklist-code { width: 100%; max-width: 92px; min-height: 34px; padding: 0 7px; border: 1px solid var(--ep-line, #dce2ec); border-radius: 8px; color: var(--ink); background: var(--ep-blue-soft, #fbfcfe); font-family: var(--font-anuphan), ui-sans-serif, system-ui, sans-serif; font-size: 13px; }
+.elective-planner .checklist-code:focus { border-color: var(--ep-blue-line, #81a7ef); box-shadow: 0 0 0 3px rgba(59,112,220,.12); outline: 0; }
+
+/* Persistence controls remain available after route changes and read failures. */
+.elective-planner .plan-storage { margin-bottom: 1rem; }
+.elective-planner .plan-storage-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+.elective-planner .plan-storage-actions > span { margin-right: auto; font-size: .85rem; }
+.elective-planner .plan-storage-error { margin-top: .75rem; padding: 1rem; border: 1px solid var(--ep-orange-line, #b45309); border-radius: .75rem; background: var(--ep-orange-soft, #fffbeb); color: var(--ep-orange, #78350f); }
+.elective-planner .plan-storage-error p { margin: 0 0 .6rem; }
+.elective-planner .plan-storage-error button { margin: .25rem .5rem .25rem 0; }
+
+/* Embedded layout: the available width excludes the console sidebar. */
+.elective-planner { --page-width: calc(100% - 40px); --page-gutter: 20px; min-width: 0; container-type: inline-size; }
+.elective-planner .app-shell { min-height: 0; }
+.elective-planner .topbar { display: flex; flex-wrap: wrap; gap: 18px; }
+.elective-planner .header-meta { margin-left: auto; flex-wrap: wrap; gap: 8px 14px; }
+.elective-planner .page-content { padding-top: 24px; }
+.elective-planner .course-dialog { margin: auto; background: var(--surface); }
+.elective-planner h1, .elective-planner h2, .elective-planner h3 { font-weight: 700; }
+.elective-planner p { margin-bottom: 1em; }
+.elective-planner .intro-copy, .elective-planner .eyebrow, .elective-planner .section-kicker { margin-bottom: 0; }
+@container (max-width: 1050px) { .elective-planner .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+@container (max-width: 760px) { .elective-planner .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .elective-planner .picker-bar { left: 266px; } }
+
+/* Dark overrides use the same CARBON tokens as the host console. Hex
+   fallbacks above preserve the standalone planner's classic colours. */
+html[data-theme="dark"] .elective-planner {
+  --ep-ink: var(--color-text);
+  --ep-muted: var(--color-text-2);
+  --ep-line: var(--color-line);
+  --ep-surface: var(--color-surface);
+  --ep-raised: var(--color-surface-2);
+  --ep-overlay: var(--color-surface-2);
+  --ep-navy: var(--color-sunken);
+  --ep-blue: var(--color-accent);
+  --ep-green: var(--color-ok);
+  --ep-purple: var(--color-tag-1);
+  --ep-orange: var(--color-tag-4);
+  --ep-red: var(--color-danger);
+  --ep-yellow: var(--color-warn);
+  --ep-pink: var(--color-tag-5);
+  --ep-teal: var(--color-tag-3);
+  --ep-blue-soft: var(--color-accent-soft);
+  --ep-blue-line: var(--color-accent-line);
+  --ep-green-soft: var(--color-ok-soft);
+  --ep-green-line: var(--color-ok-line);
+  --ep-purple-soft: var(--color-tag-1-soft);
+  --ep-purple-line: var(--color-tag-1-line);
+  --ep-orange-soft: var(--color-tag-4-soft);
+  --ep-orange-line: var(--color-tag-4-line);
+  --ep-red-soft: var(--color-danger-soft);
+  --ep-red-line: var(--color-danger-line);
+  --ep-yellow-soft: var(--color-warn-soft);
+  --ep-yellow-line: var(--color-warn-line);
+  --ep-pink-soft: var(--color-tag-5-soft);
+  --ep-pink-line: var(--color-tag-5-line);
+  --ep-teal-soft: var(--color-tag-3-soft);
+  --ep-teal-line: var(--color-tag-3-line);
+  --ink: var(--color-text);
+  --muted: var(--color-text-2);
+  --muted-2: var(--color-text-2);
+  --line: var(--color-line);
+  --surface: var(--color-surface);
+  --canvas: var(--color-bg);
+  --navy: var(--color-sunken);
+  --blue: var(--color-accent);
+  --green: var(--color-ok);
+  --purple: var(--color-tag-1);
+  --orange: var(--color-tag-4);
+  --red: var(--color-danger);
+  --shadow: var(--shadow-lift);
+  --ep-day-MON-ink: var(--color-warn);
+  --ep-day-MON-bg: var(--color-warn-soft);
+  --ep-day-MON-border: var(--color-warn-line);
+  --ep-day-TUE-ink: var(--color-tag-5);
+  --ep-day-TUE-bg: var(--color-tag-5-soft);
+  --ep-day-TUE-border: var(--color-tag-5-line);
+  --ep-day-WED-ink: var(--color-ok);
+  --ep-day-WED-bg: var(--color-ok-soft);
+  --ep-day-WED-border: var(--color-ok-line);
+  --ep-day-THU-ink: var(--color-tag-4);
+  --ep-day-THU-bg: var(--color-tag-4-soft);
+  --ep-day-THU-border: var(--color-tag-4-line);
+  --ep-day-FRI-ink: var(--color-tag-2);
+  --ep-day-FRI-bg: var(--color-tag-2-soft);
+  --ep-day-FRI-border: var(--color-tag-2-line);
+  --ep-day-SAT-ink: var(--color-tag-1);
+  --ep-day-SAT-bg: var(--color-tag-1-soft);
+  --ep-day-SAT-border: var(--color-tag-1-line);
+}
+html[data-theme="dark"] .elective-planner .primary-button { background: var(--color-accent); border-color: var(--color-accent-line); color: var(--color-accent-ink); }
+html[data-theme="dark"] .elective-planner .primary-button:hover { background: var(--color-accent-hover); }
+html[data-theme="dark"] .elective-planner .danger-button { background: var(--color-danger-soft); color: var(--color-danger); }
+html[data-theme="dark"] .elective-planner .note-icon { color: var(--color-bg); }
+html[data-theme="dark"] .elective-planner .brand-mark { color: var(--color-accent); background: var(--color-accent-soft); }
+
+/* The standalone board used viewport-wide negative margins. In the console
+   it must remain within its own pane and scroll its columns internally. */
+.elective-planner .matrix-panel { margin-inline: 0; }
+.elective-planner .table-wrap { max-height: min(72vh, 780px); overflow: auto; }

@@ -1,0 +1,37 @@
+{
+  "verifiedAt": "2026-09-12T08:52:00.177413+00:00",
+  "baseCommit": "4eee0dfdcb8d3a2c5cdd37da65ef1a20f5073161",
+  "plannerSourceCommit": "df48be432687a8bbfe1cf94d8ae95420e4250aff",
+  "productionBuild": "passed",
+  "domainChecks": 78,
+  "browser": {
+    "passed": 19,
+    "results": [
+      "planner deep links require sign-in and return to the requested page",
+      "integrated planner hydrates and loads its scheduler worker",
+      "both themes reach the whole console, planner dialogs and cross-tab preferences",
+      "duplicate session move is refused without changing ids",
+      "onsite course cannot be moved into the online column",
+      "invalid URL filters are sanitized without crashing",
+      "Back and Forward restore both URL filters and visible controls",
+      "legacy onsite sessions without rooms are labelled honestly in UI and Excel",
+      "checklist ignores hidden placement filter and exports all matching rows",
+      "two tabs preserve each other's edits and update their visible fields",
+      "MCV code remains editable until blur while incomplete filter is active",
+      "quota failure shows unsaved status and backup; retry saves the retained draft",
+      "corrupt storage can be backed up and recovered from the page",
+      "deleting a room from detail can be undone after client navigation",
+      "worker cancellation keeps the prior plan intact",
+      "valid backup import and reset can both be undone",
+      "archive export, mobile layout and all production assets remain usable",
+      "mobile theme controls and navigation work in both palettes",
+      "theme works with blocked localStorage and unsafe login return paths stay local"
+    ],
+    "errors": [],
+    "failedAssets": []
+  },
+  "backend": "local API fixtures only",
+  "changedFileLint": "0 errors; 4 existing image warnings",
+  "fullProjectLint": "existing ActionMenu.tsx react-hooks/set-state-in-effect error",
+  "deploymentVerified": false
+}

@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "gen:api": "openapi-typescript http://127.0.0.1:8000/openapi.json -o src/types/api.ts",
-    "check:api": "npm run gen:api && git diff --exit-code -- src/types/api.ts"
+    "check:api": "npm run gen:api && git diff --exit-code -- src/types/api.ts",
+    "check:planner": "node --experimental-strip-types scripts/elective-plan/check-scheduler.mjs && node --experimental-strip-types scripts/elective-plan/check-integrity.mjs && node --experimental-strip-types scripts/elective-plan/check-storage.mjs && node --experimental-strip-types scripts/elective-plan/check-metrics.mjs && node --experimental-strip-types scripts/elective-plan/check-seed.mjs && node --experimental-strip-types scripts/elective-plan/check-rooms.mjs && node --experimental-strip-types scripts/elective-plan/check-checklist.mjs && node --experimental-strip-types scripts/elective-plan/check-xlsx.mjs",
+    "check:browser": "node scripts/elective-plan/check-browser.mjs"
   },
   "dependencies": {
     "next": "16.3.3",
@@ -23,6 +25,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
     "openapi-typescript": "^7.13.0",
+    "playwright": "1.63.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

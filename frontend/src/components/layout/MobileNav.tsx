@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+import Link from "next/link";
+import { ThemeSwitcher } from "@/components/theme/ThemeSwitcher";
 import { NAV_ITEMS } from "@/components/layout/Sidebar";
 import { cn } from "@/lib/utils";
 import type { PanelKey } from "@/types";
@@ -26,11 +29,19 @@ export function MobileNav({
   active,
   onNavigate,
 }: {
-  active: PanelKey;
+  active: PanelKey | "planner";
   onNavigate: (panel: PanelKey) => void;
 }) {
+  const nav = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const current = nav.current?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (nav.current && current) nav.current.scrollLeft += current.getBoundingClientRect().left - nav.current.getBoundingClientRect().left - 8;
+  }, [active]);
+
   return (
-    <nav className="mb-5 flex gap-1 overflow-x-auto rounded-xl border border-line-soft bg-sunken p-1 lg:hidden">
+    <div className="mb-5 space-y-2 lg:hidden">
+      <ThemeSwitcher />
+    <nav ref={nav} aria-label="เมนูหลัก" className="mb-5 flex gap-1 overflow-x-auto rounded-xl border border-line-soft bg-sunken p-1 lg:hidden">
       {NAV_ITEMS.map((item) => (
         <button
           key={item.key}
@@ -38,7 +49,7 @@ export function MobileNav({
           onClick={() => onNavigate(item.key)}
           aria-current={item.key === active ? "page" : undefined}
           className={cn(
-            "shrink-0 rounded-lg px-3 py-1.5 text-[13px] transition",
+            "flex min-h-11 shrink-0 items-center rounded-lg px-3 py-1.5 text-[13px] transition",
             item.key === active
               ? "bg-accent-soft text-accent"
               : "text-text-2 hover:text-text",
@@ -47,6 +58,9 @@ export function MobileNav({
           {SHORT_LABELS[item.key]}
         </button>
       ))}
+      <Link href="/elective-plan" aria-current={active === "planner" ? "page" : undefined}
+        className={cn("flex min-h-11 shrink-0 items-center rounded-lg px-3 py-1.5 text-[13px]", active === "planner" ? "bg-accent-soft text-accent" : "text-text-2")}>จัดตารางวิชาเลือก</Link>
     </nav>
+    </div>
   );
 }

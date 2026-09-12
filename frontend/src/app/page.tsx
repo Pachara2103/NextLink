@@ -1,10 +1,15 @@
 import { ConsoleShell } from "@/components/layout/ConsoleShell";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 
-export default function Home() {
+import type { PanelKey } from "@/types";
+
+export default async function Home({ searchParams }: PageProps<"/">) {
+  const { panel } = await searchParams;
+  const allowed: readonly string[] = ["contacts", "people", "groups", "notes", "agent", "library"];
+  const initialPanel: PanelKey = typeof panel === "string" && allowed.includes(panel) ? panel as PanelKey : "contacts";
   return (
     <RequireAuth>
-      <ConsoleShell />
+      <ConsoleShell key={initialPanel} initialPanel={initialPanel} />
     </RequireAuth>
   );
 }

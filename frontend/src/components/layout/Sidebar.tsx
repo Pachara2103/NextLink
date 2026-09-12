@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { ThemeSwitcher } from "@/components/theme/ThemeSwitcher";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -31,7 +33,7 @@ export function Sidebar({
   active,
   onNavigate,
 }: {
-  active: PanelKey;
+  active: PanelKey | "planner";
   onNavigate: (panel: PanelKey) => void;
 }) {
   const {
@@ -73,7 +75,7 @@ export function Sidebar({
       : Math.round((linkedGroups.length / groupLines.length) * 100);
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-[266px] shrink-0 flex-col border-r border-line-soft bg-surface/70 backdrop-blur-xl lg:flex">
+    <aside className="sticky top-0 hidden h-screen overflow-y-auto w-[266px] shrink-0 flex-col border-r border-line-soft bg-surface/70 backdrop-blur-xl lg:flex">
       <div className="flex items-center px-6 py-6">
 
         <img
@@ -87,7 +89,7 @@ export function Sidebar({
         <img
          src="/nextlink-text.png"
          alt="NextLink Text"
-         className="h-15 w-auto shrink-0" 
+         className="nextlink-wordmark h-15 w-auto shrink-0"
         />
       </div>
 
@@ -130,9 +132,15 @@ export function Sidebar({
             </button>
           );
         })}
+        <Link href="/elective-plan" aria-current={active === "planner" ? "page" : undefined}
+          className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition", active === "planner" ? "bg-accent-soft text-text shadow-[inset_0_0_0_1px_var(--color-accent-line)]" : "text-text-2 hover:bg-surface-2 hover:text-text")}>
+          <Icon name="layers" className="size-[18px] text-accent" />
+          จัดตารางวิชาเลือก
+        </Link>
       </nav>
 
       <div className="mt-auto space-y-3 p-4">
+        <ThemeSwitcher />
         <div className="rounded-xl border border-line-soft bg-surface p-4">
           <span className="font-mono text-[10px] tracking-[0.14em] text-text-3 uppercase">
             ความคืบหน้าการผูกบริษัท

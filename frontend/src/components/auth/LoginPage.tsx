@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 
+import { ThemeSwitcher } from "@/components/theme/ThemeSwitcher";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
 import { MESSAGES } from "@/lib/constants";
@@ -32,7 +33,7 @@ function loginErrorMessage(error: unknown): string {
   return MESSAGES.loginFailed;
 }
 
-export function LoginPage() {
+export function LoginPage({ returnTo = "/" }: { returnTo?: string }) {
   const router = useRouter();
   const { status, signIn } = useAuth();
 
@@ -44,8 +45,8 @@ export function LoginPage() {
 
   // Someone who is already signed in has no business on this page.
   useEffect(() => {
-    if (status === "authed") router.replace("/");
-  }, [status, router]);
+    if (status === "authed") router.replace(returnTo);
+  }, [status, router, returnTo]);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -60,7 +61,7 @@ export function LoginPage() {
     setError(null);
     try {
       await signIn(username.trim(), password);
-      router.replace("/");
+      router.replace(returnTo);
     } catch (err) {
       console.error("login failed", err);
       setError(loginErrorMessage(err));
@@ -70,6 +71,7 @@ export function LoginPage() {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center px-5 py-10">
+      <div className="absolute right-5 top-5 z-10"><ThemeSwitcher /></div>
       {/* same ambient glow the console uses, so the two pages read as one system */}
       <div
         aria-hidden
@@ -91,7 +93,7 @@ export function LoginPage() {
         <img
          src="/nextlink-text.png"
          alt="NextLink Text"
-         className="h-18 w-auto shrink-0" 
+         className="nextlink-wordmark h-18 w-auto shrink-0"
         />
       
         </div>
