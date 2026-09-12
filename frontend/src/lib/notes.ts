@@ -119,57 +119,57 @@ export const SOURCE: Record<NoteSource, SourceMeta> = Object.fromEntries(
   SOURCES.map((s) => [s.value, s]),
 ) as Record<NoteSource, SourceMeta>;
 
-export const TERM_LABEL: Record<number, string> = {
+export const SEMESTER_LABEL: Record<number, string> = {
   1: "ภาคเรียนที่ 1",
   2: "ภาคเรียนที่ 2",
   3: "ภาคฤดูร้อน (3)",
 };
 
 /**
- * Ported from utils/academic_year.py -> get_current_academic_term().
- * ส.ค.–ธ.ค. = term 1 of this year / ม.ค.–พ.ค. = term 2 of last year /
- * มิ.ย.–ก.ค. = term 3 of last year.
+ * Ported from utils/year_semester.py -> get_current_year_semester().
+ * ส.ค.–ธ.ค. = semester 1 of this year / ม.ค.–พ.ค. = semester 2 of last year /
+ * มิ.ย.–ก.ค. = semester 3 of last year.
  */
-export function getCurrentAcademicTerm(now = new Date()): {
-  academicYear: number;
-  term: 1 | 2 | 3;
+export function getCurrentYearSemester(now = new Date()): {
+  year: number;
+  semester: 1 | 2 | 3;
 } {
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
-  if (month >= 8) return { academicYear: year, term: 1 };
-  if (month <= 5) return { academicYear: year - 1, term: 2 };
-  return { academicYear: year - 1, term: 3 };
+  if (month >= 8) return { year, semester: 1 };
+  if (month <= 5) return { year: year - 1, semester: 2 };
+  return { year: year - 1, semester: 3 };
 }
 
 /** Six academic years back through the current one, newest first. */
-export function academicYearOptions(current: number): number[] {
+export function yearOptions(current: number): number[] {
   return Array.from({ length: 6 }, (_, i) => current - i);
 }
 
 // --- filtering -----------------------------------------------------------
 
 export interface NoteFilters {
-  academicYear: string;
-  term: string;
+  year: string;
+  semester: string;
   sentiment: string;
   source: string;
 }
 
-/** Only the two the per-company bar offers; year and term are set page-wide. */
+/** Only the two the per-company bar offers; year and semester are set page-wide. */
 export const COMPANY_FILTER_FIELDS = ["sentiment", "source"] as const;
 
 export function defaultFilters(): NoteFilters {
-  const current = getCurrentAcademicTerm();
+  const current = getCurrentYearSemester();
   return {
-    academicYear: String(current.academicYear),
-    term: String(current.term),
+    year: String(current.year),
+    semester: String(current.semester),
     sentiment: "all",
     source: "all",
   };
 }
 
 export function emptyFilters(): NoteFilters {
-  return { academicYear: "all", term: "all", sentiment: "all", source: "all" };
+  return { year: "all", semester: "all", sentiment: "all", source: "all" };
 }
 
 /** Covers companyTh · companyEn · aliases · personName · personNickname. */
@@ -203,13 +203,15 @@ export function matchesSearch(
 }
 
 export function matchesFilters(note: Note, filters: NoteFilters): boolean {
+  if (filters.year !== "all" && String(note.year) !== filters.year) {
+    return false;
+  }
   if (
-    filters.academicYear !== "all" &&
-    String(note.academicYear) !== filters.academicYear
+    filters.semester !== "all" &&
+    String(note.semester) !== filters.semester
   ) {
     return false;
   }
-  if (filters.term !== "all" && String(note.term) !== filters.term) return false;
   if (filters.sentiment !== "all" && note.sentiment !== filters.sentiment) {
     return false;
   }
@@ -217,14 +219,14 @@ export function matchesFilters(note: Note, filters: NoteFilters): boolean {
   return true;
 }
 
-/** Newest first: academicYear, then term, then updatedAt. */
+/** Newest first: year, then semester, then updatedAt. */
 export function sortNotes(notes: Note[]): Note[] {
   const at = (iso: string | null | undefined) =>
     iso ? new Date(iso).getTime() : 0;
   return [...notes].sort(
     (a, b) =>
-      (b.academicYear ?? 0) - (a.academicYear ?? 0) ||
-      (b.term ?? 0) - (a.term ?? 0) ||
+      (b.year ?? 0) - (a.year ?? 0) ||
+      (b.semester ?? 0) - (a.semester ?? 0) ||
       at(b.updatedAt) - at(a.updatedAt),
   );
 }

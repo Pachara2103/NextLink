@@ -24,7 +24,7 @@ import type { GroupLine, Note } from "@/types";
  * All the notes of one company, with a filter bar of its own.
  *
  * The per-company bar only offers level and source: the page-wide bar already
- * owns year and term, and repeating them here would let a card be filtered out
+ * owns year and semester, and repeating them here would let a card be filtered out
  * by two controls that disagree.
  */
 export function CompanyNoteSection({

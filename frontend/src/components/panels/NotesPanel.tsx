@@ -21,12 +21,7 @@ import {
 import { useConsole } from "@/store/console-store";
 import type { Note } from "@/types";
 
-const ALL_FILTER_FIELDS = [
-  "academicYear",
-  "term",
-  "sentiment",
-  "source",
-] as const;
+const ALL_FILTER_FIELDS = ["year", "semester", "sentiment", "source"] as const;
 
 export function NotesPanel() {
   const { notes, groupLines, syncing, deleteNote } = useConsole();
