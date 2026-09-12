@@ -1,0 +1,52 @@
+{
+  "verifiedAt": "2026-09-12T11:57:40.198161+00:00",
+  "baseCommit": "fc99739db059316b3b47cc4bd82c27e9775eafe7",
+  "plannerSourceCommit": "df48be432687a8bbfe1cf94d8ae95420e4250aff",
+  "productionBuild": "passed with API_ORIGIN blank; built proxy targets the existing team backend",
+  "domainChecks": 78,
+  "browser": {
+    "passed": 23,
+    "results": [
+      "planner deep links require sign-in and return to the requested page",
+      "integrated planner hydrates and loads its scheduler worker",
+      "active mobile navigation remains visible after resizing from desktop",
+      "both themes reach the whole console, planner dialogs and cross-tab preferences",
+      "duplicate session move is refused without changing ids",
+      "onsite course cannot be moved into the online column",
+      "invalid URL filters are sanitized without crashing",
+      "Back and Forward restore both URL filters and visible controls",
+      "legacy onsite sessions without rooms are labelled honestly in UI and Excel",
+      "checklist ignores hidden placement filter and exports all matching rows",
+      "two tabs preserve each other's edits and update their visible fields",
+      "MCV code remains editable until blur while incomplete filter is active",
+      "quota failure shows unsaved status and backup; retry saves the retained draft",
+      "corrupt storage can be backed up and recovered from the page",
+      "deleting a room from detail can be undone after client navigation",
+      "worker cancellation keeps the prior plan intact",
+      "valid backup import and reset can both be undone",
+      "unreadable backup files preserve the current plan and report a recoverable error",
+      "archive export, mobile layout and all production assets remain usable",
+      "mobile theme controls and navigation work in both palettes",
+      "theme works with blocked localStorage and unsafe login return paths stay local",
+      "contact action menus close during a request and stay closed when it fails",
+      "upstream year/semester notes can be filtered and edited in both website themes"
+    ],
+    "errors": [],
+    "failedAssets": []
+  },
+  "backend": "local API fixtures only; upstream backend preserved; historical live checks in hosting-verification.json",
+  "changedFileLint": "0 errors; existing image warnings",
+  "fullProjectLint": "passed: 0 errors, 13 existing warnings",
+  "deploymentVerified": false,
+  "deploymentEvidence": "hosting-verification.json records an earlier deployment, not this updated revision",
+  "reviewFixes": [
+    "active mobile navigation after desktop resize",
+    "recover unreadable JSON backup imports without losing the plan",
+    "reset disabled action menus before committing children",
+    "valid default backend rewrite for missing or blank API_ORIGIN",
+    "upstream year/semester note filtering and editing in both themes",
+    "frontend config, planner, build and browser checks in CI"
+  ],
+  "configurationChecks": 20,
+  "initialReviewedIntegrationCommit": "d495f2cfd3fcc90124b54f9efd862ed2dafb5384"
+}

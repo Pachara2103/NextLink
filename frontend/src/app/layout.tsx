@@ -1,3 +1,7 @@
+import { cookies } from "next/headers";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { PlanProvider } from "@/features/elective-plan/lib/use-plan-state";
+import { getPlanPayload } from "@/features/elective-plan/lib/plan-data";
 import type { Metadata } from "next";
 import { Anuphan, Bai_Jamjuree, IBM_Plex_Mono } from "next/font/google";
 import { IconSprite } from "@/components/icons";
@@ -30,16 +34,22 @@ export const metadata: Metadata = {
     "ระบบผู้ช่วย AI สรุปข้อมูลผู้ประสานงานอัตโนมัติจาก Group Line และจัดการการผูกกลุ่มไลน์กับบริษัท",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const theme = (await cookies()).get("nextlink-theme")?.value === "classic" ? "classic" : "dark";
   return (
     <html
       lang="th"
+      data-theme={theme}
       className={`${anuphan.variable} ${baiJamjuree.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-bg font-body text-text-2">
         <IconSprite />
         {/* Both the login page and the console read the same session. */}
-        <AuthProvider>{children}</AuthProvider>
+        <ThemeProvider initialTheme={theme}>
+          <AuthProvider>
+            <PlanProvider payload={getPlanPayload()}>{children}</PlanProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

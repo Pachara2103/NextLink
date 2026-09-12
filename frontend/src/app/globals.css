@@ -11,7 +11,7 @@
 }
 
 /* ---------------------------------------------------------------------------
- * CARBON — the console's one palette, from design/index.html
+ * CARBON — the default dark palette, from design/index.html
  *
  * Every colour in the app comes from a token below, and no component names a
  * Tailwind palette colour (slate-800, violet-500, …) any more. That is the
@@ -184,10 +184,10 @@
     color: var(--color-text-4);
   }
 
-  /* native dropdown list is painted by the OS — force it dark */
+  /* Keep native dropdown options consistent with the selected website theme. */
   select option {
-    background-color: #101418;
-    color: #eef2f5;
+    background-color: var(--color-surface);
+    color: var(--color-text);
   }
 }
 
@@ -284,3 +284,63 @@
     transition-duration: 0.001ms !important;
   }
 }
+
+/* The classic palette follows the original elective planner. All console
+   components, native controls and portals inherit the same website theme. */
+html[data-theme="classic"] {
+  color-scheme: light;
+  --color-bg: #f6f7fb;
+  --color-surface: #ffffff;
+  --color-surface-2: #eef2f8;
+  --color-sunken: #f8faff;
+  --color-line: #ccd4e2;
+  --color-line-soft: #e1e6ee;
+  --color-text: #172033;
+  --color-text-2: #38445b;
+  --color-text-3: #5b667c;
+  --color-text-4: #657086;
+  --color-accent: #315fc4;
+  --color-accent-ink: #ffffff;
+  --color-accent-soft: #eaf1ff;
+  --color-accent-line: #aac3f0;
+  --color-accent-hover: #264ea8;
+  --color-accent-strong: #dce8ff;
+  --color-ok: #147451;
+  --color-ok-soft: #e9f7ef;
+  --color-ok-line: #aad8bd;
+  --color-ok-strong: #d5efdf;
+  --color-warn: #805b08;
+  --color-warn-soft: #fdf6e0;
+  --color-warn-line: #dfc779;
+  --color-warn-strong: #f8ecc5;
+  --color-warn-hover: #efd071;
+  --color-warn-ink: #433007;
+  --color-danger: #b02e44;
+  --color-danger-soft: #fff0f3;
+  --color-danger-line: #edb4bf;
+  --color-danger-strong: #fbdde4;
+  --color-tag-1: #6746b1;
+  --color-tag-1-soft: #f1ecfd;
+  --color-tag-1-line: #cfc0f0;
+  --color-tag-2: #1c5fa8;
+  --color-tag-2-soft: #eaf3fd;
+  --color-tag-2-line: #b9d6f2;
+  --color-tag-3: #167268;
+  --color-tag-3-soft: #e6f7f3;
+  --color-tag-3-line: #ace0d5;
+  --color-tag-4: #9a4a12;
+  --color-tag-4-soft: #fdf0e6;
+  --color-tag-4-line: #f2ceac;
+  --color-tag-5: #a3325f;
+  --color-tag-5-soft: #fdeef4;
+  --color-tag-5-line: #f2c9da;
+  --color-tag-6: #496818;
+  --color-tag-6-soft: #f0f7e4;
+  --color-tag-6-line: #c7df9b;
+  --color-glow: rgb(59 112 220 / .08);
+  --shadow-lift: 0 10px 30px -12px rgb(30 49 80 / .16);
+  --shadow-lift-lg: 0 24px 60px -20px rgb(30 49 80 / .22);
+}
+html[data-theme="dark"] { color-scheme: dark; }
+
+html[data-theme="classic"] .nextlink-wordmark { filter: brightness(.22); }

@@ -1,0 +1,14 @@
+# Keep local credentials, dependencies and verification artifacts out of CLI uploads.
+.git/
+.vercel/
+**/.env*
+**/node_modules/
+**/.next/
+**/*.tsbuildinfo
+**/__pycache__/
+backend/nextlink-env/
+backend/note/
+backend/test/
+backend/design/
+frontend/output
+frontend/next-env.d.ts
