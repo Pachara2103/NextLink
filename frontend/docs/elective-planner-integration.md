@@ -62,6 +62,7 @@ Run from `frontend/` using Node 22.6+ (the domain scripts use TypeScript strippi
 
 ```sh
 npm ci
+npm run check:config
 npm run check:planner
 API_ORIGIN=http://127.0.0.1:18999 npm run build
 npx playwright install chromium
@@ -81,11 +82,13 @@ error on base commit `4eee0df` is fixed as part of the final review.
 ### Verified result
 
 On 2026-09-12, the integration passed the production Next.js build (including
-TypeScript), all 78 domain regression checks, and 22 browser regression scenarios.
+TypeScript) with blank `API_ORIGIN`, 20 configuration checks, all 78 domain
+regression checks, and 23 browser regression scenarios after integrating `fc99739`.
 The browser run had no uncaught page errors, failed Next.js assets or unexpected
 API requests. See `elective-planner-verification.json` for the recorded scenarios.
 Full-project ESLint passes with zero errors and the 13 warnings described above.
-The browser suite also checks the three final-review fixes below.
+The browser suite also checks the final-review fixes below and the updated
+`year`/`semester` note workflow in both themes.
 
 Integration-specific issues fixed during verification:
 
@@ -118,8 +121,6 @@ Integration-specific issues fixed during verification:
 - Replace the bundled example courses/rooms and archives with an approved data
   source when the operational schema is ready; preserve the visible example-data
   label until that integration is verified.
-- Run the existing domain, build and browser checks in CI so later host-console
-  changes cannot silently break planner navigation or theme isolation.
 - Consider loading the initial planner dataset on first entry after measuring the
   login/core-page payload. The current root provider deliberately keeps the draft
   alive across routes and also sends the small seed payload to non-planner pages.
@@ -154,15 +155,31 @@ vercel deploy --prod --yes --scope nano109s-projects
 ```
 
 `.vercelignore` excludes local environment files, dependencies and browser-test
-artifacts from CLI uploads. The project's production `API_ORIGIN` must be set
-before building; the localhost target in the regression commands is a fixture
-target and is not a deployment configuration.
+artifacts from CLI uploads. `API_ORIGIN` can explicitly override the backend
+origin; it is read at build time. Missing or blank values use
+`https://next-link-backend.vercel.app` in production/preview builds and
+`http://127.0.0.1:8000` in local development. This preserves the selected shared
+team backend while allowing Vercel previews to build without a project variable.
+Other backend deployments should set `API_ORIGIN` explicitly. The localhost target
+in regression commands is a fixture target, not a hosted backend.
+
+The value must be an absolute HTTP(S) origin without credentials, path, query or
+fragment; trailing root slashes are normalized. Invalid values fail with a clear
+configuration error that does not echo the supplied value. This fixes the prior
+`undefined/api/v1/...` rewrite when the variable was missing. The proxy still
+uses the browser's existing `/api/v1/*` contract.
+
+`.github/workflows/frontend-integration.yml` now runs configuration checks,
+planner checks, lint, a production build with blank `API_ORIGIN`, and the browser
+suite on frontend PRs and pushes. API requests in browser tests use fixtures.
+The browser suite includes filtering and editing upstream `year`/`semester`
+notes in both website themes.
 
 Automatic Git deployment is not connected: Vercel rejected the attempt to connect
 `Pachara2103/NextLink` from this owner's account. CLI deployment can still use the
 reviewed local checkout. Do not assume pushing this PR updates the new host.
 
-### Verified live deployment — 2026-09-12
+### Historical live deployment — before the upstream refresh
 
 - Production: https://nextlink-console.vercel.app
 - Source: `5b63f3bca3b0fb14cd65e86cb1dcea17ea535428`.
@@ -179,7 +196,7 @@ reviewed local checkout. Do not assume pushing this PR updates the new host.
 
 Authenticated planner/console actions were not exercised on the live backend:
 no real account credentials were used and no business records were modified.
-The 22 fixture-based regression scenarios remain the evidence for those flows.
+The fixture-based regression scenarios remain the evidence for those flows.
 See `hosting-verification.json` for the live check record. The original team's
 frontend Preview failure is separate from this successful production deployment;
 its inaccessible build logs have not been diagnosed.

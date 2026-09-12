@@ -381,6 +381,60 @@ try {
     await page.keyboard.press('Escape'); assert.equal(await page.getByRole('menu').count(), 0);
     assert.deepEqual(errors, []); assert.deepEqual(unexpectedApi, []);
   });
+  await check('upstream year/semester notes can be filtered and edited in both website themes', async () => {
+    const year = new Date().getFullYear() - 1;
+    const group = { groupId: 'notes-fixture', displayName: 'กลุ่มทดสอบโน้ต', companyId: 920,
+      companyTh: 'บริษัททดสอบโน้ต', companyEn: null, aliases: [], isLinked: true, pictureUrl: null };
+    let note = { id: 930, companyId: 920, employeeId: null, companyTh: group.companyTh,
+      companyEn: null, aliases: [], type: 'elective', sentiment: 'neutral', source: 'external',
+      content: 'โน้ตทดสอบ year semester', year, semester: 2,
+      createdAt: '2026-09-12T00:00:00Z', updatedAt: '2026-09-12T00:00:00Z' };
+    const updates = [];
+    await page.route('**/api/v1/line/groups', route => route.fulfill({ json: { items: [group] } }));
+    await page.route('**/api/v1/notes', route => route.fulfill({ json: { items: [note] } }));
+    await page.route('**/api/v1/notes/930', async route => {
+      assert.equal(route.request().method(), 'PUT');
+      const payload = route.request().postDataJSON();
+      assert.equal(payload.year, year - 1);
+      assert.equal(payload.semester, 3);
+      assert.equal('academicYear' in payload || 'academic_year' in payload || 'term' in payload, false);
+      updates.push(payload);
+      note = { ...note, ...payload };
+      await route.fulfill({ json: { status: 'success' } });
+    });
+    await page.goto(base + '/?panel=notes');
+    const yearFilter = page.getByRole('combobox', { name: 'กรองตามปีการศึกษา', exact: true });
+    const semesterFilter = page.getByRole('combobox', { name: 'กรองตามภาคเรียน', exact: true });
+    await yearFilter.selectOption(String(year));
+    await semesterFilter.selectOption('2');
+    await page.getByText(note.content, { exact: true }).waitFor();
+    for (const theme of ['classic', 'dark']) {
+      await chooseTheme(theme);
+      const card = page.locator('article').filter({ hasText: note.content });
+      await page.waitForFunction(({ content, color }) => [...document.querySelectorAll('article')]
+        .some(el => el.textContent.includes(content) && getComputedStyle(el).backgroundColor === color),
+      { content: note.content, color: theme === 'classic' ? 'rgb(255, 255, 255)' : 'rgb(16, 20, 24)' });
+      assert.equal(await card.evaluate(el => getComputedStyle(el).backgroundColor),
+        theme === 'classic' ? 'rgb(255, 255, 255)' : 'rgb(16, 20, 24)');
+      await card.getByRole('button', { name: 'แก้ไข', exact: true }).click();
+      const dialog = page.getByRole('dialog');
+      const yearField = dialog.getByRole('combobox', { name: 'ปีการศึกษา', exact: true });
+      const semesterField = dialog.getByRole('combobox', { name: 'ภาคเรียน', exact: true });
+      assert.equal(await yearField.inputValue(), String(note.year));
+      assert.equal(await semesterField.inputValue(), String(note.semester));
+      await yearField.selectOption(String(year - 1));
+      await semesterField.selectOption('3');
+      await dialog.getByRole('textbox', { name: 'เนื้อหาโน้ต', exact: false }).fill(`แก้ไขโน้ต ${theme}`);
+      await dialog.getByRole('button', { name: 'บันทึกการแก้ไข', exact: true }).click();
+      await dialog.waitFor({ state: 'detached' });
+      await yearFilter.selectOption(String(year - 1));
+      await semesterFilter.selectOption('3');
+      await page.getByText(`แก้ไขโน้ต ${theme}`, { exact: true }).waitFor();
+      await page.screenshot({ path: `output/browser/notes-${theme}.png`, fullPage: true });
+    }
+    assert.equal(updates.length, 2);
+    assert.deepEqual(errors, []); assert.deepEqual(unexpectedApi, []);
+  });
   await writeFile('output/browser/results.json'   , JSON.stringify({ passed: results.length, results, errors, failedAssets }, null, 2));
   await rm('output/browser/failure.json', { force: true });
   console.log(`browser: ok (${results.length} production regression checks)`);
