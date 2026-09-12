@@ -1,6 +1,6 @@
 # P2 authentication fixes
 
-This patch addresses only session revocation (CWE-613) and unrestricted login
+The security changes address session revocation (CWE-613) and unrestricted login
 attempts (CWE-307). Username timing, cross-tab frontend state and LINE extraction
 remain separate P3 work. No production database or deployment was changed.
 
@@ -91,8 +91,25 @@ Only this explicitly named disposable local database is accepted by the fixture.
   forwarded-header regression failed before the launcher fix (three 401 responses)
   and passed afterward (401, 401, 429), confirming the bypass and its correction.
 - Python compilation and `git diff --check` passed. All 30 protected versioned
-  routes retain the shared session dependency; frontend and LINE code are unchanged.
+  routes retain the shared session dependency; LINE code is unchanged.
 - The test runner emitted two dependency deprecation warnings, with no failures.
 - GitHub Actions reports remote results on the PR separately. Production migration,
   proxy topology and deployment behavior have not been verified. The full AI
   application's startup and unrelated frontend workflows were outside these tests.
+
+## Frontend preview build compatibility
+
+The frontend build at `124c3a0` failed because missing `API_ORIGIN` produced the
+invalid rewrite `undefined/api/v1/:path*`. This branch also includes the standalone
+API-origin fix from the planner PR so it can build independently.
+
+Missing or blank `API_ORIGIN` uses `https://next-link-backend.vercel.app` for
+production/preview builds and `http://127.0.0.1:8000` in development. An explicit
+HTTP(S) origin can override it at build time. Values containing credentials,
+paths, query strings or fragments are rejected without echoing the value.
+The browser continues to use the existing `/api/v1/*` routes.
+
+From `frontend/`, run `npm run check:config` (20 checks) and
+`API_ORIGIN='' npm run build`. The `Frontend API routing` workflow repeats these
+checks on GitHub. No planner UI or planner data is included by this compatibility
+fix. Backend deployment still requires the migration and coordinated rollout above.
