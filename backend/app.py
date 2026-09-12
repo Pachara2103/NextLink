@@ -15,6 +15,7 @@ from core import config
 from core.ai import warmup
 from core.db import graph_db, pg_db
 from core.exceptions import AppException
+from core.exception_handlers import app_exception_handler
 from services import outbox
 
 logging.basicConfig(
@@ -162,17 +163,7 @@ async def readiness_gate(request: Request, call_next):
     return await call_next(request)
 
 
-@app.exception_handler(AppException)
-async def app_exception_handler(request: Request, exc: AppException):
-    """Every deliberate failure, with the status the service layer chose.
-
-    `exc.message` is written for the person using the console, so it is safe to
-    show as-is — that is what the frontend puts in its toast.
-    """
-    logger.warning(
-        "[%s] %s %s -> %s", type(exc).__name__, request.method, request.url.path, exc.message
-    )
-    return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
+app.add_exception_handler(AppException, app_exception_handler)
 
 
 @app.exception_handler(Exception)
@@ -209,4 +200,5 @@ def health_api():
 app.include_router(api_router)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host=config.HOST, port=config.PORT)
+    # Preserve the socket peer; login_limits resolves only explicitly trusted proxies.
+    uvicorn.run(app, host=config.HOST, port=config.PORT, proxy_headers=False)

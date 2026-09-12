@@ -10,6 +10,7 @@ from core.exceptions import (
     PasswordHashError,
 )
 from schemas.user import UserProfile
+from services.login_limits import enforce_login_budget
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,8 @@ def _profile(row: tuple) -> UserProfile:
     return UserProfile(id=str(user_id), username=username, display_name=display_name)
 
 
-def login(username: str, password: str) -> UserProfile:
+def login(username: str, password: str, client_ip: str = "unknown") -> tuple[UserProfile, str]:
+    enforce_login_budget(username, client_ip)
     if not username or not password:
         raise InvalidCredentialsError()
 
@@ -58,7 +60,7 @@ def login(username: str, password: str) -> UserProfile:
     if not matched:
         raise InvalidCredentialsError()
 
-    return _profile((user_id, found_username, display_name))
+    return _profile((user_id, found_username, display_name)), stored_hash
 
 
 def get_profile(user_id: str) -> UserProfile:

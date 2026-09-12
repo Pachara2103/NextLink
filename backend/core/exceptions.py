@@ -62,3 +62,11 @@ class MissingTokenError(UnauthorizedError):
 class InvalidTokenError(UnauthorizedError):
     message = "เซสชันหมดอายุหรือไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่อีกครั้ง"
 
+
+class TooManyAttemptsError(AppException):
+    status_code = 429
+    message = "ลองเข้าสู่ระบบบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่"
+
+    def __init__(self, retry_after: int):
+        self.retry_after = retry_after
+        super().__init__()

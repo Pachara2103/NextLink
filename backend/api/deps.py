@@ -1,13 +1,14 @@
 """Dependencies shared by every versioned router."""
 
-from fastapi import Header
+from fastapi import Depends, Header
 
-from core.auth import TokenError, verify_token
+from core.auth import TokenError
 from core.exceptions import InvalidTokenError, MissingTokenError
 from schemas.user import AuthUser
+from services.sessions import SessionIdentity, authenticate_session
 
 
-def current_user(authorization: str | None = Header(default=None)) -> AuthUser:
+def current_session(authorization: str | None = Header(default=None)) -> SessionIdentity:
     """Every data endpoint depends on this. No token, no data.
 
     401 (not 403) on every failure, because the client's answer is always the
@@ -17,8 +18,10 @@ def current_user(authorization: str | None = Header(default=None)) -> AuthUser:
         raise MissingTokenError()
 
     try:
-        payload = verify_token(authorization.split(" ", 1)[1].strip())
+        return authenticate_session(authorization.split(" ", 1)[1].strip())
     except TokenError as e:
         raise InvalidTokenError() from e
 
-    return AuthUser(id=payload["sub"], username=payload.get("username", ""))
+
+def current_user(session: SessionIdentity = Depends(current_session)) -> AuthUser:
+    return AuthUser(id=session.id, username=session.username)

@@ -8,7 +8,7 @@ import psycopg2.pool
 from neo4j import GraphDatabase
 
 from core import config
-from core.exceptions import DatabaseError, NotFoundError, BadRequestError
+from core.exceptions import AppException, DatabaseError, NotFoundError, BadRequestError
 
 
 def _tls(uri):
@@ -139,7 +139,7 @@ class PostgresPool:
         try:
             yield conn
 
-        except (NotFoundError, BadRequestError, DatabaseError):
+        except AppException:
             conn.rollback()
             raise
 
