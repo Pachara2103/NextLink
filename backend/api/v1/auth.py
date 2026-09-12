@@ -1,25 +1,26 @@
 """Sign in, identity check, profile edit, sign out."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
-from api.deps import current_user
-from core.auth import issue_token
+from api.deps import current_session, current_user
 from schemas.base import StatusResponse
 from schemas.user import AuthUser, LoginRequest, LoginResponse, ProfileUpdate, UserProfile
 from services.user import get_profile, login, update_display_name
+from services.login_limits import client_address
+from services.sessions import SessionIdentity, create_session, revoke_session
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=LoginResponse)
-def login_api(payload: LoginRequest):
+def login_api(payload: LoginRequest, request: Request):
     """Bad credentials and a broken lookup have to stay distinguishable — see
     the docstring on login(). Both leave here as AppException subclasses with
     their own status, so no try/except is needed."""
-    user = login(payload.username, payload.password)
+    user, password_hash = login(payload.username, payload.password, client_address(request))
 
     return LoginResponse(
-        access_token=issue_token(user.id, user.username),
+        access_token=create_session(user.id, password_hash),
         user=user,
     )
 
@@ -43,8 +44,7 @@ def update_me_api(payload: ProfileUpdate, user: AuthUser = Depends(current_user)
 
 
 @router.post("/logout", response_model=StatusResponse)
-def logout_api(user: AuthUser = Depends(current_user)):
-    """Tokens are stateless and self-expiring, so there is nothing to revoke
-    here — the client dropping the token IS the logout. This endpoint exists so
-    that stays true from one place, and so a future denylist has a home."""
+def logout_api(session: SessionIdentity = Depends(current_session)):
+    """Revoke only the presented session, including copies held elsewhere."""
+    revoke_session(session.session_id)
     return StatusResponse()

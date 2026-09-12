@@ -4,18 +4,12 @@ from schemas.api import ApiBaseModel
 
 
 class LoginRequest(ApiBaseModel):
-    username: str
-    password: str
+    username: str = Field(min_length=1, max_length=256)
+    password: str = Field(min_length=1, max_length=1024)
 
 
 class AuthUser(ApiBaseModel):
-    """Who a bearer token says the caller is — nothing more.
-
-    This is what `Depends(current_user)` hands a route, so it holds only what
-    the token itself proves. Anything that can change while a token is still
-    valid (a display name, say) belongs on UserProfile, which is read from the
-    database instead of decoded from the token.
-    """
+    """Identity confirmed by an active, revocable backend session."""
 
     id: str
     username: str

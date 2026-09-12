@@ -1,0 +1,27 @@
+name: Frontend API routing
+on:
+  pull_request:
+    paths: ['frontend/**', '.github/workflows/frontend-routing.yml']
+  push:
+    paths: ['frontend/**', '.github/workflows/frontend-routing.yml']
+permissions:
+  contents: read
+jobs:
+  routing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run check:config
+      - run: npm run build
+        env:
+          API_ORIGIN: ''

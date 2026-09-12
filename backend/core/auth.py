@@ -9,7 +9,8 @@ import time
 # Not left to import order: importing core.config is what guarantees .env has
 # been read, so whether the secret is found does not depend on some other
 # module having called load_dotenv() first.
-from core.config import AUTH_SECRET, ENV_PATH, TOKEN_TTL_SECONDS
+from core.config import AUTH_SECRET, ENV_PATH
+from uuid import UUID
 
 
 class TokenError(Exception):
@@ -47,11 +48,11 @@ def _sign(payload_b64: str) -> str:
     return _b64encode(digest)
 
 
-def issue_token(user_id: int, username: str) -> str:
+def issue_token(user_id: str, session_id: str, expires: int) -> str:
     payload = {
         "sub": str(user_id),
-        "username": username,
-        "exp": int(time.time()) + TOKEN_TTL_SECONDS,
+        "sid": session_id,
+        "exp": expires,
     }
     payload_b64 = _b64encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
     return f"{payload_b64}.{_sign(payload_b64)}"
@@ -59,7 +60,7 @@ def issue_token(user_id: int, username: str) -> str:
 
 def verify_token(token: str) -> dict:
     """Return the payload, or raise TokenError. Never returns for a bad token."""
-    if not token or token.count(".") != 1:
+    if not token or len(token) > 2048 or not token.isascii() or token.count(".") != 1:
         raise TokenError("Malformed token")
 
     payload_b64, signature = token.split(".")
@@ -73,10 +74,17 @@ def verify_token(token: str) -> dict:
     except (ValueError, json.JSONDecodeError) as e:
         raise TokenError("Unreadable payload") from e
 
-    if not isinstance(payload, dict) or "sub" not in payload:
+    if not isinstance(payload, dict):
         raise TokenError("Unreadable payload")
-
-    if int(payload.get("exp", 0)) <= time.time():
+    try:
+        if not isinstance(payload["sub"], str) or not payload["sub"].isascii() or not payload["sub"].isdigit() or not 0 < int(payload["sub"]) < 2**63:
+            raise ValueError()
+        UUID(payload["sid"])
+        if type(payload["exp"]) is not int:
+            raise ValueError()
+    except (KeyError, ValueError, TypeError, AttributeError):
+        raise TokenError("Unreadable payload") from None
+    if payload["exp"] <= time.time():
         raise TokenError("Token expired")
 
     return payload

@@ -46,6 +46,11 @@ NEO4J_DATABASE = _get("NEO4J_DATABASE")
 AUTH_SECRET = _get("AUTH_SECRET")
 # นานพอสำหรับหนึ่งวันทำงาน สั้นพอที่ token ที่หลุดออกไปจะหมดอายุ
 TOKEN_TTL_SECONDS = _int("TOKEN_TTL_SECONDS", 12 * 60 * 60)
+LOGIN_ACCOUNT_LIMIT = max(1, _int("LOGIN_ACCOUNT_LIMIT", 10))
+LOGIN_CLIENT_LIMIT = max(1, _int("LOGIN_CLIENT_LIMIT", 100))
+LOGIN_GLOBAL_LIMIT = max(1, _int("LOGIN_GLOBAL_LIMIT", 120))
+LOGIN_WINDOW_SECONDS = max(1, _int("LOGIN_WINDOW_SECONDS", 900))
+TRUSTED_PROXY_CIDRS = [v.strip() for v in (_get("TRUSTED_PROXY_CIDRS", "") or "").split(",") if v.strip()]
 
 
 CORS_ORIGINS = [
