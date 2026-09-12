@@ -1,0 +1,41 @@
+{
+  "verifiedAt": "2026-09-12T09:30:42.703803+00:00",
+  "sourceCommit": "5b63f3bca3b0fb14cd65e86cb1dcea17ea535428",
+  "project": "nano109s-projects/nextlink-console",
+  "projectId": "prj_QHNRSK1EeLStm5wN2bFISCs4v8tJ",
+  "deploymentId": "dpl_FkCH99suAyM7F4aLBtU9AtLYRYUh",
+  "productionUrl": "https://nextlink-console.vercel.app",
+  "inspectorUrl": "https://vercel.com/nano109s-projects/nextlink-console/FkCH99suAyM7F4aLBtU9AtLYRYUh",
+  "target": "production",
+  "state": "READY",
+  "source": "cli",
+  "rootDirectory": "frontend",
+  "framework": "nextjs",
+  "remoteBuild": "passed including TypeScript",
+  "apiOrigin": "https://next-link-backend.vercel.app",
+  "httpChecks": {
+    "login": 200,
+    "proxiedHealth": {
+      "statusCode": 200,
+      "status": "ok",
+      "models": true,
+      "ready": true
+    },
+    "unauthenticatedMe": 401
+  },
+  "browserChecks": [
+    "public website opens the NextLink login page without Vercel sign-in",
+    "classic and dark theme controls both work",
+    "classic theme persists after a page reload",
+    "dark theme persists during navigation to the planner login link",
+    "unauthenticated /elective-plan redirects to /login?next=%2Felective-plan",
+    "no browser console warnings or errors during observed navigation and theme interactions"
+  ],
+  "apiFixturesUsed": false,
+  "realAccountLoginTested": false,
+  "businessDataWritten": false,
+  "gitAutoDeploymentConnected": false,
+  "gitConnectionLimitation": "Vercel rejected connecting Pachara2103/NextLink from this account; use CLI deployment until repository integration access is available.",
+  "teamFrontendPreviewFailureDiagnosed": false,
+  "scope": "Own-account frontend hosting only; existing team backend and database are reused without configuration or schema changes."
+}

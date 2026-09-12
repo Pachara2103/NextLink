@@ -161,3 +161,25 @@ target and is not a deployment configuration.
 Automatic Git deployment is not connected: Vercel rejected the attempt to connect
 `Pachara2103/NextLink` from this owner's account. CLI deployment can still use the
 reviewed local checkout. Do not assume pushing this PR updates the new host.
+
+### Verified live deployment — 2026-09-12
+
+- Production: https://nextlink-console.vercel.app
+- Source: `5b63f3bca3b0fb14cd65e86cb1dcea17ea535428`.
+- Deployment: `dpl_FkCH99suAyM7F4aLBtU9AtLYRYUh`, Vercel status **READY**.
+- The remote Next.js build and TypeScript check passed.
+- Public `/login` returned HTTP 200. The new origin's `/api/v1/health` returned
+  HTTP 200 with `status=ok`, `models=true`, and `ready=true`.
+- `/api/v1/auth/me` returned HTTP 401 without credentials, preserving the API gate.
+- A real browser redirected `/elective-plan` to
+  `/login?next=%2Felective-plan`; both theme controls worked, classic persisted
+  after reload, and dark persisted when navigating to the planner login link.
+- The observed login navigation and theme interactions produced no browser
+  console warnings or errors. No API fixtures were used for these live checks.
+
+Authenticated planner/console actions were not exercised on the live backend:
+no real account credentials were used and no business records were modified.
+The 22 fixture-based regression scenarios remain the evidence for those flows.
+See `hosting-verification.json` for the live check record. The original team's
+frontend Preview failure is separate from this successful production deployment;
+its inaccessible build logs have not been diagnosed.

@@ -33,10 +33,11 @@
     "errors": [],
     "failedAssets": []
   },
-  "backend": "local API fixtures only",
+  "backend": "local API fixtures for this regression run; separate live read-only checks in hosting-verification.json",
   "changedFileLint": "0 errors; existing image warnings",
   "fullProjectLint": "passed: 0 errors, 13 existing warnings",
-  "deploymentVerified": false,
+  "deploymentVerified": true,
+  "deploymentEvidence": "hosting-verification.json",
   "reviewedIntegrationCommit": "d495f2cfd3fcc90124b54f9efd862ed2dafb5384",
   "reviewFixes": [
     "active mobile navigation after desktop resize",
