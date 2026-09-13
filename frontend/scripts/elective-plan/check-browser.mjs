@@ -13,7 +13,7 @@ let logs = ''; server.stdout.on('data', (data) => { logs += data; }); server.std
 let browser;
 const results = [];
 const errors = [], failedAssets = [];
-const key = 'nextlink.plan.v3.2569-1';
+const key = 'nextlink.plan.v4.2569-1';
 const courseId = 'plan-21105801';
 await mkdir('output/browser', { recursive: true });
 const check = async (name, fn) => { await fn(); results.push(name); console.log('  ✓ ' + name); };
@@ -71,7 +71,7 @@ try {
     await page.locator('select.checklist-select').first().waitFor();
     await themeIs('dark');
   });
-  const go = async (path) => { await page.goto(base + '/elective-plan' + (path === '/' ? '' : path)); await page.getByRole('button', { name: 'สำรองแผน JSON', exact: true }).waitFor(); };
+  const go = async (path) => { await page.goto(base + '/elective-plan' + (path === '/' ? '' : path)); await page.getByRole('region', { name: 'การบันทึกแผน', exact: true }).waitFor(); };
   const read = () => page.evaluate((key) => JSON.parse(localStorage.getItem(key)), key);
   const seed = async (document) => { await page.evaluate(({ key, document }) => { localStorage.removeItem(key); localStorage.setItem(key, JSON.stringify(document)); }, { key, document }); };
   await go('/');
@@ -217,6 +217,109 @@ try {
     await other.waitForFunction(() => document.querySelector('tbody tr:first-child select')?.value === 'RECEIVED');
     await other.close();
   });
+  await check('a course typed into the list joins the term, and can be edited, scheduled and removed', async () => {
+    await seed(blank); await go('/courses/list');
+    await page.locator('tbody tr').first().waitFor();
+    const listed = async () => Number((await page.locator('.scope-chip').innerText()).replace(/\D+/g, ''));
+    const before = await listed();
+    await page.getByRole('button', { name: '＋ เพิ่มรายวิชา', exact: true }).click();
+    const dialog = page.locator('dialog.course-form-dialog');
+    await dialog.waitFor();
+    await dialog.getByLabel('รหัสวิชา', { exact: true }).fill('21105899');
+    await dialog.getByLabel('ชื่อวิชา', { exact: true }).fill('Prompt Engineering for Teams');
+    await dialog.getByLabel('หมวดของวิชา', { exact: true }).fill('ปัญญาประดิษฐ์');
+    await dialog.getByLabel('บริษัทผู้สอน', { exact: true }).fill('บริษัททดสอบ');
+    await dialog.getByLabel('ผู้สอน', { exact: true }).fill('อาจารย์ทดสอบ');
+    await dialog.getByLabel('รูปแบบการสอน').selectOption('ONLINE');
+    // A course that meets more often than it is offered is refused by the form,
+    // which is the same rule the seed loader applies to the bundled file.
+    await dialog.getByRole('button', { name: 'เพิ่มรายวิชา', exact: true }).click();
+    await dialog.locator('.room-form-error').waitFor();
+    await dialog.getByRole('button', { name: 'เสาร์เย็น — ไม่สะดวก', exact: true }).click();
+    await dialog.getByRole('button', { name: 'เพิ่มรายวิชา', exact: true }).click();
+    await dialog.waitFor({ state: 'detached' });
+    // The new course is on the last page of the list, and the list went there.
+    await page.getByText('Prompt Engineering for Teams', { exact: true }).first().waitFor();
+    assert.equal(await listed(), before + 1);
+    assert.equal(await page.locator('.local-course-tag').count(), 1);
+    assert.equal(await page.locator('.course-link strong').last().innerText(), 'Prompt Engineering for Teams');
+    const added = await read();
+    assert.equal(added.courseEdits.added.length, 1);
+    assert.equal(added.courseEdits.added[0].id, 'plan-21105899');
+    await go('/');
+    await page.getByRole('button', { name: 'จัดตารางอัตโนมัติ', exact: true }).click();
+    await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key) || '{}').assignments?.some((item) => item.courseId === 'plan-21105899'), key);
+    const placed = (await read()).assignments.find((item) => item.courseId === 'plan-21105899');
+    assert.equal(placed.slotId, 'SAT_EVE');
+    assert.equal(placed.roomId, null);
+    await go('/courses/list?q=Prompt');
+    await page.getByRole('button', { name: 'แก้ไข Prompt Engineering for Teams', exact: true }).click();
+    await dialog.waitFor();
+    await dialog.getByLabel('ชื่อวิชา').fill('Prompt Engineering ภาคปฏิบัติ');
+    await dialog.getByRole('button', { name: 'บันทึก', exact: true }).click();
+    await dialog.waitFor({ state: 'detached' });
+    await page.getByText('Prompt Engineering ภาคปฏิบัติ', { exact: true }).first().waitFor();
+    const edited = await read();
+    assert.equal(edited.courseEdits.added[0].title, 'Prompt Engineering ภาคปฏิบัติ');
+    // The edit went into the course itself, not into an override beside it.
+    assert.deepEqual(edited.courseOverrides, {});
+    assert.ok(edited.assignments.some((item) => item.courseId === 'plan-21105899'));
+    await page.getByRole('button', { name: 'แก้ไข Prompt Engineering ภาคปฏิบัติ', exact: true }).click();
+    await dialog.waitFor();
+    await dialog.getByRole('button', { name: 'ลบวิชานี้', exact: true }).click();
+    await dialog.getByRole('button', { name: 'ยืนยัน', exact: true }).click();
+    await dialog.waitFor({ state: 'detached' });
+    await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).courseEdits.added.length === 0, key);
+    assert.equal((await read()).assignments.some((item) => item.courseId === 'plan-21105899'), false);
+    await page.getByText('ไม่พบวิชาที่ตรงกับตัวกรอง', { exact: false }).waitFor();
+    assert.equal(await listed(), before);
+    // Removing a course is one step, so undo brings back its periods with it.
+    await page.getByRole('button', { name: 'เลิกทำรายการล่าสุด', exact: true }).click();
+    await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).courseEdits.added.length === 1, key);
+    assert.ok((await read()).assignments.some((item) => item.courseId === 'plan-21105899'));
+    assert.deepEqual(errors, []);
+    await seed(blank);
+  });
+  await check('whole-plan controls stay on the overview, and undo follows you everywhere', async () => {
+    await seed(blank); await go('/');
+    const backup = page.getByRole('button', { name: 'สำรองแผน JSON', exact: true });
+    const importPlan = page.getByRole('button', { name: 'นำเข้าแผน', exact: true });
+    const undo = page.getByRole('button', { name: 'เลิกทำรายการล่าสุด', exact: true });
+    await backup.waitFor();
+    assert.equal(await importPlan.count(), 1);
+    for (const path of ['/courses/list', '/courses', '/rooms']) {
+      await go(path);
+      await undo.waitFor();
+      assert.equal(await backup.count(), 0, `สำรองแผน JSON is still on ${path}`);
+      assert.equal(await importPlan.count(), 0, `นำเข้าแผน is still on ${path}`);
+      // The file input goes with the button it belongs to.
+      assert.equal(await page.locator('.plan-storage input[type=file]').count(), 0, `the import input is still on ${path}`);
+    }
+    await go('/');
+    await backup.waitFor();
+  });
+  await check('a course offering most of the week is clipped to its card, with the full list in the tooltip', async () => {
+    // 18 periods is every slot in the week — the longest this line can ever be.
+    const every = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].flatMap((day) => ['AM', 'PM', 'EVE'].map((period) => `${day}_${period}`));
+    await seed({ ...blank, courseOverrides: { [courseId]: { availability: every } } });
+    await go('/');
+    await page.getByRole('button', { name: 'เพิ่มวิชาเข้าตาราง', exact: false }).click();
+    const chip = page.locator('.tray-chip').filter({ hasText: 'SW Dev for CMMI Standard' }).first();
+    const slots = chip.locator('.tray-chip-slots');
+    await slots.waitFor();
+    const title = await slots.getAttribute('title');
+    assert.ok(title.startsWith('จันทร์เช้า / ') && title.split(' / ').length === 18, 'the tooltip carries every period');
+    const box = await slots.evaluate((el) => {
+      const chipBox = el.closest('.tray-chip').getBoundingClientRect();
+      const own = el.getBoundingClientRect();
+      const line = Number.parseFloat(getComputedStyle(el).lineHeight);
+      return { overflowsRight: own.right > chipBox.right + 1, clipped: el.scrollHeight > el.clientHeight + 1, lines: own.height / line };
+    });
+    assert.equal(box.overflowsRight, false, 'the period list runs outside its card');
+    assert.equal(box.clipped, true, 'a list this long should have been cut short');
+    assert.ok(box.lines <= 2.1, `expected at most two lines, got ${box.lines}`);
+    await seed(blank);
+  });
   await check('MCV code remains editable until blur while incomplete filter is active', async () => {
     const completedExceptCode = { invitationLetter: 'RECEIVED', teachingHoursLetter: 'RECEIVED', mcvInstructorRequest: 'DONE', mentorAdded: 'DONE', guestLecturerAdded: 'DONE', studentsAdded: 'DONE', mcvJoinCode: '' };
     await seed({ ...blank, checklists: { [courseId]: completedExceptCode } });
@@ -286,7 +389,7 @@ try {
     await page.reload();
   });
   await check('valid backup import and reset can both be undone', async () => {
-    await go('/courses/list?view=checklist');
+    await go('/');
     const before = await read();
     const imported = { ...before, checklists: { [courseId]: { mcvJoinCode: 'IMPORTED' } } };
     await page.locator('input[type=file]').setInputFiles({ name: 'plan.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(imported)) });

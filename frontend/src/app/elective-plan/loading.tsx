@@ -13,9 +13,7 @@ export default function Loading() {
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-lockup">
-          <div className="brand-mark" aria-hidden="true">N</div>
           <div>
-            <div className="eyebrow">NEXTLINK</div>
             <h1>กำลังโหลด…</h1>
           </div>
         </div>

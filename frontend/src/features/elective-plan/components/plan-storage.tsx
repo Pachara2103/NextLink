@@ -1,7 +1,11 @@
 "use client";
 
 import { useRef } from "react";
+import { usePathname } from "next/navigation";
 import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
+
+/** The overview — the one page that is about the plan as a whole. */
+const OVERVIEW = "/elective-plan";
 
 function download(raw: string, term: string) {
   const url = URL.createObjectURL(new Blob([raw], { type: "application/json" }));
@@ -15,8 +19,20 @@ function download(raw: string, term: string) {
 /** Persistent controls live with the layout's store, including undo after navigation. */
 export function PlanStorage() {
   const plan = usePlanState();
+  const pathname = usePathname();
   const file = useRef<HTMLInputElement>(null);
   const backup = () => download(plan.recoveryRaw ?? JSON.stringify(plan.document, null, 2), plan.document.termId);
+  /**
+   * Backing up and importing are things you do to the whole plan, at the start
+   * or the end of a sitting — not while ticking a checklist box or booking a
+   * room. On four pages they were four copies of a control nobody was reaching
+   * for, standing next to the one everybody reaches for. Undo stays everywhere,
+   * because the action it undoes can be taken everywhere.
+   *
+   * The recovery panel below keeps its own backup button on every page: it only
+   * appears when the plan cannot be saved, and it is the way out of that.
+   */
+  const wholePlan = pathname === OVERVIEW || pathname === `${OVERVIEW}/`;
   return (
     <section className="plan-storage" aria-label="การบันทึกแผน">
       <div className="plan-storage-actions">
@@ -25,19 +41,25 @@ export function PlanStorage() {
           {plan.planning ? "กำลังจัดตาราง…" : plan.status === "loading" ? "กำลังโหลดแผน…" : plan.status === "saving" ? "กำลังบันทึก…" : plan.status === "error" ? "แผนยังบันทึกไม่สำเร็จ" : plan.editedAt ? "บันทึกแล้วในเบราว์เซอร์นี้" : "ยังไม่มีการแก้ไขแผน"}
         </span>
         {plan.planning ? <button type="button" className="secondary-button" onClick={plan.cancelPlanning}>ยกเลิกการจัดตาราง</button> : null}
-        <button type="button" className="secondary-button" disabled={!plan.ready} onClick={backup}>สำรองแผน JSON</button>
-        <button type="button" className="secondary-button" disabled={!plan.ready || plan.recoveryRaw !== null} onClick={() => file.current?.click()}>นำเข้าแผน</button>
+        {wholePlan ? (
+          <>
+            <button type="button" className="secondary-button" disabled={!plan.ready} onClick={backup}>สำรองแผน JSON</button>
+            <button type="button" className="secondary-button" disabled={!plan.ready || plan.recoveryRaw !== null} onClick={() => file.current?.click()}>นำเข้าแผน</button>
+          </>
+        ) : null}
         <button type="button" className="secondary-button" disabled={!plan.canUndo || plan.status === "saving"} onClick={() => void plan.undo()}>เลิกทำรายการล่าสุด</button>
-        <input ref={file} className="sr-only" type="file" accept=".json,application/json" aria-label="ไฟล์แผน JSON" onChange={async (event) => {
-          const selected = event.target.files?.[0];
-          event.target.value = "";
-          if (!selected || !window.confirm("แทนที่แผนปัจจุบันด้วยไฟล์นี้? สามารถเลิกทำรายการล่าสุดได้")) return;
-          try {
-            await plan.importPlan(await selected.text());
-          } catch {
-            plan.reportError("อ่านไฟล์แผนไม่ได้ กรุณาเลือกไฟล์ใหม่ แผนปัจจุบันยังอยู่");
-          }
-        }} />
+        {wholePlan ? (
+          <input ref={file} className="sr-only" type="file" accept=".json,application/json" aria-label="ไฟล์แผน JSON" onChange={async (event) => {
+            const selected = event.target.files?.[0];
+            event.target.value = "";
+            if (!selected || !window.confirm("แทนที่แผนปัจจุบันด้วยไฟล์นี้? สามารถเลิกทำรายการล่าสุดได้")) return;
+            try {
+              await plan.importPlan(await selected.text());
+            } catch {
+              plan.reportError("อ่านไฟล์แผนไม่ได้ กรุณาเลือกไฟล์ใหม่ แผนปัจจุบันยังอยู่");
+            }
+          }} />
+        ) : null}
       </div>
       {plan.error ? (
         <div className="plan-storage-error" role="alert">

@@ -42,7 +42,6 @@ export function RoomSchedule({ payload, roomId }: { payload: PlanPayload; roomId
   if (!room) {
     return (
       <PlanShell
-        eyebrow="NextLink"
         title="ไม่พบห้องนี้"
         lastUpdated={payload.lastUpdated}
         timezone={payload.timezone}

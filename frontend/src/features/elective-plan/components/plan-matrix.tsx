@@ -191,6 +191,7 @@ export function PlanMatrix({
             <ul className="picker-list">
               {unplaced.map(({ course, missing }) => {
                 const isHeld = held?.kind === "course" && held.id === course.id;
+                const offered = course.availability.map(slotLabel).join(" / ") || "ยังไม่แจ้งช่วงที่สะดวก";
                 return (
                   <li key={course.id}>
                     <div
@@ -209,9 +210,13 @@ export function PlanMatrix({
                         <small>{course.provider} · ต้องได้ {formatNumber(missing)} คาบ</small>
                         <small>{personName(course.instructor)}</small>
                         {/* Its own line: run on from the company name, a period
-                            like "อังคารบ่าย" broke across two lines mid-word. */}
-                        <small className="tray-chip-slots">
-                          {course.availability.map(slotLabel).join(" / ") || "ยังไม่แจ้งช่วงที่สะดวก"}
+                            like "อังคารบ่าย" broke across two lines mid-word.
+                            A company that can teach most of the week has more
+                            periods than a chip can hold, so the line is clamped
+                            to two and the whole list is the tooltip — the card
+                            has to stay the size of every other card. */}
+                        <small className="tray-chip-slots" title={offered}>
+                          {offered}
                         </small>
                       </span>
                       <button

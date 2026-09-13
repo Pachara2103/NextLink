@@ -3,6 +3,18 @@
 import { createContext, createElement, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { readChecklist, type CourseChecklist } from "./checklist.ts";
 import { detectConflicts } from "./conflicts.ts";
+import {
+  addCourse as addCourseTo,
+  deleteCourse,
+  isAddedCourse,
+  mergeCourses,
+  normalizeCourseDraft,
+  patchCourse,
+  sortSlots,
+  takenCourseIds,
+  validateCourseDraft,
+  type CourseDraft,
+} from "./courses.ts";
 import { addRoom as addRoomTo, deleteRoom, mergeRooms, patchRoom, setRoomBlocked, validateRoomDraft, type RoomDraft, type RoomOverride } from "./rooms.ts";
 import { explainFailure, sortAssignments } from "./scheduler.ts";
 import { scheduleInWorker } from "./schedule-worker-client.ts";
@@ -17,7 +29,7 @@ const PlanContext = createContext<ReturnType<typeof useController> | null>(null)
 
 function effective(payload: PlanPayload, document: PlanDocument) {
   return {
-    courses: payload.courses.map((course) => ({ ...course, ...(document.courseOverrides[course.id] ?? {}) })),
+    courses: mergeCourses(payload.courses, document),
     rooms: mergeRooms(payload.rooms, document.roomEdits),
     assignments: document.assignments,
   };
@@ -73,14 +85,52 @@ function useController(payload: PlanPayload) {
     toggleLock: (assignmentId: string) => store.mutate((current) => ({ ...current, assignments: current.assignments.map((item) => item.id === assignmentId ? { ...item, locked: !item.locked } : item) })),
     unlockCourse: (courseId: string) => store.mutate((current) => ({ ...current, assignments: current.assignments.map((item) => item.courseId === courseId ? { ...item, locked: false } : item) })),
     setTime: (id: string, start: string, end: string) => store.mutate((current) => ({ ...current, assignments: changeAssignmentTime(current.assignments, id, start, end) })),
-    setAvailability: (courseId: string, availability: SlotId[]) => store.mutate((current) => ({ ...current, courseOverrides: { ...current.courseOverrides, [courseId]: { ...current.courseOverrides[courseId], availability } } })),
+    // A correction goes to whichever half of the state owns the course — see
+    // `patchCourse`. Writing every edit to `courseOverrides` would leave a
+    // course somebody typed in with two records of itself to disagree.
+    setAvailability: (courseId: string, availability: SlotId[]) => store.mutate((current) => ({ ...current, ...patchCourse(current, courseId, { availability: sortSlots(availability) }) })),
     toggleAvailability: (courseId: string, slotId: SlotId) => store.mutate((current) => {
       const course = effective(payload, current).courses.find((item) => item.id === courseId);
       if (!course) throw new Error("ไม่พบวิชา");
-      const availability = course.availability.includes(slotId) ? course.availability.filter((slot) => slot !== slotId) : [...course.availability, slotId];
-      return { ...current, courseOverrides: { ...current.courseOverrides, [courseId]: { ...current.courseOverrides[courseId], availability } } };
+      const availability = course.availability.includes(slotId)
+        ? course.availability.filter((slot) => slot !== slotId)
+        : sortSlots([...course.availability, slotId]);
+      return { ...current, ...patchCourse(current, courseId, { availability }) };
     }),
-    setCourseField: (courseId: string, patch: CourseOverride) => store.mutate((current) => ({ ...current, courseOverrides: { ...current.courseOverrides, [courseId]: { ...current.courseOverrides[courseId], ...patch } } })),
+    setCourseField: (courseId: string, patch: CourseOverride) => store.mutate((current) => ({ ...current, ...patchCourse(current, courseId, patch) })),
+    addCourse: (draft: CourseDraft) => store.mutate((current) => {
+      const { courses } = effective(payload, current);
+      const error = validateCourseDraft(draft, courses);
+      if (error) throw new Error(error);
+      // Every id the plan has ever spoken for, so a code that matches a course
+      // somebody hid earlier does not quietly reuse its id — and with it that
+      // course's periods and paperwork.
+      return { ...current, ...addCourseTo(current, draft, takenCourseIds(payload.courses, current.courseEdits)).state };
+    }),
+    updateCourse: (courseId: string, draft: CourseDraft) => store.mutate((current) => {
+      const { courses } = effective(payload, current);
+      if (!courses.some((course) => course.id === courseId)) throw new Error("ไม่พบวิชานี้แล้ว กรุณาโหลดแผนล่าสุด");
+      const error = validateCourseDraft(draft, courses, courseId);
+      if (error) throw new Error(error);
+      const next = normalizeCourseDraft(draft);
+      // A course that has moved online keeps its periods and loses its rooms,
+      // which is what an online course is. Leaving the room on would be a plan
+      // the schema refuses to save at all.
+      const assignments = next.deliveryMode === "ONLINE"
+        ? current.assignments.map((item) => (item.courseId === courseId ? { ...item, roomId: null } : item))
+        : current.assignments;
+      return { ...current, ...patchCourse(current, courseId, next), assignments };
+    }),
+    removeCourse: (courseId: string) => store.mutate((current) => {
+      const checklists = { ...current.checklists };
+      delete checklists[courseId];
+      return {
+        ...current,
+        ...deleteCourse(current, courseId),
+        assignments: current.assignments.filter((item) => item.courseId !== courseId),
+        checklists,
+      };
+    }),
     clearUnlocked: () => store.mutate((current) => ({ ...current, assignments: current.assignments.filter((item) => item.locked) })),
     addRoom: (draft: RoomDraft) => store.mutate((current) => {
       const { rooms } = effective(payload, current);
@@ -116,6 +166,9 @@ function useController(payload: PlanPayload) {
     undo: store.undo, retry: store.retry, reload: store.reload, recoverEmpty: store.recoverEmpty, reportError: store.reportError,
     checklistFor: (id: string) => readChecklist(document.checklists[id]),
     assignmentsInRoom: (id: string) => assignments.filter((item) => item.roomId === id).length,
+    assignmentsForCourse: (id: string) => assignments.filter((item) => item.courseId === id).length,
+    /** True for a course somebody typed in here, rather than one the seed carries. */
+    isAddedCourse: (id: string) => isAddedCourse(document.courseEdits, id),
   };
 }
 

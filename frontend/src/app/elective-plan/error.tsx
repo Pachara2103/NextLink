@@ -11,9 +11,7 @@ export default function DashboardError({ error, reset }: { error: Error & { dige
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-lockup">
-          <div className="brand-mark" aria-hidden="true">N</div>
           <div>
-            <div className="eyebrow">NEXTLINK</div>
             <h1>โหลดข้อมูลไม่สำเร็จ</h1>
           </div>
         </div>

@@ -56,6 +56,47 @@ preserves the versioned JSON format and validates the imported document instead
 of claiming that existing browser data moved automatically. Corrupt/unwritable
 storage remains recoverable through the planner's status and backup controls.
 
+## Adding courses to the term being planned
+
+The course list is no longer only what `data/plan-courses.json` ships. The
+courses sub-page carries an **＋ เพิ่มรายวิชา** button level with its two view tabs,
+which opens one form for one course: code, title, category, company, lecturer,
+delivery mode, the periods the company offered and how often the course meets,
+plus optional coordinator contact, seats, weeks and notes. A saved course counts
+as a course of the term currently being planned and is immediately available to
+automatic scheduling, manual placement, conflict explanations, the checklist and
+the Excel export. Courses added here are marked **เพิ่มเอง** in the table and can be
+edited or removed from the same form; removing one also releases its periods,
+and both actions are covered by **เลิกทำรายการล่าสุด**.
+
+Added courses live beside the seed rather than in it, exactly as edited rooms do
+— `lib/courses.ts` mirrors `lib/rooms.ts`. `courseEdits.added` holds courses a
+person typed in, `courseEdits.removed` hides seeded ones, and `courseOverrides`
+still carries corrections to seeded courses. A correction is written to whichever
+half owns the course, so one course never has two records to disagree; a seeded
+course therefore keeps picking up seed changes for fields nobody edited, and
+**คืนค่าเริ่มต้น** restores the bundled list.
+
+The form applies the rules `readCourse` applies to the seed file, said in Thai
+instead of thrown at build time: a course code must be unique, and a course
+cannot meet more often than the company offered. The company and lecturer names
+are required because the scheduler treats them as resources — two courses with
+the same lecturer cannot share a period, and blank names would read as one very
+busy lecturer. `scripts/elective-plan/check-courses.mjs` covers these rules and
+the merge/routing behaviour; it runs as part of `npm run check:planner`, which is
+now 98 domain checks, and the browser suite is 26 scenarios.
+
+### Plan document version 4
+
+`courseEdits` makes the stored plan version 4, written to
+`nextlink.plan.v4.<termId>`. A version 3 document is read from
+`nextlink.plan.v3.<termId>` (and version 1/2 from `nextlink.plan.v1`), shown with
+no added courses, and saved back under the version 4 key when anything is next
+saved; the older key is left in place, so an older build still open in another
+tab keeps working from the plan it knows. Backups exported before this change
+import unchanged. Plans still belong to the browser origin: a course added on one
+machine reaches another only through **สำรองแผน JSON** and **นำเข้าแผน**.
+
 ## Verification
 
 Run from `frontend/` using Node 22.6+ (the domain scripts use TypeScript stripping):
@@ -115,6 +156,13 @@ Integration-specific issues fixed during verification:
 
 ### Follow-up improvements
 
+- Terms are still a build-time list. Creating a term from the app, closing the
+  current one and reading it back as an archive needs the term registry in
+  `data/terms/index.json` to become runtime state merged with the seed, the way
+  rooms and courses already are, plus a written archive per closed term
+  (`ArchivedSession` already records a room's name rather than its id for this).
+  Per-term plan documents and course adding — what a new, empty term starts from
+  — are in place for it.
 - Before using this as a shared operational planner, add an authenticated backend
   for plans with explicit ownership/term boundaries and transactional concurrency.
   Browser-local storage currently has neither account isolation nor device sync.

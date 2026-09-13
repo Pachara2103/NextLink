@@ -115,7 +115,6 @@ export function PlanOverview({ payload }: { payload: PlanPayload }) {
 
   return (
     <PlanShell
-      eyebrow="NextLink"
       title="แผนตารางสอนวิชาเลือก"
       lastUpdated={payload.lastUpdated}
       timezone={payload.timezone}

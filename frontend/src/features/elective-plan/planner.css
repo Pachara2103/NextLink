@@ -67,7 +67,8 @@ has a different eyebrow, title and update time. */
 .elective-planner .eyebrow, .elective-planner .section-kicker { margin: 0; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
 .elective-planner .topbar .eyebrow { color: var(--ep-muted, #96a6c4); }
 .elective-planner h1, .elective-planner h2, .elective-planner h3, .elective-planner p { margin-top: 0; }
-.elective-planner h1 { margin: 4px 0 0; font-size: 21px; letter-spacing: -.02em; }
+.elective-planner h1 { margin: 0; font-size: 21px; letter-spacing: -.02em; }
+.elective-planner .eyebrow + h1 { margin-top: 4px; }
 .elective-planner .header-meta { gap: 18px; color: var(--ep-muted, #b6c2d6); font-size: 14px; }
 .elective-planner .demo-badge { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid rgba(255,255,255,.13); border-radius: 999px; color: #c4f5df; font-size: 12px; font-weight: 800; letter-spacing: .09em; }
 .elective-planner .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ep-green, #62d3a7); box-shadow: 0 0 0 4px rgba(98,211,167,.14); }
@@ -480,7 +481,13 @@ out — but it should never happen without the reader seeing it. */
 .elective-planner .tray-chip-copy { display: grid; min-width: 0; gap: 2px; }
 .elective-planner .tray-chip-copy strong { display: -webkit-box; overflow: hidden; color: var(--ep-ink, #26324a); font-size: 13px; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .elective-planner .tray-chip-copy small { display: block; color: var(--muted); font-size: 12px; line-height: 1.4; }
-.elective-planner .tray-chip-slots { color: var(--ep-orange, #6b5a2a); font-weight: 750; white-space: nowrap; }
+/* Two lines, then an ellipsis, with the whole list in the chip's tooltip. A
+   company that offers most of the week used to write its periods straight out
+   of the card and over the one beside it; clamping keeps the chip the size of
+   every other chip, and " / " gives the text somewhere to break that is not the
+   middle of a Thai word. More specific than `.tray-chip-copy small` above,
+   which would otherwise keep this `display: block`. */
+.elective-planner .tray-chip-copy small.tray-chip-slots { display: -webkit-box; overflow: hidden; color: var(--ep-orange, #6b5a2a); font-weight: 750; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .elective-planner .matrix-holding { margin: 7px 0 0; padding: 5px 10px; border-radius: 8px; color: var(--ep-blue, #2f5cb8); background: var(--ep-blue-soft, #edf3ff); font-size: 13px; }
 
 /* `position: relative` is load-bearing, not decoration.
@@ -681,11 +688,46 @@ out — but it should never happen without the reader seeing it. */
       .elective-planner .dialog-actions-end { margin-left: 0; }
 }
 
+/* The course form. The same two-column grid as the room form above, with the
+   week's periods in it — the one field that is a shape rather than a value. */
+.elective-planner .course-form-dialog { width: min(660px, calc(100vw - 28px)); }
+.elective-planner .course-form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.elective-planner .course-form-wide { grid-column: 1 / -1; }
+.elective-planner .course-form label { display: grid; gap: 6px; color: var(--muted); font-size: 13px; font-weight: 700; }
+.elective-planner .course-form input[type="text"], .elective-planner .course-form input[type="number"], .elective-planner .course-form select, .elective-planner .course-form textarea { width: 100%; min-height: var(--tap-min); padding: 0 12px; border: 1px solid var(--ep-line, #dce2ec); border-radius: 10px; outline: 0; color: var(--ink); background: var(--ep-blue-soft, #fbfcfe); font-size: 14px; font-family: inherit; }
+.elective-planner .course-form textarea { min-height: 68px; padding: 10px 12px; line-height: 1.5; resize: vertical; }
+.elective-planner .course-form input:focus, .elective-planner .course-form select:focus, .elective-planner .course-form textarea:focus { border-color: var(--ep-blue-line, #81a7ef); box-shadow: 0 0 0 3px rgba(59,112,220,.12); }
+.elective-planner .availability-picker { display: grid; gap: 10px; margin: 0; padding: 13px 14px; border: 1px solid var(--line); border-radius: 12px; }
+.elective-planner .availability-picker legend { padding: 0 6px; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+/* Narrower period column than the availability page's: the same grid has a
+   dialog's width here rather than a page's, and the six days need it more. */
+.elective-planner .availability-picker .availability-row { grid-template-columns: 74px repeat(6, minmax(0, 1fr)); }
+.elective-planner .availability-picker .availability-period small { display: block; }
+.elective-planner .availability-picker-note { margin: 0; color: var(--muted); font-size: 12px; font-weight: 650; line-height: 1.5; }
+.elective-planner .course-contact { padding: 11px 14px; border: 1px solid var(--line); border-radius: 12px; }
+.elective-planner .course-contact summary { color: var(--muted); font-size: 13px; font-weight: 800; cursor: pointer; }
+.elective-planner .course-contact-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; margin-top: 13px; }
+.elective-planner .course-contact-fields label:first-child { grid-column: 1 / -1; }
+@media (max-width: 760px) {
+  .elective-planner .course-form, .elective-planner .course-contact-fields { grid-template-columns: 1fr; }
+}
+
+/* A course somebody typed into this browser, and the way back into its form */
+.elective-planner .course-row-actions { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 7px; }
+.elective-planner .local-course-tag { padding: 3px 7px; border: 1px solid var(--ep-line, #e4e9f3); border-radius: 999px; color: var(--ep-muted, #53617a); background: var(--ep-raised, #f4f6fa); font-size: 11px; font-weight: 750; }
+.elective-planner .course-row-edit { min-height: 26px; padding: 3px 10px; border: 1px solid var(--ep-line, #dfe5ee); border-radius: 8px; color: var(--muted); background: var(--ep-surface, #fff); font-size: 12px; font-weight: 800; }
+.elective-planner .course-row-edit:hover { border-color: var(--ep-blue-line, #9bb7ed); color: var(--ep-blue, #2f5cb8); background: var(--ep-blue-soft, #edf3ff); }
+
 /* Two views of one list: the schedule facts, and the paperwork behind them */
 .elective-planner .view-switch { display: inline-flex; gap: 4px; margin: -2px 0 16px; padding: 4px; border: 1px solid var(--line); border-radius: 11px; background: var(--ep-raised, #f4f6fa); }
 .elective-planner .view-switch-button { min-height: 34px; padding: 6px 14px; border: 0; border-radius: 8px; color: var(--muted); background: transparent; font-size: 13px; font-weight: 800; }
 .elective-planner .view-switch-button:hover { color: var(--ep-blue, #2f5cb8); }
 .elective-planner .view-switch-button.is-active { color: var(--ep-ink, #203252); background: var(--ep-surface, #fff); box-shadow: 0 1px 3px rgba(30, 49, 80, .12); }
+/* The switch keeps its place at the left; what acts on the whole list sits at
+   the far right, where this panel's other end-aligned control already is. */
+.elective-planner .view-switch-row { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin: -2px 0 16px; }
+.elective-planner .view-switch-row .view-switch { margin: 0; }
+.elective-planner .view-switch-row > .primary-button { margin-left: auto; }
 /* Fixed layout, widths declared in the markup's <colgroup>. Every status
    column is then the same width whatever sits in it — with automatic layout
    the two columns holding "กำลังดำเนินการ" came out wider than their

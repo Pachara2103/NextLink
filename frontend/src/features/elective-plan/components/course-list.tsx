@@ -3,6 +3,7 @@
 import { useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
 import { ChecklistCode } from "@/features/elective-plan/components/checklist-code";
+import { CourseDialog, type CourseFormTarget } from "@/features/elective-plan/components/course-dialog";
 import { dayFilter, periodFilter } from "@/features/elective-plan/lib/filter-values.ts";
 import { EmptyResult } from "@/features/elective-plan/components/empty-result";
 import { FilterSummary } from "@/features/elective-plan/components/filter-summary";
@@ -10,6 +11,7 @@ import { Pager } from "@/features/elective-plan/components/pager";
 import { PlanShell } from "@/features/elective-plan/components/plan-shell";
 import { ResultAnnouncer } from "@/features/elective-plan/components/result-announcer";
 import { SlotFilters, matchesSlotFilter } from "@/features/elective-plan/components/slot-filters";
+import { StatusToast, useStatusToast } from "@/features/elective-plan/components/status-toast";
 import {
   CHECKLIST_FIELDS,
   DONE_LABELS,
@@ -65,8 +67,10 @@ export function CourseList({
   archives: ArchivedTerm[];
 }) {
   const plan = usePlanState();
+  const { toast, show, dismiss, holdTimer, resumeTimer } = useStatusToast();
   const currentTerm = useMemo(() => terms.find((term) => term.status === "CURRENT") ?? terms[0], [terms]);
 
+  const [courseForm, setCourseForm] = useState<CourseFormTarget | null>(null);
   const [termId, setTermId] = useState(currentTerm.id);
   const [search, setSearch] = useState("");
   const [day, setDay] = useState<DayKey | "">("");
@@ -233,6 +237,21 @@ export function CourseList({
     setChecklistFilter("all");
   };
 
+  /**
+   * Show the course that was just added.
+   *
+   * A new course lands at the end of the list, which is very likely a page the
+   * reader is not on and may be behind a filter they left set — and a table
+   * that does not change is a table that says the course was not added. So the
+   * filters go, the schedule view comes back, and the page jumps to the end.
+   */
+  const revealCourses = () => {
+    clearFilters();
+    setView("table");
+    setEditingCode(null);
+    setPage(Math.max(1, Math.ceil((plan.courses.length + 1) / PAGE_SIZE)));
+  };
+
   /** The term is a scope, not a filter: the search box narrows within it. */
   const changeTerm = (nextId: string) => {
     setTermId(nextId);
@@ -316,7 +335,6 @@ export function CourseList({
 
   return (
     <PlanShell
-      eyebrow="NextLink"
       title="รายวิชาเลือก"
       lastUpdated={archive ? archive.lastUpdated : payload.lastUpdated}
       timezone={payload.timezone}
@@ -359,23 +377,37 @@ export function CourseList({
             the same afternoon, so they share the search box, the term and the
             export button rather than living on two pages that drift apart.
             A finished term has no paperwork left to do, so it gets no switch. */}
+        {/* The switch and the one control that acts on the list as a whole share
+            a row: adding a course is not a filter and does not belong among
+            them, and it is the same list in either view. A finished term has
+            neither — there is nothing left to add to a term that ended. */}
         {archive ? null : (
-          <div className="view-switch" role="group" aria-label="รูปแบบตาราง">
+          <div className="view-switch-row">
+            <div className="view-switch" role="group" aria-label="รูปแบบตาราง">
+              <button
+                className={`view-switch-button${checklistView ? "" : " is-active"}`}
+                type="button"
+                aria-pressed={!checklistView}
+                onClick={() => changeView("table")}
+              >
+                ตารางรายวิชา
+              </button>
+              <button
+                className={`view-switch-button${checklistView ? " is-active" : ""}`}
+                type="button"
+                aria-pressed={checklistView}
+                onClick={() => changeView("checklist")}
+              >
+                เช็กลิสต์งานเอกสาร
+              </button>
+            </div>
             <button
-              className={`view-switch-button${checklistView ? "" : " is-active"}`}
+              className="primary-button"
               type="button"
-              aria-pressed={!checklistView}
-              onClick={() => changeView("table")}
+              onClick={() => setCourseForm({ course: null })}
+              title={`เพิ่มรายวิชาเข้า${currentTerm.label}`}
             >
-              ตารางรายวิชา
-            </button>
-            <button
-              className={`view-switch-button${checklistView ? " is-active" : ""}`}
-              type="button"
-              aria-pressed={checklistView}
-              onClick={() => changeView("checklist")}
-            >
-              เช็กลิสต์งานเอกสาร
+              ＋ เพิ่มรายวิชา
             </button>
           </div>
         )}
@@ -523,6 +555,25 @@ export function CourseList({
                             <span className="course-code">{course.courseCode} · {course.category}</span>
                           </Link>
                         )}
+                        {/* Only courses somebody typed in here can be edited as
+                            a whole. A seeded course is the department's record
+                            of what a company offered; the fields of it that
+                            planning depends on are edited where they are used —
+                            periods on the availability page, paperwork in the
+                            checklist — and the rest is not this app's to rewrite. */}
+                        {!archive && plan.isAddedCourse(course.id) ? (
+                          <span className="course-row-actions">
+                            <span className="local-course-tag">เพิ่มเอง</span>
+                            <button
+                              className="course-row-edit"
+                              type="button"
+                              onClick={() => setCourseForm({ course })}
+                            >
+                              แก้ไข
+                              <span className="sr-only"> {course.title}</span>
+                            </button>
+                          </span>
+                        ) : null}
                       </td>
                       <td>
                         {archive ? (
@@ -628,6 +679,43 @@ export function CourseList({
           </>
         )}
       </section>
+
+      <CourseDialog
+        target={courseForm}
+        // Uniqueness is checked against the term being planned, never against
+        // whichever term the table happens to be showing.
+        courses={plan.courses}
+        isAdded={courseForm?.course ? plan.isAddedCourse(courseForm.course.id) : false}
+        assignedCount={courseForm?.course ? plan.assignmentsForCourse(courseForm.course.id) : 0}
+        onSave={async (draft) => {
+          const target = courseForm?.course;
+          if (target) {
+            if (!await plan.updateCourse(target.id, draft)) return;
+            show(`บันทึก ${draft.title} แล้ว`, plan.undo);
+          } else {
+            if (!await plan.addCourse(draft)) return;
+            show(`เพิ่ม ${draft.title} เข้า${currentTerm.shortLabel} แล้ว`, plan.undo);
+            revealCourses();
+          }
+          setCourseForm(null);
+        }}
+        onDelete={async () => {
+          const target = courseForm?.course;
+          if (!target) return;
+          const losing = plan.assignmentsForCourse(target.id);
+          if (!await plan.removeCourse(target.id)) return;
+          show(
+            losing > 0
+              ? `เอา ${target.title} ออกแล้ว · ${formatNumber(losing)} คาบถูกปลดออกจากตาราง`
+              : `เอา ${target.title} ออกแล้ว`,
+            plan.undo,
+          );
+          setCourseForm(null);
+        }}
+        onClose={() => setCourseForm(null)}
+      />
+
+      <StatusToast toast={toast} onDismiss={dismiss} onHold={holdTimer} onResume={resumeTimer} />
     </PlanShell>
   );
 }
