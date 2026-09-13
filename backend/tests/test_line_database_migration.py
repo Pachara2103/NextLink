@@ -80,7 +80,6 @@ def direct(monkeypatch, source_url):
             conn.close()
     line_db.close()
     monkeypatch.setattr(pg_db,'get_connection',get_connection)
-    monkeypatch.setattr(config,'LINE_DATA_MODE','direct')
     monkeypatch.setattr(config,'LINE_SOURCE_ID',SOURCE)
     monkeypatch.setattr(config,'LINE_DATABASE_URL',reader_dsn)
     fixture = {'app':app_dsn,'source':source_dsn,'reader':reader_dsn}
@@ -294,19 +293,43 @@ def test_existing_company_link_condition_is_preserved(direct, monkeypatch, is_li
     assert execute(direct['app'], 'SELECT count(*) FROM graph_outbox') == [(0,)]
 
 
-def test_shared_mode_keeps_using_the_original_local_line_tables(direct, monkeypatch):
-    monkeypatch.setattr(config, 'LINE_DATA_MODE', 'shared')
-    execute(direct['app'], "INSERT INTO line_groups(group_id,display_name) VALUES('group-1','Shared group')")
+def test_legacy_local_tables_are_never_used_for_reads_or_acknowledgements(direct, monkeypatch):
+    seed(direct)
+    cutover(direct)
+    execute(direct['app'], "INSERT INTO line_groups(group_id,display_name) VALUES('group-1','Stale local group')")
     execute(direct['app'], """CREATE TABLE line_messages(
         message_id text PRIMARY KEY,group_id text,message_type text,text_content text,
         created_at timestamptz DEFAULT now(),is_read boolean DEFAULT false)""")
-    execute(direct['app'], "INSERT INTO line_messages(message_id,group_id,message_type,text_content) VALUES('old-1','group-1','text','Shared conversation')")
-    monkeypatch.setattr(service, 'summarize_line_group_messages', synthetic_summary)
+    execute(direct['app'], "INSERT INTO line_messages(message_id,group_id,message_type,text_content) VALUES('old-1','group-1','text','Stale local conversation')")
+    calls = []
+    def summarize(text, **kwargs):
+        calls.append(text)
+        return synthetic_summary()
+    monkeypatch.setattr(service, 'summarize_line_group_messages', summarize)
+    assert service.get_line_groups().items[0].display_name == 'Synthetic group'
     assert service.update_information(1).total == 0
-    assert execute(direct['app'], 'SELECT is_read FROM line_messages') == [(True,)]
+    assert calls == ['Source-only synthetic conversation']
+    assert execute(direct['app'], 'SELECT is_read FROM line_messages') == [(False,)]
+    assert execute(direct['source'], 'SELECT is_read FROM line_messages') == [(False,)]
     assert execute(direct['app'], 'SELECT count(*) FROM employees') == [(1,)]
-    assert execute(direct['app'], 'SELECT count(*) FROM line_message_processing') == [(0,)]
+    assert state(direct)[0][1] == state(direct)[0][2]
     assert execute(direct['app'], 'SELECT count(*) FROM graph_outbox') == [(0,)]
+    # A missing source must fail instead of processing the stale local copy.
+    line_db.close()
+    monkeypatch.setattr(config, 'LINE_DATABASE_URL', None)
+    monkeypatch.setattr(service, 'summarize_line_group_messages', unexpected_ai)
+    with pytest.raises(AppException):
+        service.update_information(1)
+    assert execute(direct['app'], 'SELECT is_read FROM line_messages') == [(False,)]
+
+
+@pytest.mark.parametrize('name', ['LINE_DATABASE_URL', 'LINE_SOURCE_ID'])
+def test_source_configuration_is_always_required(monkeypatch, name):
+    monkeypatch.setattr(config, 'LINE_DATABASE_URL', 'unused-test-source')
+    monkeypatch.setattr(config, 'LINE_SOURCE_ID', SOURCE)
+    assert not {'LINE_DATABASE_URL', 'LINE_SOURCE_ID'}.intersection(config.missing_required())
+    monkeypatch.setattr(config, name, None)
+    assert name in config.missing_required()
 
 
 @pytest.mark.parametrize('has_read_history', [False, True])

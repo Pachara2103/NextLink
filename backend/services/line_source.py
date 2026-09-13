@@ -14,12 +14,6 @@ from core.db import PostgresPool
 from core.exceptions import BadRequestError, DatabaseError
 
 
-def direct_enabled():
-    if config.LINE_DATA_MODE not in {"shared", "direct"}:
-        raise BadRequestError(message="LINE_DATA_MODE must be shared or direct; expected shared or direct")
-    return config.LINE_DATA_MODE == "direct"
-
-
 def expected_source():
     try:
         return str(UUID(config.LINE_SOURCE_ID or ""))

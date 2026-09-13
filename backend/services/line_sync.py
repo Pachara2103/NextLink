@@ -1,7 +1,7 @@
 """Copy group metadata and processing IDs, never message bodies, over SQL."""
 from core.db import pg_db
 from core.exceptions import BadRequestError
-from services.line_source import direct_enabled, expected_source, fetch_page
+from services.line_source import expected_source, fetch_page
 
 
 def apply_page(conn, page, saved_cursor, source, bootstrap_watermark):
@@ -60,8 +60,6 @@ def apply_page(conn, page, saved_cursor, source, bootstrap_watermark):
 
 
 def sync_line(max_pages=10):
-    if not direct_enabled():
-        raise BadRequestError(message="Enable LINE_DATA_MODE=direct after migration")
     source = expected_source()
     total = 0
     for _ in range(min(max(1,max_pages),10)):

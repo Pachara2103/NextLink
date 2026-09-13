@@ -50,7 +50,8 @@ databases and their Neon production branches before executing SQL.
    A legacy table without `is_read` supplies no read history; do not invent it.
    An existing API projection requires separate review and stops this migration.
 4. Deploy this PR's code with the backend-only Production variables below.
-   The default `shared` mode preserves the original path until `direct` is set.
+   LINE reads always use the separate read-only source. There is no mode switch
+   or fallback to the old local LINE tables. Prepare both databases before deployment.
 5. As an authenticated staff user, refresh `GET /api/v1/line/groups` until it
    succeeds. Each refresh synchronizes at most 1,000 metadata changes. An
    incomplete-catch-up error means refresh again; source failures must be resolved.
@@ -63,7 +64,6 @@ databases and their Neon production branches before executing SQL.
 
 ```dotenv
 DATABASE_PUBLIC_URL=<NextLink_DB application connection>
-LINE_DATA_MODE=direct
 LINE_DATABASE_URL=<NextLink_Line dedicated reader, pooled connection with TLS>
 LINE_SOURCE_ID=<source_id from line_read_identity in the verified LINE source>
 LINE_PG_POOL_MAX=3
@@ -73,6 +73,10 @@ These variables belong to the backend Vercel project. Keep database credentials
 out of the frontend and Git. This PR does not use `LINE_INTEGRATION_URL`,
 `LINE_INTEGRATION_API_KEY` or `LINE_INTEGRATION_SOURCE_ID` from the earlier branch.
 Environment changes require a new deployment.
+`LINE_DATA_MODE` is no longer used and can be removed from backend settings.
+`LINE_DATABASE_URL` and `LINE_SOURCE_ID` are always required; `LINE_PG_POOL_MAX`
+is optional and defaults to 3. Keep the legacy adoption SQL and cutover guard:
+they preserve read history and group mappings while preparing the separate databases.
 
 ## Deliberately separate follow-up work
 
@@ -83,8 +87,8 @@ commits between groups release earlier message claims. This PR does not claim to
 fix those issues, remove existing summary logs, add per-group advisory locks, or
 change approval/graph synchronization. Source and application databases cannot
 share an atomic transaction; later source changes are seen on a subsequent sync.
-Rollback requires reconciling data/state/FKs, not merely toggling back to a stale
-shared database snapshot.
+Rollback requires the previous code plus reconciled data/state/FKs; changing an
+environment variable does not restore the previous database layout.
 
 ## Verification
 
@@ -92,6 +96,7 @@ shared database snapshot.
 databases and a SELECT-only source role. AI responses are synthetic. It verifies
 group/FK migration, local acknowledgement, unchanged source `is_read`, no copied
 bodies, PostgreSQL-only pending records with no graph jobs, full group input
-across SQL pages, source failures, and the existing shared/company-link behavior.
+across SQL pages, source failures without a local-table fallback, and the existing
+company-link behavior.
 The unchanged authentication tests run in the same suite. This is not evidence
 of production cutover or a real AI/Neo4j run.

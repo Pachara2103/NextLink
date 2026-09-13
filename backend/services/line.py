@@ -1,8 +1,7 @@
-from collections import defaultdict
 from ai.chains.contact import get_extract_contact_chain
 
 from core.db import pg_db
-from core.exceptions import DatabaseError, NotFoundError, BadRequestError
+from core.exceptions import NotFoundError, BadRequestError
 from core.callbacks import TokenTrackerHandler
 
 from schemas.line import LineGroup, UpdateLog
@@ -14,44 +13,18 @@ from schemas.base import ListResponse
 from services.company import create_company_pg
 from services.employee import create_employee_pg
 
-from services.line_source import direct_enabled
 from services.line_sync import sync_line
 from services.line_storage import get_direct_group_messages, acknowledge_direct_group
 
 from typing import Any
-from utils.mapping import columns_of, rows_to_models
+from utils.mapping import rows_to_models
 
-
-import datetime
 
 def get_group_messages(conn: Any = None):
     if not conn:
         raise BadRequestError()
     
-    if direct_enabled():
-        return get_direct_group_messages(conn)
-
-    group_messages = defaultdict(list)
-
-    query = """
-      SELECT group_id, message_type, text_content, created_at, is_read
-      FROM line_messages 
-      WHERE group_id IS NOT NULL and is_read = false
-      ORDER BY group_id, created_at ASC
-      FOR UPDATE SKIP LOCKED;
-    """
-
-    with conn.cursor() as cursor:
-        cursor.execute(query)
-        rows = cursor.fetchall()
-
-    for row in rows:
-        group_id, message_type, text_content, _ , _ = row
-
-        if message_type and message_type.strip() == "text" and text_content:
-            group_messages[group_id].append(text_content)
-
-    return group_messages
+    return get_direct_group_messages(conn)
 
 
 def update_read_group_messages(group_id: str = None, conn: Any = None, batch: Any = None):
@@ -60,28 +33,16 @@ def update_read_group_messages(group_id: str = None, conn: Any = None, batch: An
     if not conn:
         raise BadRequestError()
     
-    if direct_enabled():
-        return acknowledge_direct_group(conn, group_id, batch)
-
-    query = """
-      UPDATE line_messages 
-      SET is_read = true 
-      WHERE group_id = %(group_id)s AND is_read = false;
-    """
-
-    with conn.cursor() as cursor:
-        cursor.execute(query, {"group_id": group_id})
+    return acknowledge_direct_group(conn, group_id, batch)
             
 def get_line_groups() -> ListResponse[LineGroup]:
-    direct = direct_enabled()
-    if direct and sync_line().get("has_more"):
+    if sync_line().get("has_more"):
         raise BadRequestError(message="LINE metadata catch-up is incomplete; refresh again")
-    table = "line_group_refs" if direct else "line_groups"
-    query = f"""
+    query = """
     SELECT 
       c.company_th,
       c.company_en,
-      COALESCE(c.aliases, '{{}}'::text[]) AS aliases,
+      COALESCE(c.aliases, '{}'::text[]) AS aliases,
       lg.created_at,
       lg.updated_at,
       lg.group_id,
@@ -89,9 +50,9 @@ def get_line_groups() -> ListResponse[LineGroup]:
       COALESCE(c.is_linked, false) AS is_linked,
       c.id as company_id,
       lg.picture_url
-    FROM {table} lg
+    FROM line_group_refs lg
     LEFT JOIN companies c ON lg.group_id = c.group_id
-    {"WHERE NOT lg.deleted" if direct else ""};
+    WHERE NOT lg.deleted;
     """
     with pg_db.get_connection() as conn:
       with conn.cursor() as cursor:
