@@ -31,6 +31,10 @@ LLM_MODEL = _get("LLM_MODEL", "gemini-3.5-flash-lite")
 EMBEDDING_MODEL = _get("EMBEDDING_MODEL", "BAAI/bge-m3")
 
 DATABASE_PUBLIC_URL = _get("DATABASE_PUBLIC_URL")
+LINE_DATA_MODE = _get("LINE_DATA_MODE", "shared")
+LINE_INTEGRATION_URL = _get("LINE_INTEGRATION_URL")
+LINE_INTEGRATION_API_KEY = _get("LINE_INTEGRATION_API_KEY")
+LINE_INTEGRATION_SOURCE_ID = _get("LINE_INTEGRATION_SOURCE_ID")
 
 # maxconn ควรสัมพันธ์กับจำนวน thread ที่เข้า DB พร้อมกันได้ (FastAPI รัน
 # handler ที่เป็น def ใน threadpool 40 threads โดย default)

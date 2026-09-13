@@ -1,9 +1,7 @@
 from collections import defaultdict
-from ai.chains.contact import get_extract_contact_chain
 
 from core.db import pg_db
 from core.exceptions import DatabaseError, NotFoundError, BadRequestError
-from core.callbacks import TokenTrackerHandler
 
 from schemas.line import LineGroup, UpdateLog
 from schemas.company import CompanyName
@@ -16,6 +14,8 @@ from services.employee import create_employee_pg
 
 from typing import Any
 from utils.mapping import columns_of, rows_to_models
+from services.line_sync import projection_enabled, sync_line
+from services import outbox
 
 
 import datetime
@@ -63,11 +63,12 @@ def update_read_group_messages(group_id: str = None, conn: Any = None):
         cursor.execute(query, {"group_id": group_id})
             
 def get_line_groups() -> ListResponse[LineGroup]:
-    query = """
+    table = "line_group_refs" if projection_enabled() else "line_groups"
+    query = f"""
     SELECT 
       c.company_th,
       c.company_en,
-      COALESCE(c.aliases, '{}'::text[]) AS aliases,
+      COALESCE(c.aliases, '{{}}'::text[]) AS aliases,
       lg.created_at,
       lg.updated_at,
       lg.group_id,
@@ -75,7 +76,7 @@ def get_line_groups() -> ListResponse[LineGroup]:
       COALESCE(c.is_linked, false) AS is_linked,
       c.id as company_id,
       lg.picture_url
-    FROM line_groups lg
+    FROM {table} lg
     LEFT JOIN companies c ON lg.group_id = c.group_id;
     """
     with pg_db.get_connection() as conn:
@@ -86,6 +87,8 @@ def get_line_groups() -> ListResponse[LineGroup]:
 
 
 def summarize_line_group_messages(chat_history: str, group_id: str, user_id: int) -> dict:
+    from ai.chains.contact import get_extract_contact_chain
+    from core.callbacks import TokenTrackerHandler
     tracker = TokenTrackerHandler(
         log_type="line_group",
         step_name="summarize_line_group_messages", 
@@ -134,6 +137,8 @@ def create_update_logs(user_id: int, error_groups: list[str], conn: Any = None):
 def update_information(user_id: int) ->  ListResponse[str]:
     if not user_id:
         raise BadRequestError()
+    if projection_enabled():
+        return update_projected_information(user_id)
     
     line_groups = get_line_groups()
 
@@ -226,3 +231,53 @@ def update_information(user_id: int) ->  ListResponse[str]:
         print(f"Failed to create update logs: {e}")
     
     return  ListResponse(items=error_groups, total=len(error_groups))
+
+
+def update_projected_information(user_id: int) -> ListResponse[str]:
+    """Read only the local projection and acknowledge exactly the locked rows."""
+    if sync_line().get("has_more"):
+        raise BadRequestError(message="LINE catch-up is incomplete; synchronize again before extracting")
+    groups = get_line_groups().items
+    errors = []
+    for group in groups:
+        try:
+            with pg_db.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    # Claim one group at a time. A commit for another group can
+                    # never release this group's message claims prematurely.
+                    cursor.execute("SELECT pg_try_advisory_xact_lock(hashtextextended(%s,72831))", (group.group_id,))
+                    if not cursor.fetchone()[0]:
+                        conn.rollback()
+                        continue
+                    cursor.execute("""SELECT message_id,source_version,text_content FROM line_message_refs
+                        WHERE group_id=%s AND NOT is_read AND NOT deleted AND unsent_at IS NULL
+                        AND direction='inbound' AND message_type='text' AND text_content IS NOT NULL
+                        ORDER BY created_at,message_id LIMIT 200 FOR UPDATE SKIP LOCKED""", (group.group_id,))
+                    messages = cursor.fetchall()
+                    if not messages:
+                        conn.commit()
+                        continue
+                summary = summarize_line_group_messages("\n".join(row[2] for row in messages),group.group_id,user_id)
+                contacts = summary.get("contacts") or []
+                company_id = group.company_id
+                if contacts and company_id is None:
+                    company_name = CompanyName(company_th=summary.get("company_th"),
+                        company_en=summary.get("company_en"),aliases=summary.get("aliases"))
+                    company_id = create_company_pg(company_name,
+                        group_id=group.group_id,is_linked=False,conn=conn)
+                    outbox.enqueue(conn,outbox.COMPANY,company_id,outbox.UPSERT,
+                                   {**company_name.model_dump(mode="json"),"group_id":group.group_id})
+                for contact in contacts:
+                    employee = create_employee_pg(EmployeeBase(**contact,status=ContactStatus.PENDING,company_id=company_id),user_id=user_id,conn=conn)
+                    outbox.enqueue(conn,outbox.EMPLOYEE,employee.id,outbox.UPSERT,employee.model_dump(mode="json"))
+                with conn.cursor() as cursor:
+                    cursor.executemany("UPDATE line_message_refs SET is_read=true WHERE message_id=%s AND source_version=%s",
+                                       [(row[0],row[1]) for row in messages])
+                conn.commit()
+        except Exception:
+            # Do not expose model output or source conversations in logs.
+            errors.append(group.display_name or "<ไม่มีชื่อกลุ่ม>")
+    with pg_db.get_connection() as conn:
+        create_update_logs(user_id,errors,conn)
+        conn.commit()
+    return ListResponse(items=errors,total=len(errors))
