@@ -14,6 +14,10 @@ from schemas.base import ListResponse
 from services.company import create_company_pg
 from services.employee import create_employee_pg
 
+from services.line_source import direct_enabled
+from services.line_sync import sync_line
+from services.line_storage import get_direct_group_messages, acknowledge_direct_group
+
 from typing import Any
 from utils.mapping import columns_of, rows_to_models
 
@@ -24,6 +28,9 @@ def get_group_messages(conn: Any = None):
     if not conn:
         raise BadRequestError()
     
+    if direct_enabled():
+        return get_direct_group_messages(conn)
+
     group_messages = defaultdict(list)
 
     query = """
@@ -47,12 +54,15 @@ def get_group_messages(conn: Any = None):
     return group_messages
 
 
-def update_read_group_messages(group_id: str = None, conn: Any = None):
+def update_read_group_messages(group_id: str = None, conn: Any = None, batch: Any = None):
     if not group_id:
         raise BadRequestError(message="group_id is required")
     if not conn:
         raise BadRequestError()
     
+    if direct_enabled():
+        return acknowledge_direct_group(conn, group_id, batch)
+
     query = """
       UPDATE line_messages 
       SET is_read = true 
@@ -63,11 +73,15 @@ def update_read_group_messages(group_id: str = None, conn: Any = None):
         cursor.execute(query, {"group_id": group_id})
             
 def get_line_groups() -> ListResponse[LineGroup]:
-    query = """
+    direct = direct_enabled()
+    if direct and sync_line().get("has_more"):
+        raise BadRequestError(message="LINE metadata catch-up is incomplete; refresh again")
+    table = "line_group_refs" if direct else "line_groups"
+    query = f"""
     SELECT 
       c.company_th,
       c.company_en,
-      COALESCE(c.aliases, '{}'::text[]) AS aliases,
+      COALESCE(c.aliases, '{{}}'::text[]) AS aliases,
       lg.created_at,
       lg.updated_at,
       lg.group_id,
@@ -75,8 +89,9 @@ def get_line_groups() -> ListResponse[LineGroup]:
       COALESCE(c.is_linked, false) AS is_linked,
       c.id as company_id,
       lg.picture_url
-    FROM line_groups lg
-    LEFT JOIN companies c ON lg.group_id = c.group_id;
+    FROM {table} lg
+    LEFT JOIN companies c ON lg.group_id = c.group_id
+    {"WHERE NOT lg.deleted" if direct else ""};
     """
     with pg_db.get_connection() as conn:
       with conn.cursor() as cursor:
@@ -165,7 +180,7 @@ def update_information(user_id: int) ->  ListResponse[str]:
             contacts = summary.get("contacts")
             
             if not contacts:
-                update_read_group_messages(group_id=group_id, conn=conn)
+                update_read_group_messages(group_id=group_id, conn=conn, batch=group_messages)
                 continue
             
             print(f"\nSummary group {group_name}\n")
@@ -203,7 +218,7 @@ def update_information(user_id: int) ->  ListResponse[str]:
                 )
 
 
-            update_read_group_messages(group_id=group_id, conn=conn)
+            update_read_group_messages(group_id=group_id, conn=conn, batch=group_messages)
             conn.commit()
             print(f"Ectract Information for group: {group_name} successfully\n")
 
