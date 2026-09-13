@@ -1,4 +1,4 @@
-import { decodePlan, emptyDocument, LEGACY_STORAGE_KEY, LEGACY_TERM_ID, storageKeyFor, type PlanData, type PlanDocument } from "./plan-document.ts";
+import { decodePlan, emptyDocument, legacyKeysFor, storageKeyFor, type PlanData, type PlanDocument } from "./plan-document.ts";
 import type { PlanPayload } from "./plan-types.ts";
 
 export type Persistence = {
@@ -40,10 +40,18 @@ export class PlanStore {
     this.snapshot = { ...this.snapshot, ...patch };
     for (const listener of this.listeners) listener();
   }
+  /** The newest plan an earlier release left for this term, if this one has none. */
+  private readLegacy(): string | null {
+    for (const key of legacyKeysFor(this.payload.term.id)) {
+      const value = this.persistence.read(key);
+      if (value !== null) return value;
+    }
+    return null;
+  }
   private readCurrent(): { raw: string | null; document: PlanDocument } {
     const raw = this.persistence.read(this.key);
-    const legacy = raw === null && this.payload.term.id === LEGACY_TERM_ID ? this.persistence.read(LEGACY_STORAGE_KEY) : null;
-    return { raw, document: raw !== null || legacy !== null ? decodePlan((raw ?? legacy)!, this.payload).document : emptyDocument(this.payload) };
+    const source = raw ?? this.readLegacy();
+    return { raw, document: source !== null ? decodePlan(source, this.payload).document : emptyDocument(this.payload) };
   }
   load = () => {
     if (this.snapshot.ready) return;
@@ -61,7 +69,7 @@ export class PlanStore {
       this.publish({ document: latest.document, ready: true, status: "saved", error: null, recoveryRaw: null, canUndo: Boolean(this.undoEntry) });
     } catch (error) {
       let recoveryRaw: string | null = null;
-      try { recoveryRaw = this.persistence.read(this.key) ?? (this.payload.term.id === LEGACY_TERM_ID ? this.persistence.read(LEGACY_STORAGE_KEY) : null); } catch { /* storage itself may be blocked */ }
+      try { recoveryRaw = this.persistence.read(this.key) ?? this.readLegacy(); } catch { /* storage itself may be blocked */ }
       this.publish({ ready: true, status: "error", error: error instanceof Error ? error.message : "อ่านแผนไม่สำเร็จ", recoveryRaw });
     }
   };
@@ -85,7 +93,7 @@ export class PlanStore {
         before = this.dirty ? this.snapshot.document : latest.document;
         this.baseRaw = latest.raw;
         const data = await mutation(before);
-        const proposed = { ...before, ...data, version: 3, termId: this.payload.term.id, dataset: this.payload.dataset,
+        const proposed = { ...before, ...data, version: 4, termId: this.payload.term.id, dataset: this.payload.dataset,
           seedRevision: this.payload.seedRevision, revision: before.revision + 1, editedAt: new Date().toISOString() };
         // Commands and imported backups pass the same schema boundary.
         candidate = decodePlan(JSON.stringify(proposed), this.payload).document;
@@ -143,7 +151,7 @@ export class PlanStore {
     const expected = this.snapshot.recoveryRaw;
     const next = this.queue.then(() => this.persistence.exclusive(this.key, async () => {
       const raw = this.persistence.read(this.key);
-      const source = raw ?? (this.payload.term.id === LEGACY_TERM_ID ? this.persistence.read(LEGACY_STORAGE_KEY) : null);
+      const source = raw ?? this.readLegacy();
       if (source !== expected) throw new Error("ข้อมูลเปลี่ยนแล้ว กรุณาโหลดใหม่ก่อนกู้คืน");
       const document = { ...emptyDocument(this.payload), revision: 1, editedAt: new Date().toISOString() };
       const encoded = JSON.stringify(document);
