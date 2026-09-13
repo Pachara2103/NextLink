@@ -17,7 +17,6 @@ from core.db import graph_db, pg_db
 from core.exceptions import AppException
 from core.exception_handlers import app_exception_handler
 from services import outbox
-from services.line_source import line_db
 
 logging.basicConfig(
     level=logging.INFO,
@@ -122,7 +121,7 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
 
-    for name, db in (("postgres", pg_db), ("neo4j", graph_db), ("line-source", line_db)):
+    for name, db in (("postgres", pg_db), ("neo4j", graph_db)):
         try:
             db.close()
         except Exception:

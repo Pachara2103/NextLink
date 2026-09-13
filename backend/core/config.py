@@ -31,9 +31,6 @@ LLM_MODEL = _get("LLM_MODEL", "gemini-3.5-flash-lite")
 EMBEDDING_MODEL = _get("EMBEDDING_MODEL", "BAAI/bge-m3")
 
 DATABASE_PUBLIC_URL = _get("DATABASE_PUBLIC_URL")
-LINE_DATABASE_URL = _get("LINE_DATABASE_URL")
-LINE_SOURCE_ID = _get("LINE_SOURCE_ID")
-LINE_PG_POOL_MAX = max(1, min(5, _int("LINE_PG_POOL_MAX", 3)))
 
 # maxconn ควรสัมพันธ์กับจำนวน thread ที่เข้า DB พร้อมกันได้ (FastAPI รัน
 # handler ที่เป็น def ใน threadpool 40 threads โดย default)
@@ -79,8 +76,6 @@ GRACEFUL_SHUTDOWN_SECONDS = _int("GRACEFUL_SHUTDOWN_SECONDS", 30)
 _REQUIRED = (
     "GOOGLE_API_KEY",
     "DATABASE_PUBLIC_URL",
-    "LINE_DATABASE_URL",
-    "LINE_SOURCE_ID",
     "NEO4J_URI",
     "NEO4J_USERNAME",
     "NEO4J_PASSWORD",
