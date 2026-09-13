@@ -1,15 +1,17 @@
--- Run only after API catch-up and runtime-target verification, in a maintenance
--- window with the old shared-DB consumer stopped. No source tables are dropped.
+-- NextLink_DB only. Stop the shared/API consumer, back up, and synchronize
+-- metadata to completion with the verified LINE source before changing FKs.
 BEGIN;
 DO $$
 DECLARE fk RECORD;
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM line_sync_state WHERE source_id IS NOT NULL AND synced_at IS NOT NULL) THEN
-    RAISE EXCEPTION 'Synchronize the LINE projection before switching foreign keys';
+  PERFORM 1 FROM line_direct_sync_state WHERE id=true FOR UPDATE;
+  IF NOT EXISTS (SELECT 1 FROM line_direct_sync_state WHERE source_id IS NOT NULL
+      AND synced_at IS NOT NULL AND caught_up) THEN
+    RAISE EXCEPTION 'Finish direct SQL synchronization before switching foreign keys';
   END IF;
   IF EXISTS (SELECT 1 FROM companies c LEFT JOIN line_group_refs g USING(group_id) WHERE c.group_id IS NOT NULL AND g.group_id IS NULL)
     OR EXISTS (SELECT 1 FROM token_logs c LEFT JOIN line_group_refs g USING(group_id) WHERE c.group_id IS NOT NULL AND g.group_id IS NULL) THEN
-    RAISE EXCEPTION 'Missing projected group IDs; preserve company/token-log mappings first';
+    RAISE EXCEPTION 'Missing group IDs; preserve company/token-log mappings first';
   END IF;
   FOR fk IN SELECT c.conrelid::regclass AS target,c.conname FROM pg_constraint c
     WHERE c.contype='f' AND c.confrelid=to_regclass('line_groups')
@@ -23,5 +25,6 @@ BEGIN
   IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid='token_logs'::regclass AND conname='token_logs_line_ref_fkey') THEN
     ALTER TABLE token_logs ADD CONSTRAINT token_logs_line_ref_fkey FOREIGN KEY(group_id) REFERENCES line_group_refs(group_id) ON DELETE SET NULL;
   END IF;
+  UPDATE line_direct_sync_state SET cutover_ready=true WHERE id=true;
 END $$;
 COMMIT;

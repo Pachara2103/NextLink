@@ -14,7 +14,8 @@ from services.employee import create_employee_pg
 
 from typing import Any
 from utils.mapping import columns_of, rows_to_models
-from services.line_sync import projection_enabled, sync_line
+from services.line_sync import sync_line
+from services.line_source import direct_enabled, read_messages
 from services import outbox
 
 
@@ -62,8 +63,11 @@ def update_read_group_messages(group_id: str = None, conn: Any = None):
     with conn.cursor() as cursor:
         cursor.execute(query, {"group_id": group_id})
             
-def get_line_groups() -> ListResponse[LineGroup]:
-    table = "line_group_refs" if projection_enabled() else "line_groups"
+def get_line_groups(refresh: bool = True) -> ListResponse[LineGroup]:
+    direct = direct_enabled()
+    if direct and refresh and sync_line().get("has_more"):
+        raise BadRequestError(message="LINE catch-up is incomplete; synchronize again")
+    table = "line_group_refs" if direct else "line_groups"
     query = f"""
     SELECT 
       c.company_th,
@@ -77,7 +81,8 @@ def get_line_groups() -> ListResponse[LineGroup]:
       c.id as company_id,
       lg.picture_url
     FROM {table} lg
-    LEFT JOIN companies c ON lg.group_id = c.group_id;
+    LEFT JOIN companies c ON lg.group_id = c.group_id
+    {"WHERE NOT lg.deleted" if direct else ""};
     """
     with pg_db.get_connection() as conn:
       with conn.cursor() as cursor:
@@ -137,8 +142,8 @@ def create_update_logs(user_id: int, error_groups: list[str], conn: Any = None):
 def update_information(user_id: int) ->  ListResponse[str]:
     if not user_id:
         raise BadRequestError()
-    if projection_enabled():
-        return update_projected_information(user_id)
+    if direct_enabled():
+        return update_direct_information(user_id)
     
     line_groups = get_line_groups()
 
@@ -233,11 +238,16 @@ def update_information(user_id: int) ->  ListResponse[str]:
     return  ListResponse(items=error_groups, total=len(error_groups))
 
 
-def update_projected_information(user_id: int) -> ListResponse[str]:
-    """Read only the local projection and acknowledge exactly the locked rows."""
+def update_direct_information(user_id: int) -> ListResponse[str]:
+    """Read bodies from LINE SQL; commit business data and exact local IDs."""
     if sync_line().get("has_more"):
         raise BadRequestError(message="LINE catch-up is incomplete; synchronize again before extracting")
-    groups = get_line_groups().items
+    groups = get_line_groups(refresh=False).items
+    with pg_db.get_connection() as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT cutover_ready FROM line_direct_sync_state WHERE id=true")
+        if not cursor.fetchone()[0]:
+            raise BadRequestError(message="Apply line_direct_cutover.sql before extraction")
+        conn.rollback()
     errors = []
     for group in groups:
         try:
@@ -249,15 +259,16 @@ def update_projected_information(user_id: int) -> ListResponse[str]:
                     if not cursor.fetchone()[0]:
                         conn.rollback()
                         continue
-                    cursor.execute("""SELECT message_id,source_version,text_content FROM line_message_refs
-                        WHERE group_id=%s AND NOT is_read AND NOT deleted AND unsent_at IS NULL
-                        AND direction='inbound' AND message_type='text' AND text_content IS NOT NULL
-                        ORDER BY created_at,message_id LIMIT 200 FOR UPDATE SKIP LOCKED""", (group.group_id,))
+                    cursor.execute("""SELECT message_id,source_version FROM line_message_processing
+                        WHERE group_id=%s AND eligible AND processed_version IS NULL AND NOT needs_review
+                        ORDER BY source_version,message_id LIMIT 200 FOR UPDATE SKIP LOCKED""", (group.group_id,))
                     messages = cursor.fetchall()
                     if not messages:
                         conn.commit()
                         continue
-                summary = summarize_line_group_messages("\n".join(row[2] for row in messages),group.group_id,user_id)
+                versions = dict(messages)
+                source_messages = read_messages(group.group_id,versions)
+                summary = summarize_line_group_messages("\n".join(row["text_content"] for row in source_messages),group.group_id,user_id)
                 contacts = summary.get("contacts") or []
                 company_id = group.company_id
                 if contacts and company_id is None:
@@ -270,8 +281,11 @@ def update_projected_information(user_id: int) -> ListResponse[str]:
                 for contact in contacts:
                     employee = create_employee_pg(EmployeeBase(**contact,status=ContactStatus.PENDING,company_id=company_id),user_id=user_id,conn=conn)
                     outbox.enqueue(conn,outbox.EMPLOYEE,employee.id,outbox.UPSERT,employee.model_dump(mode="json"))
+                # Validate as close to commit as possible. A changed/unsent
+                # source rolls back business data, outbox and acknowledgements.
+                read_messages(group.group_id,versions)
                 with conn.cursor() as cursor:
-                    cursor.executemany("UPDATE line_message_refs SET is_read=true WHERE message_id=%s AND source_version=%s",
+                    cursor.executemany("UPDATE line_message_processing SET processed_version=source_version WHERE message_id=%s AND source_version=%s",
                                        [(row[0],row[1]) for row in messages])
                 conn.commit()
         except Exception:
