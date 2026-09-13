@@ -316,7 +316,6 @@ export function CourseList({
 
   return (
     <PlanShell
-      eyebrow="NextLink"
       title="รายวิชาเลือก"
       lastUpdated={archive ? archive.lastUpdated : payload.lastUpdated}
       timezone={payload.timezone}

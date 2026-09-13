@@ -43,7 +43,6 @@ export function RoomList({ payload }: { payload: PlanPayload }) {
 
   return (
     <PlanShell
-      eyebrow="NextLink"
       title="ห้องเรียนที่ใช้ได้"
       lastUpdated={payload.lastUpdated}
       timezone={payload.timezone}

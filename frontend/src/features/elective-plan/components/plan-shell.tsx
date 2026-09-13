@@ -24,7 +24,7 @@ export function PlanShell({
   onReset,
   children,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   lastUpdated: string;
   timezone: string;
@@ -38,9 +38,8 @@ export function PlanShell({
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-lockup">
-          <span className="brand-mark" aria-hidden="true">N</span>
           <div>
-            <p className="eyebrow">{eyebrow}</p>
+            {eyebrow && eyebrow !== "NextLink" ? <p className="eyebrow">{eyebrow}</p> : null}
             <h1>{title}</h1>
           </div>
         </div>

@@ -66,7 +66,6 @@ export function AvailabilityEditor({ payload }: { payload: PlanPayload }) {
 
   return (
     <PlanShell
-      eyebrow="NextLink"
       title="วิชาและช่วงที่สะดวก"
       lastUpdated={payload.lastUpdated}
       timezone={payload.timezone}

@@ -67,7 +67,8 @@ has a different eyebrow, title and update time. */
 .elective-planner .eyebrow, .elective-planner .section-kicker { margin: 0; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
 .elective-planner .topbar .eyebrow { color: var(--ep-muted, #96a6c4); }
 .elective-planner h1, .elective-planner h2, .elective-planner h3, .elective-planner p { margin-top: 0; }
-.elective-planner h1 { margin: 4px 0 0; font-size: 21px; letter-spacing: -.02em; }
+.elective-planner h1 { margin: 0; font-size: 21px; letter-spacing: -.02em; }
+.elective-planner .eyebrow + h1 { margin-top: 4px; }
 .elective-planner .header-meta { gap: 18px; color: var(--ep-muted, #b6c2d6); font-size: 14px; }
 .elective-planner .demo-badge { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid rgba(255,255,255,.13); border-radius: 999px; color: #c4f5df; font-size: 12px; font-weight: 800; letter-spacing: .09em; }
 .elective-planner .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ep-green, #62d3a7); box-shadow: 0 0 0 4px rgba(98,211,167,.14); }
