@@ -4,6 +4,9 @@
 ที่ `/dashboard` โดยใช้ login, sidebar, เมนูมือถือ และธีมของเว็บ NextLink ร่วมกัน
 สถานะของรอบนี้คือ **ย้าย UI พร้อมข้อมูลทดลอง** ยังไม่ได้ต่อ Dashboard กับ Database v1
 
+เอกสารนี้เก็บประวัติรอบย้ายและปรับ UX/UI; ขอบเขตและผลตรวจล่าสุดก่อนเปิด PR
+อยู่ใน [Dashboard requirement progress](dashboard-requirements-progress.md)
+
 ## เส้นทางที่ใช้
 
 | หน้า | URL | สิ่งที่ย้ายมา |
