@@ -53,7 +53,8 @@
 - `npm run lint` ผ่าน ไม่มี error; มี warning เดิม 13 จุดในหน้า login, shared layout, CRM และ service ของ `main`
 - `npm run check:config` และ `npm run check:planner` ผ่าน โดยคงชุดทดสอบวิชาที่เพิ่มจาก `main` ล่าสุดไว้
 - `npm run check:browser` — ผ่าน 26 สถานการณ์ของ Planner/CRM; ปรับ fixture ให้ส่งข้อมูล `/companies` คู่กับ `/line/groups` ตาม API ปัจจุบัน โดยคง assertions เดิม
-- `npm run check:dashboard:browser` — ผ่าน 23 สถานการณ์ ใช้ production build บน localhost พร้อม API fixture ในเบราว์เซอร์แยก ตรวจ login, ทุกโมดูล, การบันทึก/รีโหลด, ข้ามแท็บ, สิทธิ์แยกบัญชี, ธีมสว่าง/มืด และขนาดหน้าจอ 320/390/820 px
+- `npm run check:dashboard:browser` — ผ่าน 24 สถานการณ์ ใช้ production build บน localhost พร้อม API fixture ในเบราว์เซอร์แยก ตรวจ login, ทุกโมดูล, การบันทึก/รีโหลด, ข้ามแท็บ, สิทธิ์แยกบัญชี, ธีมสว่าง/มืด และขนาดหน้าจอ 320/390/820 px
 - รอบนี้เพิ่ม browser checks สำหรับ KPI คนไม่ซ้ำ, สถานะรายนิสิตและการบันทึก, ข้อมูลเสีย, Case ข้ามแท็บ และหน้าจอผลฝึกงานสองธีม; ตรวจแยกบัญชีของผลรายนิสิตเพิ่มในชุดเดิม และรอเปลี่ยนช่วงการศึกษาเสร็จก่อนทดสอบค้นหา
 - ผลและภาพหน้าจออยู่ใน `frontend/output/playwright/dashboard/` ซึ่งเป็นผลการทดสอบ local ไม่ใช่หลักฐาน deployment หรือฐานข้อมูล production
 - CI ใน `frontend-integration.yml` รันทั้ง domain และ browser checks ของ Dashboard ร่วมกับชุดตรวจเดิม
+- เพิ่ม regression สำหรับตาราง MOU ที่ 1366/1400/1440/1920 px ในทั้งสองธีม หลัง CI พบหน้าล้นที่ `fits: /mou classic`: CSS เดิมปิดการเลื่อนตั้งแต่ viewport 1400 px โดยไม่หักความกว้าง sidebar ทำซ้ำได้บนเครื่องที่หน้า 1400 px ล้นเป็น 1419 px และปุ่มรายละเอียดอยู่พ้นกรอบตาราง จึงคง scroll container ทุกขนาดและตรวจว่าเลื่อนไปถึงปุ่มรายละเอียดได้

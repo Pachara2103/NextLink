@@ -195,10 +195,11 @@
     radial-gradient(farthest-side at 50% 0, rgba(14, 27, 53, .13), rgba(14, 27, 53, 0)) center top / 100% 11px no-repeat scroll,
     radial-gradient(farthest-side at 50% 100%, rgba(14, 27, 53, .13), rgba(14, 27, 53, 0)) center bottom / 100% 11px no-repeat scroll;
 }
-/* Once the viewport is wide enough for the widest table to fit, drop the
-   wrapper's scrolling entirely so the header sticks to the page instead.
-   Two nested scroll areas on one long page is worse than no sticky header. */
-@media (min-width: 1400px) { .nextlink-dashboard .table-wrap { max-height: none; overflow: visible; } }
+/* Keep scrolling at desktop widths too: the host sidebar reduces the space
+   available to tables, and native controls can be wider on other platforms.
+   Wide layouts still use the page for vertical scrolling, while horizontal
+   overflow stays inside the table wrapper. */
+@media (min-width: 1400px) { .nextlink-dashboard .table-wrap { max-height: none; } }
 .nextlink-dashboard .table-heading-actions { display: flex; align-items: center; gap: 14px; }.nextlink-dashboard .table-sort { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; font-weight: 750; }.nextlink-dashboard .table-sort select { min-height: 30px; padding: 0 8px; border: 1px solid var(--nd-line, #dce2ec); border-radius: 8px; color: var(--nd-muted, #53617a); background: var(--nd-blue-soft, #fbfcfe); font-size: 12px; }
 .nextlink-dashboard table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 930px; } .nextlink-dashboard th, .nextlink-dashboard td { padding: 14px 14px; border-bottom: 1px solid var(--nd-line, #edf0f4); text-align: left; vertical-align: middle; } .nextlink-dashboard tbody tr:last-child td { border-bottom: 0; } .nextlink-dashboard th { position: sticky; top: 0; z-index: 1; color: var(--muted); background: var(--surface); box-shadow: inset 0 -1px 0 var(--nd-line, #e3e7ee); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; } .nextlink-dashboard td { color: var(--nd-ink, #38445b); font-size: 14px; }
 .nextlink-dashboard .course-link { display: grid; gap: 4px; padding: 0; border: 0; text-align: left; color: inherit; background: transparent; }.nextlink-dashboard .course-link:hover strong { color: var(--blue); }.nextlink-dashboard .course-link strong { color: var(--nd-ink, #202c42); font-size: 15px; }.nextlink-dashboard .course-code { color: var(--muted-2); font-size: 12px; }
@@ -619,7 +620,6 @@
 .nextlink-dashboard .dialog-edit-footer .dataset-warning { margin: 0 0 10px; }
 .nextlink-dashboard .dialog-edit-footer .primary-button, .nextlink-dashboard .dialog-edit-footer .secondary-button { min-height: 44px; }
 .nextlink-dashboard .course-dialog, .nextlink-dashboard .mou-dialog, .nextlink-dashboard .internship-dialog { max-height: min(90dvh, 860px); }
-@media (min-width: 1400px) { .nextlink-dashboard .table-panel th { top: 72px; } }
 @media (max-width: 760px) {
   .nextlink-dashboard .topbar { gap: 10px; padding-block: 12px; }
   .nextlink-dashboard .page-content { padding-top: 20px; }

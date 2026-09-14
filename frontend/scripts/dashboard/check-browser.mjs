@@ -91,6 +91,34 @@ try {
       await page.screenshot({ path: `${output}/capstone-${value}.png`, fullPage: true });
     }
   });
+  await check('MOU tables contain overflow and keep details reachable at desktop widths', async () => {
+    for (const value of ['classic', 'dark']) {
+      for (const width of [1366, 1400, 1440, 1920]) {
+        await page.setViewportSize({ width, height: 1000 });
+        await go('/mou'); await theme(value);
+        await page.evaluate(() => document.fonts.ready);
+        const layout = await page.locator('#dashboard-directory .table-wrap').evaluate(el => {
+          const table = el.querySelector('table');
+          const wrapper = el.getBoundingClientRect();
+          el.scrollLeft = el.scrollWidth;
+          const action = el.querySelector('tbody tr .row-action').getBoundingClientRect();
+          return {
+            viewport: innerWidth, page: document.documentElement.scrollWidth,
+            wrapper: el.clientWidth, table: table.getBoundingClientRect().width,
+            scrollLeft: el.scrollLeft,
+            actionVisible: action.left >= wrapper.left - 1 && action.right <= wrapper.right + 1,
+          };
+        });
+        const context = `${value} ${width}px: ${JSON.stringify(layout)}`;
+        assert.ok(layout.page <= width + 1, `page fits ${context}`);
+        if (layout.table > layout.wrapper + 1) assert.ok(layout.scrollLeft > 0, `wide table scrolls ${context}`);
+        assert.ok(layout.actionVisible, `details remain reachable ${context}`);
+        await page.locator('#dashboard-directory tbody .row-action').first().click();
+        await page.locator('dialog[open]').getByRole('button', { name: 'ปิดรายละเอียด', exact: true }).click();
+      }
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+  });
   await check('dashboard links stay in the new namespace and preserve academic periods', async () => {
     await go('?year=2568&term=2');
     for (const link of await page.locator('.home-module-card').all()) {
