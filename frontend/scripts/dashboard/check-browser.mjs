@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { checkAdditions } from './check-additions.mjs';
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
@@ -17,7 +18,9 @@ let logs = ''; server.stdout.on('data', b => { logs += b; }); server.stderr.on('
 let browser, page;
 const results = [], errors = [], failedAssets = [], unexpectedApi = [];
 const output = 'output/playwright/dashboard';
-const check = async (name, run) => { await run(); results.push(name); console.log('✓ ' + name); };
+const additionsOnly = process.argv.includes('--additions-only');
+let additionsActive = false;
+const check = async (name, run) => { if (additionsOnly && !additionsActive && !name.startsWith('login returns')) return; await run(); results.push(name); console.log('✓ ' + name); };
 try {
   await mkdir(output, { recursive: true });
   let ready = false;
@@ -266,6 +269,9 @@ try {
     await page.locator('aside a[href="/dashboard"]').click();
     await page.locator('.home-module-grid').waitFor();
   });
+  additionsActive = true;
+  await checkAdditions({ page, context, base, go, check, theme, output });
+  additionsActive = false;
   await check('demo overrides are isolated when a different staff account signs in', async () => {
     const before = await storage();
     await page.getByRole('button', { name: 'ออกจากระบบ', exact: true }).click();
@@ -275,6 +281,8 @@ try {
     await login(); await page.waitForURL(base + '/');
     await go('/electives');
     assert.doesNotMatch(await page.locator('.nextlink-dashboard').innerText(), /\[Dashboard migration\]/);
+    await go('/companies?company=partner-cloud');
+    assert.doesNotMatch(await page.locator('main').innerText(), /Shared synthetic coordinator|ย้อนหลังสำหรับทดสอบ/);
     assert.deepEqual(await storage(), before, 'other account does not mutate the saved demo');
   });
   await check('offline and expired sessions cannot render a dashboard', async () => {
@@ -288,7 +296,7 @@ try {
   assert.deepEqual(unexpectedApi, [], 'demo edits never write to real business APIs or run AI');
   assert.deepEqual(errors, [], 'no browser runtime errors');
   assert.deepEqual(failedAssets, [], 'no broken chunks');
-  await writeFile(`${output}/results.json`, JSON.stringify({ passed: results.length, results, errors, failedAssets, unexpectedApi, backend: 'intercepted fixtures; not a live DB test' }, null, 2));
+  await writeFile(`${output}/${additionsOnly ? 'additions-results' : 'results'}.json`, JSON.stringify({ passed: results.length, results, errors, failedAssets, unexpectedApi, backend: 'intercepted fixtures; not a live DB test' }, null, 2));
 } catch (error) {
   if (page) { await page.screenshot({ path: `${output}/failure.png`, fullPage: true }).catch(() => {}); await writeFile(`${output}/failure.txt`, await page.locator('body').ariaSnapshot()).catch(() => {}); }
   console.error(logs); throw error;
