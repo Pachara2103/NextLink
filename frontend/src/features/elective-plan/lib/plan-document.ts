@@ -72,8 +72,8 @@ function roomPatch(value: unknown, full = false): boolean {
 function contact(value: unknown): boolean {
   if (value === null) return true;
   return object(value) && string(value.name) && Boolean(value.name.trim())
-    && (value.email === null || string(value.email)) && (value.lineId === null || string(value.lineId))
-    && Object.keys(value).every((key) => ["name", "email", "lineId"].includes(key));
+    && (value.email === null || string(value.email)) && (value.phone === null || string(value.phone))
+    && Object.keys(value).every((key) => ["name", "email", "phone"].includes(key));
 }
 const COURSE_TEXT_FIELDS = ["courseCode", "title", "category", "provider", "instructor"];
 // minSeats ไม่ใช่ฟิลด์ของวิชาอีกแล้ว (capacity ตัวเดียวจบ) แต่ยังรับไว้ให้แผนที่

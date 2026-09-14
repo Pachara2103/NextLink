@@ -180,7 +180,7 @@ const course = (over = {}) => ({
   category: "วิศวกรรมซอฟต์แวร์",
   provider: "Soft Square",
   instructor: "อาจารย์กานต์",
-  coordinator: over.coordinator ?? { name: "คุณนลิน", email: "narin@example.com", lineId: "mock_line" },
+  coordinator: over.coordinator ?? { name: "คุณนลิน", email: "narin@example.com", phone: "081-234-5678" },
   deliveryMode: over.deliveryMode ?? "ON_SITE",
   availability: over.availability ?? ["WED_AM", "FRI_AM"],
   sessionsPerWeek: over.sessionsPerWeek ?? 1,

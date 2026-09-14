@@ -269,6 +269,10 @@ def _update_course():
     assert updated.lecturer_name == "อาจารย์สมหญิง" and updated.capacity == 25
     assert updated.availability == [ElectiveSlot.SAT_EVE]
     assert updated.coordinator_name == "คุณประสาน"
+    # อีเมล/เบอร์ต้องอ่านกลับมาด้วย ไม่ใช่แค่ชื่อ - ฟอร์มแก้วิชาแสดงสามช่องนี้
+    # เป็นชุดเดียวกัน ถ้าได้กลับมาแค่ชื่อ การกดบันทึกครั้งต่อไปจะลบอีกสองช่อง
+    assert updated.coordinator_email == "coord@example.com"
+    assert updated.coordinator_phone is None
     with psycopg2.connect(DSN) as conn, conn.cursor() as cur:
         cur.execute("SELECT job_title, email FROM employees WHERE id = %s;",
                     (updated.coordinator_id,))
@@ -517,5 +521,86 @@ def _archived_is_read_only():
 
 
 check("เทอมที่ปิดแล้วอ่านได้แต่เขียนไม่ได้ ทุกทางเข้า", _archived_is_read_only)
+
+print("สคริปต์ตั้งค่าเริ่มต้น")
+
+SEED_SQL = pathlib.Path(__file__).resolve().parent.parent / "migrations" / "elective_seed.sql"
+
+
+def run_seed():
+    """รันไฟล์ทั้งไฟล์อย่างที่ psql รัน - รวม BEGIN/COMMIT และบล็อก DO ข้างท้าย"""
+    conn = psycopg2.connect(DSN)
+    conn.autocommit = True
+    try:
+        with conn.cursor() as cur:
+            cur.execute(SEED_SQL.read_text(encoding="utf-8"))
+    finally:
+        conn.close()
+
+
+def rooms_now():
+    with psycopg2.connect(DSN) as conn, conn.cursor() as cur:
+        cur.execute("SELECT building, name, seats, tier, is_active FROM elective_rooms ORDER BY building, name;")
+        return cur.fetchall()
+
+
+def _seed_opens_an_empty_database():
+    reset()
+    expect(NotFoundError, "ยังไม่มีเทอมที่กำลังจัด", svc.get_current_term)
+
+    run_seed()
+    term = svc.get_current_term()
+    assert term.status == TermStatus.CURRENT
+    rooms = svc.list_rooms().items
+    assert len(rooms) == 16, len(rooms)
+    ready = [room for room in rooms if room.tier == RoomTier.READY]
+    assert len(ready) == 6
+    assert all(room.building.startswith("จุฬาพัฒน์") for room in ready), "ห้องของภาคคือจุฬาพัฒน์"
+    assert {room.building for room in rooms if room.tier != RoomTier.READY} == {
+        "ตึก 3 (คณะวิศวะ)", "ตึก 4 (คณะวิศวะ)", "ตึกร้อยปี (คณะวิศวะ)",
+    }
+    # ที่นั่งของห้องคณะเป็นตัวเลขประมาณ หน้าเว็บจะแสดงเป็น ~40
+    assert all(room.seats_is_estimated for room in rooms if room.tier != RoomTier.READY)
+    # คาบที่ห้องติดงานอื่นต้องติดมาด้วย ไม่ใช่แค่ตัวห้อง
+    blocked = [(room.name, block.slot, block.reason) for room in rooms for block in room.blocked_slots]
+    assert blocked == [("จุฬาพัฒน์ 5 ห้อง 203", ElectiveSlot.TUE_AM, "วิชาบังคับของภาคใช้อยู่")], blocked
+
+
+check("ฐานเปล่า + สคริปต์ตั้งค่า = เปิดหน้าจัดตารางได้ทันที (16 ห้อง + เทอมที่กำลังจัด)", _seed_opens_an_empty_database)
+
+
+def _seed_is_idempotent_and_keeps_edits():
+    before = svc.get_current_term()
+    room = [item for item in svc.list_rooms().items if item.name == "ตึก 3 ชั้น 4 ห้อง 405"][0]
+    svc.update_room(room.id, ElectiveRoomWrite(
+        name=room.name, building=room.building, floor=room.floor, seats=99,
+        seats_is_estimated=False, tier=RoomTier.READY, is_active=False,
+    ))
+    svc.set_room_blocks(room.id, [ElectiveRoomBlock(slot=ElectiveSlot.MON_PM, reason="ซ่อมแอร์")])
+
+    run_seed()
+
+    assert svc.get_current_term().id == before.id, "รันซ้ำต้องไม่เปิดเทอมใหม่"
+    assert len(rooms_now()) == 16, "รันซ้ำต้องไม่เพิ่มห้องซ้ำ"
+    after = [item for item in svc.list_rooms(include_inactive=True).items if item.id == room.id][0]
+    # ของที่คนแก้ผ่านหน้าเว็บต้องชนะสคริปต์ตั้งค่าเสมอ
+    assert after.seats == 99 and after.is_active is False and after.tier == RoomTier.READY
+    assert [block.reason for block in after.blocked_slots] == ["ซ่อมแอร์"]
+
+
+check("รันสคริปต์ซ้ำไม่เพิ่มห้องซ้ำ และไม่ทับสิ่งที่คนแก้ผ่านหน้าเว็บ", _seed_is_idempotent_and_keeps_edits)
+
+
+def _seed_does_not_reopen_a_closed_term():
+    svc.archive_term(svc.get_current_term().id)
+    run_seed()
+    # ปี/ภาคนี้เคยเปิดแล้ว สคริปต์จึงไม่ทำอะไร - การตั้งค่าไม่ควรเปิดเทอมที่คน
+    # ตั้งใจปิด บล็อก DO ท้ายไฟล์เป็นตัวบอกคนที่รันว่าต้องไปเปิดเองที่ไหน
+    expect(NotFoundError, "ยังไม่มีเทอมที่กำลังจัด", svc.get_current_term)
+    assert len(svc.list_terms().items) == 1
+
+
+check("สคริปต์ไม่เปิดเทอมที่คนตั้งใจปิดกลับมาเอง", _seed_does_not_reopen_a_closed_term)
+
 
 print(f"\n{checks} elective service checks passed")

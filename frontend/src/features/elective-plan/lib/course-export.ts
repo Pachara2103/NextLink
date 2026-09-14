@@ -49,7 +49,7 @@ export type ExportContext = {
 function contactText(course: PlanCourse): string {
   const contact = course.coordinator;
   if (!contact) return "";
-  return [contact.name, contact.email, contact.lineId ? `LINE ${contact.lineId}` : ""].filter(Boolean).join(" · ");
+  return [contact.name, contact.email, contact.phone].filter(Boolean).join(" · ");
 }
 
 function statusText(course: PlanCourse, placed: PlacedPeriod[]): string {

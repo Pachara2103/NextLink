@@ -13,6 +13,8 @@ import {
 import { DAYS, DAY_SHORT, PERIODS, PERIOD_KEYS, makeSlotId, slotLabel } from "@/features/elective-plan/lib/slots.ts";
 import type { PlanCourse } from "@/features/elective-plan/lib/plan-types.ts";
 import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
+import { companyService } from "@/lib/services/company";
+import type { Company } from "@/types";
 
 /** `course: null` means a new course; `target: null` means the dialog is closed. */
 export type CourseFormTarget = { course: PlanCourse | null };
@@ -42,7 +44,11 @@ const NEW_COURSE: CourseDraft = {
   notes: null,
 };
 
-type ContactDraft = { name: string; email: string; lineId: string };
+type ContactDraft = { name: string; email: string; phone: string };
+
+/** The one name a company is shown under everywhere in this console. */
+const companyLabel = (company: Company): string =>
+  company.companyTh?.trim() || company.companyEn?.trim() || `บริษัท #${company.id}`;
 
 /**
  * Add or edit one course.
@@ -64,7 +70,11 @@ type CourseDialogProps = {
   isAdded: boolean;
   /** Periods this course currently holds; what a deletion would cost. */
   assignedCount: number;
-  onSave: (draft: CourseDraft) => void;
+  /**
+   * `companyId` is the row the course will hang off in `electives`. It is
+   * undefined on the bundled plan, which has no company table to point at.
+   */
+  onSave: (draft: CourseDraft, companyId?: number) => void;
   onDelete: () => void;
   onClose: () => void;
 };
@@ -83,10 +93,37 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
   const [contact, setContact] = useState<ContactDraft>(() => ({
     name: editing?.coordinator?.name ?? "",
     email: editing?.coordinator?.email ?? "",
-    lineId: editing?.coordinator?.lineId ?? "",
+    phone: editing?.coordinator?.phone ?? "",
   }));
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  /**
+   * The company directory, read once the form is open rather than with the
+   * plan: it is the same list the groups and MOU screens use, it is only
+   * needed by the person filling this in, and a plan that failed to load
+   * because the company list was slow would be the wrong trade.
+   */
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companyId, setCompanyId] = useState<number | null>(null);
+  useEffect(() => {
+    if (plan.mode !== "api") return;
+    let live = true;
+    companyService
+      .list()
+      .then((rows) => {
+        if (!live) return;
+        setCompanies(rows);
+        // Match the course already being edited to its row by the name it is
+        // shown under, so opening a form and saving it does not move a course
+        // to a different company.
+        const name = editing?.provider.trim();
+        const found = name ? rows.find((row) => companyLabel(row) === name) : undefined;
+        setCompanyId(found?.id ?? null);
+      })
+      .catch(() => { if (live) setError("โหลดรายชื่อบริษัทไม่สำเร็จ กรุณาลองใหม่"); });
+    return () => { live = false; };
+  }, [plan.mode, editing]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -104,7 +141,7 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
   const withContact = (): CourseDraft => ({
     ...draft,
     coordinator: contact.name.trim()
-      ? { name: contact.name, email: contact.email || null, lineId: contact.lineId || null }
+      ? { name: contact.name, email: contact.email || null, phone: contact.phone || null }
       : null,
   });
 
@@ -124,8 +161,12 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
       setError(problem);
       return;
     }
+    if (plan.mode === "api" && !companyId) {
+      setError("กรุณาเลือกบริษัทผู้สอนจากรายชื่อ");
+      return;
+    }
     setError(null);
-    onSave(normalizeCourseDraft(next));
+    onSave(normalizeCourseDraft(next), companyId ?? undefined);
   };
 
   const number = (value: number) => (Number.isFinite(value) ? value : "");
@@ -184,18 +225,44 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
             />
           </label>
 
+          {/*
+            * On the shared plan the company is a foreign key, so it is picked
+            * rather than typed: "บ. เอบีซี" and "ABC จำกัด" are one company to a
+            * reader and two rows to a database, and the course has to point at
+            * the same one the MOU and the LINE group already do. On the bundled
+            * plan there is no company table, so the free-text box stays.
+            */}
           <label>
             บริษัทผู้สอน
-            <input
-              type="text"
-              list="course-providers"
-              value={draft.provider}
-              placeholder="เช่น Soft Square"
-              onChange={(event) => setDraft({ ...draft, provider: event.target.value })}
-            />
-            <datalist id="course-providers">
-              {suggestions.providers.map((item) => <option key={item} value={item} />)}
-            </datalist>
+            {plan.mode === "api" ? (
+              <select
+                value={companyId ?? ""}
+                disabled={companies.length === 0}
+                onChange={(event) => {
+                  const picked = companies.find((item) => String(item.id) === event.target.value);
+                  setCompanyId(picked?.id ?? null);
+                  setDraft({ ...draft, provider: picked ? companyLabel(picked) : "" });
+                }}
+              >
+                <option value="">{companies.length ? "— เลือกบริษัท —" : "กำลังโหลดรายชื่อบริษัท…"}</option>
+                {companies.map((item) => (
+                  <option key={item.id} value={item.id}>{companyLabel(item)}</option>
+                ))}
+              </select>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  list="course-providers"
+                  value={draft.provider}
+                  placeholder="เช่น Soft Square"
+                  onChange={(event) => setDraft({ ...draft, provider: event.target.value })}
+                />
+                <datalist id="course-providers">
+                  {suggestions.providers.map((item) => <option key={item} value={item} />)}
+                </datalist>
+              </>
+            )}
           </label>
 
           <label>
@@ -343,12 +410,13 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
                 />
               </label>
               <label>
-                LINE ID
+                เบอร์โทร
                 <input
                   type="text"
-                  value={contact.lineId}
-                  placeholder="เช่น softsquare_narin"
-                  onChange={(event) => setContact({ ...contact, lineId: event.target.value })}
+                  inputMode="tel"
+                  value={contact.phone}
+                  placeholder="เช่น 081-234-5678"
+                  onChange={(event) => setContact({ ...contact, phone: event.target.value })}
                 />
               </label>
             </div>

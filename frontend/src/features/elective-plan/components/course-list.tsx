@@ -57,18 +57,16 @@ const PAGE_SIZE = 10;
  * term that ended" to show history at all; a reference list has no such
  * question, so history lands here and stays read-only.
  */
-export function CourseList({
-  payload,
-  terms,
-  archives,
-}: {
-  payload: PlanPayload;
-  terms: TermMeta[];
-  archives: ArchivedTerm[];
-}) {
+export function CourseList() {
   const plan = usePlanState();
+  const { payload, terms, archives } = plan;
   const { toast, show, dismiss, holdTimer, resumeTimer } = useStatusToast();
-  const currentTerm = useMemo(() => terms.find((term) => term.status === "CURRENT") ?? terms[0], [terms]);
+  // The plan always has a term; the full list of terms is read after it, so
+  // this page renders before the switcher has anything else to offer.
+  const currentTerm = useMemo(
+    () => terms.find((term) => term.status === "CURRENT") ?? terms[0] ?? plan.term,
+    [terms, plan.term],
+  );
 
   const [courseForm, setCourseForm] = useState<CourseFormTarget | null>(null);
   const [termId, setTermId] = useState(currentTerm.id);
@@ -684,13 +682,13 @@ export function CourseList({
         courses={plan.courses}
         isAdded={courseForm?.course ? plan.isAddedCourse(courseForm.course.id) : false}
         assignedCount={courseForm?.course ? plan.assignmentsForCourse(courseForm.course.id) : 0}
-        onSave={async (draft) => {
+        onSave={async (draft, companyId) => {
           const target = courseForm?.course;
           if (target) {
             if (!await plan.updateCourse(target.id, draft)) return;
             show(`บันทึก ${draft.title} แล้ว`, plan.undo);
           } else {
-            if (!await plan.addCourse(draft)) return;
+            if (!await plan.addCourse(draft, companyId)) return;
             show(`เพิ่ม ${draft.title} เข้า${currentTerm.shortLabel} แล้ว`, plan.undo);
             revealCourses();
           }

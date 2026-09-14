@@ -130,6 +130,10 @@ class Elective(ElectiveBase, BaseTimestamp):
     lecturer_name: str | None = None
     coordinator_id: int | None = None
     coordinator_name: str | None = None
+    # อีเมล/เบอร์ของผู้ประสานงานติดมาด้วย เพราะฟอร์มแก้วิชาแสดงสามช่องนี้เป็นชุด
+    # เดียวกัน ถ้าอ่านกลับมาได้แต่ชื่อ การกดบันทึกในฟอร์มจะลบอีกสองช่องทิ้ง
+    coordinator_email: str | None = None
+    coordinator_phone: str | None = None
     availability: list[ElectiveSlot] = Field(default_factory=list)
 
 

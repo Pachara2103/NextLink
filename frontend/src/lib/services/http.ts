@@ -194,6 +194,34 @@ export async function putJson<T>(
   );
 }
 
+/**
+ * A partial write: the fields left out keep whatever the server has.
+ *
+ * Only the elective checklist needs this. Every other write in this console
+ * edits one row from one form that holds all of its fields, so PUT says what
+ * is meant. A checklist is a row of small controls that different people press
+ * at different moments, and sending the whole row back would mean the last
+ * press quietly undoes the others.
+ */
+export async function patchJson<T>(
+  path: string,
+  body: unknown,
+  options?: RequestOptions,
+): Promise<T> {
+  return parse<T>(
+    path,
+    await send(
+      path,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify(body),
+      },
+      options,
+    ),
+  );
+}
+
 export async function deleteJson<T>(
   path: string,
   options?: RequestOptions,

@@ -15,7 +15,7 @@
       "coordinator": {
         "name": "คุณนลิน",
         "email": "narin.softsquare@example.com",
-        "lineId": "mock_softsquare_narin"
+        "phone": "088-471-2580"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
@@ -36,7 +36,7 @@
       "coordinator": {
         "name": "คุณพิมพ์ชนก",
         "email": "pimchanok.softsquare@example.com",
-        "lineId": "mock_softsquare_pim"
+        "phone": "088-450-2182"
       },
       "deliveryMode": "HYBRID",
       "availability": [
@@ -58,7 +58,7 @@
       "coordinator": {
         "name": "คุณเตนล์",
         "email": "ten.stelligence@example.com",
-        "lineId": "mock_stelligence_ten"
+        "phone": "080-264-6216"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
@@ -80,7 +80,7 @@
       "coordinator": {
         "name": "คุณภัทร",
         "email": "phat.playtorium@example.com",
-        "lineId": "mock_playtorium_phat"
+        "phone": "088-851-8077"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
@@ -103,7 +103,7 @@
       "coordinator": {
         "name": "คุณกิตติ",
         "email": "kitti.cyberdefense@example.com",
-        "lineId": "mock_cyberdefense_kitti"
+        "phone": "082-984-9826"
       },
       "deliveryMode": "HYBRID",
       "availability": [
@@ -126,7 +126,7 @@
       "coordinator": {
         "name": "คุณอรทัย",
         "email": "orathai.datapulse@example.com",
-        "lineId": "mock_datapulse_orathai"
+        "phone": "089-149-2012"
       },
       "deliveryMode": "ONLINE",
       "availability": [
@@ -148,7 +148,7 @@
       "coordinator": {
         "name": "คุณศุภชัย",
         "email": "supachai.cloudnexa@example.com",
-        "lineId": "mock_cloudnexa_supachai"
+        "phone": "082-706-4855"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
@@ -170,7 +170,7 @@
       "coordinator": {
         "name": "คุณมินตรา",
         "email": "mintra.designcraft@example.com",
-        "lineId": "mock_designcraft_mintra"
+        "phone": "087-954-1270"
       },
       "deliveryMode": "HYBRID",
       "availability": [
@@ -193,7 +193,7 @@
       "coordinator": {
         "name": "คุณวริศรา",
         "email": "warisara.brightworks@example.com",
-        "lineId": "mock_brightworks_warisara"
+        "phone": "089-426-5197"
       },
       "deliveryMode": "ONLINE",
       "availability": [
@@ -215,7 +215,7 @@
       "coordinator": {
         "name": "คุณรวิ",
         "email": "rawi.graphmind@example.com",
-        "lineId": "mock_graphmind_rawi"
+        "phone": "088-974-9333"
       },
       "deliveryMode": "HYBRID",
       "availability": [
@@ -237,7 +237,7 @@
       "coordinator": {
         "name": "คุณเอมี่",
         "email": "amy.pixelforge@example.com",
-        "lineId": "mock_pixelforge_amy"
+        "phone": "086-375-5185"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
@@ -259,7 +259,7 @@
       "coordinator": {
         "name": "คุณศุภชัย",
         "email": "supachai.cloudnexa@example.com",
-        "lineId": "mock_cloudnexa_supachai"
+        "phone": "082-706-4855"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
@@ -282,7 +282,7 @@
       "coordinator": {
         "name": "คุณปาริชาต",
         "email": "parichat.innovex@example.com",
-        "lineId": "mock_innovex_parichat"
+        "phone": "089-540-2102"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
@@ -303,7 +303,7 @@
       "coordinator": {
         "name": "คุณปาริชาต",
         "email": "parichat.innovex@example.com",
-        "lineId": "mock_innovex_parichat"
+        "phone": "089-540-2102"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
@@ -324,7 +324,7 @@
       "coordinator": {
         "name": "คุณธิดา",
         "email": "thida.sensora@example.com",
-        "lineId": "mock_sensora_thida"
+        "phone": "086-871-8604"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
@@ -346,7 +346,7 @@
       "coordinator": {
         "name": "คุณภัทร",
         "email": "phat.playtorium@example.com",
-        "lineId": "mock_playtorium_phat"
+        "phone": "088-851-8077"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
@@ -368,7 +368,7 @@
       "coordinator": {
         "name": "คุณสิรี",
         "email": "siree.chainworks@example.com",
-        "lineId": "mock_chainworks_siree"
+        "phone": "084-189-2759"
       },
       "deliveryMode": "HYBRID",
       "availability": [
@@ -390,7 +390,7 @@
       "coordinator": {
         "name": "คุณวริศรา",
         "email": "warisara.brightworks@example.com",
-        "lineId": "mock_brightworks_warisara"
+        "phone": "089-426-5197"
       },
       "deliveryMode": "ONLINE",
       "availability": [

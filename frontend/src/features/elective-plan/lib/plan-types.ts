@@ -2,10 +2,17 @@ import type { SlotId } from "./slots.ts";
 
 export type DeliveryMode = "ON_SITE" | "HYBRID" | "ONLINE";
 
+/**
+ * The person at the company to ring about one course.
+ *
+ * Email and phone rather than email and LINE id: this contact is a row in
+ * `employees`, which has those two columns and no third one, and a field that
+ * cannot be written back is a field that quietly loses whatever is typed in it.
+ */
 export type Contact = {
   name: string;
   email: string | null;
-  lineId: string | null;
+  phone: string | null;
 };
 
 /**

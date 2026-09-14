@@ -212,12 +212,12 @@ check("a delivery mode the scheduler does not know is refused", () => {
 });
 
 check("a coordinator is kept whole or dropped whole", () => {
-  const named = normalizeCourseDraft(draft({ coordinator: { name: " คุณนลิน ", email: " a@b.co ", lineId: "" } }));
+  const named = normalizeCourseDraft(draft({ coordinator: { name: " คุณนลิน ", email: " a@b.co ", phone: "" } }));
   if (named.coordinator.name !== "คุณนลิน" || named.coordinator.email !== "a@b.co") return "the contact was not trimmed";
-  if (named.coordinator.lineId !== null) return "an empty LINE id was kept as an empty string";
-  const nameless = normalizeCourseDraft(draft({ coordinator: { name: "  ", email: "a@b.co", lineId: null } }));
+  if (named.coordinator.phone !== null) return "an empty phone number was kept as an empty string";
+  const nameless = normalizeCourseDraft(draft({ coordinator: { name: "  ", email: "a@b.co", phone: null } }));
   if (nameless.coordinator !== null) return "a contact with no name was kept";
-  return validateCourseDraft(draft({ coordinator: { name: "คุณนลิน", email: "not-an-email", lineId: null } }), SEED)
+  return validateCourseDraft(draft({ coordinator: { name: "คุณนลิน", email: "not-an-email", phone: null } }), SEED)
     ? null
     : "a malformed coordinator email was accepted";
 });

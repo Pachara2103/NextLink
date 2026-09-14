@@ -20,8 +20,9 @@ import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
 /** Short enough that the board is still on screen under the list. */
 const FOLLOW_UP_PAGE_SIZE = 5;
 
-export function PlanOverview({ payload }: { payload: PlanPayload }) {
+export function PlanOverview() {
   const plan = usePlanState();
+  const payload = plan.payload;
   const router = useRouter();
   const { toast, show, dismiss, holdTimer, resumeTimer } = useStatusToast();
   const [followUpOpen, setFollowUpOpen] = useState(true);

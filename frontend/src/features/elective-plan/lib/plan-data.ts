@@ -5,6 +5,7 @@ import term25682Json from "@/features/elective-plan/data/terms/2568-2.json";
 import term25681Json from "@/features/elective-plan/data/terms/2568-1.json";
 import term25672Json from "@/features/elective-plan/data/terms/2567-2.json";
 import { assertSeedNumber, validateArchiveSessions } from "./seed-validation.ts";
+import type { PlanSource } from "./use-plan-state";
 import { ALL_SLOTS, isSlotId, slotRank, type SlotId } from "./slots.ts";
 import type {
   ArchivedSession,
@@ -168,6 +169,25 @@ function readTermMeta(raw: (typeof termIndexJson)["terms"][number]): TermMeta {
     shortLabel: raw.shortLabel,
     status: raw.status === "CURRENT" ? "CURRENT" : "ARCHIVED",
   };
+}
+
+/**
+ * Which plan this process serves: the shared one, or the bundled copy.
+ *
+ * The shared plan is the product. The bundled copy is what the regression
+ * suites drive and what lets the planner be opened with no backend running, so
+ * it is an explicit opt-in (`PLAN_SOURCE=seed`) rather than a fallback — a
+ * planner that silently dropped to a mock when the API was down would look
+ * like it was working while saving nothing.
+ *
+ * Read here, in a server component, rather than through `NEXT_PUBLIC_`: that
+ * would bake the answer into the bundle at build time, which means a separate
+ * build to run the suites and a `VAR=value next build` line that does not work
+ * on Windows. This is one environment variable on `next start`.
+ */
+export function planSource(): PlanSource {
+  if (process.env.PLAN_SOURCE !== "seed") return { kind: "api" };
+  return { kind: "seed", payload: getPlanPayload(), terms: getTermIndex(), archives: getArchivedTerms() };
 }
 
 export function getPlanPayload(): PlanPayload {

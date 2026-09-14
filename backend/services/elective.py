@@ -500,6 +500,8 @@ _ELECTIVE_JOINED = {
     "company_en",
     "lecturer_name",
     "coordinator_name",
+    "coordinator_email",
+    "coordinator_phone",
     "availability",
 }
 
@@ -508,7 +510,9 @@ SELECT_ELECTIVES = f"""
            c.company_th,
            c.company_en,
            coalesce(le.name_th, le.name_en, le.nickname) AS lecturer_name,
-           coalesce(co.name_th, co.name_en, co.nickname) AS coordinator_name
+           coalesce(co.name_th, co.name_en, co.nickname) AS coordinator_name,
+           co.email AS coordinator_email,
+           co.phone AS coordinator_phone
     FROM electives e
     JOIN companies c ON c.id = e.company_id
     JOIN employees le ON le.id = e.lecturer_id

@@ -87,7 +87,7 @@ function readContact(contact: Contact | null | undefined): Contact | null {
   // A coordinator with no name is an email nobody can be asked about, so the
   // whole contact goes rather than half of one.
   if (!name) return null;
-  return { name, email: trimmedOrNull(contact?.email), lineId: trimmedOrNull(contact?.lineId) };
+  return { name, email: trimmedOrNull(contact?.email), phone: trimmedOrNull(contact?.phone) };
 }
 
 export function courseDraftFrom(course: PlanCourse): CourseDraft {

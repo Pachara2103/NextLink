@@ -8,7 +8,7 @@ import { once } from 'node:events';
 const reserve = createServer(); reserve.listen(0, '127.0.0.1'); await once(reserve, 'listening');
 const port = reserve.address().port; await new Promise((resolve) => reserve.close(resolve));
 const base = `http://127.0.0.1:${port}`;
-const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '-H', '127.0.0.1', '-p', String(port)], { env: { ...process.env, PORT: String(port), HOSTNAME: '127.0.0.1', NODE_ENV: 'production', API_ORIGIN: 'http://127.0.0.1:18999' }, stdio: ['ignore', 'pipe', 'pipe'] });
+const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '-H', '127.0.0.1', '-p', String(port)], { env: { ...process.env, PORT: String(port), HOSTNAME: '127.0.0.1', NODE_ENV: 'production', API_ORIGIN: 'http://127.0.0.1:18999', PLAN_SOURCE: 'seed' }, stdio: ['ignore', 'pipe', 'pipe'] });
 let logs = ''; server.stdout.on('data', (data) => { logs += data; }); server.stderr.on('data', (data) => { logs += data; });
 let browser;
 const results = [];
@@ -26,7 +26,9 @@ try {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   assert.ok(ready, 'production server started');
-  browser = await chromium.launch({ headless: true });
+  // PW_CHROMIUM: use a browser Playwright did not install itself. CI images
+  // often already carry one, and downloading a second copy per run is minutes.
+  browser = await chromium.launch({ headless: true, ...(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {}) });
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
   const watch = (page) => {
     page.on('pageerror', (error) => errors.push(error.message));

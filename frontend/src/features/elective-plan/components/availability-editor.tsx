@@ -21,8 +21,9 @@ import { useUrlFilters } from "@/features/elective-plan/lib/use-url-filters";
  * that edit has to go through a developer or back into a spreadsheet, the
  * spreadsheet becomes the real plan again within a week.
  */
-export function AvailabilityEditor({ payload }: { payload: PlanPayload }) {
+export function AvailabilityEditor() {
   const plan = usePlanState();
+  const payload = plan.payload;
   const { toast, show, dismiss, holdTimer, resumeTimer } = useStatusToast();
   const [search, setSearch] = useState("");
   const [provider, setProvider] = useState("");
