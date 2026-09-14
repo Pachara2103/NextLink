@@ -239,7 +239,7 @@ def test_database_failure_does_not_fall_back_to_signature_only(client, monkeypat
     headers = sign_in(client)
     def unavailable():
         raise DatabaseError()
-    monkeypatch.setattr(sessions.pg_db, "get_connection", unavailable)
+    monkeypatch.setattr(sessions.nl_db, "get_connection", unavailable)
     assert client.get("/protected", headers=headers).status_code == 500
 
 
@@ -251,7 +251,7 @@ def test_login_budget_database_failure_never_reaches_bcrypt(client, monkeypatch)
         raise DatabaseError()
     def unexpected_check(*args):
         pytest.fail("bcrypt must not run if the shared budget cannot be checked")
-    monkeypatch.setattr(limits.pg_db, "get_connection", unavailable)
+    monkeypatch.setattr(limits.nl_db, "get_connection", unavailable)
     monkeypatch.setattr(users.bcrypt, "checkpw", unexpected_check)
     response = client.post("/api/v1/auth/login", json={"username": "alice", "password": "correct-password"})
     assert response.status_code == 500

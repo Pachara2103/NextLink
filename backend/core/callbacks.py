@@ -2,7 +2,7 @@ from typing import Any, Optional
 from uuid import UUID
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.outputs import LLMResult
-from core.db import pg_db
+from core.db import nl_db
 
 class TokenTrackerHandler(BaseCallbackHandler):
     def __init__(self,  log_type: str, step_name: str, group_id: str, user_id: int):
@@ -80,7 +80,7 @@ class TokenTrackerHandler(BaseCallbackHandler):
             VALUES (%s, %s, %s, %s, %s, %s, %s);
         """
         try:
-            with pg_db.get_connection() as conn:
+            with nl_db.get_connection() as conn:
               with conn.cursor() as cursor:
                 cursor.execute(sql, (
                     data["log_type"],

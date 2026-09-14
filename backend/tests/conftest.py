@@ -20,7 +20,7 @@ os.environ["PG_POOL_MAX"] = "20"
 os.environ["PYTHON_DOTENV_DISABLED"] = "1"
 
 from core import config
-from core.db import pg_db
+from core.db import nl_db
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -38,7 +38,7 @@ def database_schema():
             cursor.execute(migration)
             cursor.execute(migration)
     yield
-    pg_db.close()
+    nl_db.close()
 
 
 @pytest.fixture(autouse=True)

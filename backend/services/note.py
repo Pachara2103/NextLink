@@ -1,4 +1,4 @@
-from core.db import pg_db, graph_db
+from core.db import nl_db, graph_db
 from core.exceptions import BadRequestError, NotFoundError
 from services import outbox
 from schemas.base import ListResponse
@@ -80,7 +80,7 @@ def get_note(id: int, conn: Any = None) -> Note:
 def get_notes() -> ListResponse[Note]:
     query = f"{SELECT_NOTES} ORDER BY n.year DESC NULLS LAST, n.semester DESC NULLS LAST, n.updated_at DESC;"
 
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(query)
             rows = rows_to_models(cursor, Note)
@@ -183,7 +183,7 @@ def sync_create_note(payload: NoteCreate):
     """
     _validate(payload)
     # embedding = embed_text(payload.content)
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         id = create_note_pg(payload, conn=conn)
         outbox.enqueue(conn, outbox.NOTE, id, outbox.UPSERT, _payload(payload))
         conn.commit()
@@ -236,7 +236,7 @@ def sync_update_note(id: int, payload: NoteCreate) :
         raise BadRequestError(message="ไม่พบโน้ตที่ต้องการแก้ไข")
     _validate(payload)
     # new_embedding = embed_text(payload.content)
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         old_note = get_note(id, conn=conn)
         if not old_note:
           raise NotFoundError(message=f"ไม่พบโน้ต id = {id}")
@@ -265,7 +265,7 @@ def sync_delete_note(id: int):
     if not id:
         raise BadRequestError(message="ไม่พบโน้ตที่ต้องการลบ")
 
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         # อ่านก่อนลบ: ไม่มีแถวก็ 404 ตั้งแต่ตรงนี้ ไม่ต้องจองงานลบกราฟเปล่า ๆ
         get_note(id, conn=conn)
         delete_note_pg(id, conn=conn)

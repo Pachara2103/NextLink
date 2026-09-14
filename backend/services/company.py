@@ -2,7 +2,7 @@ from typing import Any
 
 from psycopg2.errors import ForeignKeyViolation, UniqueViolation
 
-from core.db import graph_db, pg_db
+from core.db import graph_db, nl_db
 from core.exceptions import BadRequestError, NotFoundError
 from schemas.base import ListResponse
 from schemas.company import Company, CompanyName
@@ -39,7 +39,7 @@ def get_company(id: int, conn: Any = None) -> Company:
 
 def get_companies() -> ListResponse[Company]:
     query = f"select {columns_of(Company)} from companies where group_id is not null;"
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(query)
             items = rows_to_models(cursor, Company)
@@ -47,9 +47,6 @@ def get_companies() -> ListResponse[Company]:
 
 
 def create_company_pg(payload: CompanyName, group_id: str, is_linked: bool = False, conn: Any = None):
-    if not payload.company_th and not payload.company_en:
-        raise BadRequestError(message="ไม่ระบุชื่อบริษัทที่ต้องการอัปเดต")
-
     if not conn:
          raise BadRequestError()
 
@@ -173,7 +170,7 @@ update_company_graph = upsert_company_graph
 
 
 def sync_update_company(payload: CompanyName, id: int):
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         target = get_company(id, conn=conn)
         update_company_pg(payload, id=id, conn=conn)
         # อ่านกลับหลัง UPDATE: คอลัมน์ใช้ COALESCE อยู่ ฟิลด์ที่ payload ไม่ได้ส่ง
@@ -193,7 +190,7 @@ def sync_update_company(payload: CompanyName, id: int):
 
 
 def sync_create_company(payload: CompanyName, group_id: str):
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         id = create_company_pg(payload, group_id=group_id, is_linked=True, conn=conn)
         outbox.enqueue(
             conn, outbox.COMPANY, id, outbox.UPSERT, _payload(payload, group_id)
@@ -239,7 +236,7 @@ def delete_company_graph(id: int) -> int:
 def sync_delete_company(id: int):
     if not id:
         raise BadRequestError()
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         get_company(id, conn=conn)
         delete_company_pg(id=id, conn=conn)
         outbox.enqueue(conn, outbox.COMPANY, id, outbox.DELETE)

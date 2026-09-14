@@ -31,7 +31,7 @@ from typing import Any, Callable
 
 from psycopg2.extras import Json
 
-from core.db import pg_db
+from core.db import nl_db
 
 logger = logging.getLogger(__name__)
 
@@ -204,7 +204,7 @@ def _run(where: str, params: dict, limit: int) -> dict:
     failed = 0
 
     for _ in range(limit):
-        with pg_db.get_connection() as conn:
+        with nl_db.get_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(
                     f"""
@@ -263,7 +263,7 @@ def replay_pending(limit: int = DEFAULT_BATCH) -> dict:
 
 def pending_summary() -> dict:
     """จำนวนงานค้าง + ตัวอย่างงานที่ค้างนานที่สุด สำหรับหน้า admin"""
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(
                 "SELECT count(*) FROM graph_outbox WHERE status = 'pending';"
@@ -308,7 +308,7 @@ def enqueue_and_flush(
     ใช้กับงานที่ไม่มีการเขียน pg คู่กัน เช่น reconcile ที่ซ่อมกราฟให้ตรงกับ
     pg ที่มีอยู่แล้ว
     """
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         enqueue(conn, entity, entity_id, op, payload)
         conn.commit()
     return flush(entity, entity_id)

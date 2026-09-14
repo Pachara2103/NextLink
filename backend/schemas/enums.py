@@ -8,7 +8,6 @@ class RelevantType(StrEnum):
     FRIDAY = "friday"
     GENERAL = "general"
     
-
 class ContactRole(StrEnum):
     INSTRUCTOR = "instructor"
     SENIOR = "senior"
