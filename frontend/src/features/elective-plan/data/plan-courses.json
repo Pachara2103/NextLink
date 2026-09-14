@@ -22,7 +22,6 @@
         "WED_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 40,
       "capacity": 40,
       "weeks": 10,
       "notes": "บริษัทแจ้งว่าสะดวกพุธเช้าช่วงเดียว วิทยากรติดงานประจำวันอื่น"
@@ -45,7 +44,6 @@
         "FRI_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 45,
       "capacity": 45,
       "weeks": 10,
       "notes": "ถ้าได้พุธบ่ายจะสะดวกที่สุด เพราะทีมเดียวกับ 21105801 เดินทางมาวันเดียว"
@@ -68,7 +66,6 @@
         "THU_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 40,
       "capacity": 40,
       "weeks": 10,
       "notes": "ครอบคลุม RPA, Data Fabric, Predictive AI, GenAI, RAG และ Knowledge Graph"
@@ -92,7 +89,6 @@
         "FRI_PM"
       ],
       "sessionsPerWeek": 2,
-      "minSeats": 45,
       "capacity": 45,
       "weeks": 9,
       "notes": "ต้องได้ 2 คาบต่อสัปดาห์ และขอให้คนละวันกัน"
@@ -116,7 +112,6 @@
         "FRI_EVE"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 60,
       "capacity": 60,
       "weeks": 8,
       "notes": "รับ 60 คน จึงลงได้เฉพาะห้อง 64 ที่นั่งขึ้นไป"
@@ -139,7 +134,6 @@
         "SAT_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 0,
       "capacity": 40,
       "weeks": 10,
       "notes": "สอนออนไลน์ล้วน ไม่ใช้ห้อง"
@@ -162,7 +156,6 @@
         "FRI_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 45,
       "capacity": 45,
       "weeks": 10,
       "notes": "สะดวกพุธเช้าเป็นอันดับแรก ถ้าไม่ได้ขอเป็นศุกร์บ่าย"
@@ -186,7 +179,6 @@
         "SAT_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 30,
       "capacity": 30,
       "weeks": 8,
       "notes": "เป็น workshop กลุ่มเล็ก ห้อง 30 ที่นั่งพอ"
@@ -209,7 +201,6 @@
         "SAT_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 0,
       "capacity": 50,
       "weeks": 10,
       "notes": "สอนออนไลน์ล้วน ไม่ใช้ห้อง"
@@ -232,7 +223,6 @@
         "TUE_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 35,
       "capacity": 35,
       "weeks": 10,
       "notes": "หมวดเดียวกับ 21105803 ควรเลี่ยงไม่ให้ชนกัน"
@@ -255,7 +245,6 @@
         "THU_EVE"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 30,
       "capacity": 30,
       "weeks": 9,
       "notes": "วิทยากรอยู่ต่างจังหวัด ขอคาบบ่ายหรือเย็นเท่านั้น"
@@ -279,7 +268,6 @@
         "SAT_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 55,
       "capacity": 55,
       "weeks": 10,
       "notes": "ผู้สอนคนเดียวกับ 21105807 จึงสอนสองวิชาในคาบเดียวกันไม่ได้"
@@ -301,7 +289,6 @@
         "TUE_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 40,
       "capacity": 40,
       "weeks": 10,
       "notes": "Innovex ส่งวิทยากรได้คนเดียว และว่างเฉพาะอังคารบ่าย"
@@ -323,7 +310,6 @@
         "TUE_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 35,
       "capacity": 35,
       "weeks": 10,
       "notes": "วิทยากรคนเดียวกับ 21105813 และว่างคาบเดียวกัน — ตั้งใจให้จัดไม่ลงเพื่อดูหน้าจอตอนติดปัญหา"
@@ -346,7 +332,6 @@
         "THU_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 35,
       "capacity": 35,
       "weeks": 9,
       "notes": "ต้องมีปลั๊กไฟพอสำหรับบอร์ดทดลอง"
@@ -369,7 +354,6 @@
         "WED_EVE"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 40,
       "capacity": 40,
       "weeks": 8,
       "notes": "บริษัทเดียวกับ 21105804 แต่คนละวิทยากร"
@@ -392,7 +376,6 @@
         "SAT_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 30,
       "capacity": 30,
       "weeks": 8,
       "notes": null
@@ -415,7 +398,6 @@
         "THU_EVE"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 0,
       "capacity": 60,
       "weeks": 10,
       "notes": "สอนออนไลน์ล้วน ไม่ใช้ห้อง"

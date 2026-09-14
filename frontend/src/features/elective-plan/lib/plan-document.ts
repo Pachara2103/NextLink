@@ -76,12 +76,25 @@ function contact(value: unknown): boolean {
     && Object.keys(value).every((key) => ["name", "email", "lineId"].includes(key));
 }
 const COURSE_TEXT_FIELDS = ["courseCode", "title", "category", "provider", "instructor"];
-const COURSE_FIELDS = [...COURSE_TEXT_FIELDS, "coordinator", "deliveryMode", "availability", "sessionsPerWeek", "minSeats", "capacity", "weeks", "notes"];
+// minSeats ไม่ใช่ฟิลด์ของวิชาอีกแล้ว (capacity ตัวเดียวจบ) แต่ยังรับไว้ให้แผนที่
+// บันทึกไว้ก่อนหน้าเปิดได้ แล้ว readStoredCourse ทิ้งค่านั้นตอนอ่านเข้ามา
+const COURSE_FIELDS = [...COURSE_TEXT_FIELDS, "section", "coordinator", "deliveryMode", "availability", "sessionsPerWeek", "minSeats", "capacity", "weeks", "notes"];
 /**
  * One course, or a correction to one. `full` is a course a person typed in, so
  * every field has to be there; without it this is a patch and only the keys
  * present are checked — the same two-in-one shape as `roomPatch` above.
  */
+/**
+ * วิชาหนึ่งแถวอย่างที่เก็บอยู่จริง เติมค่าที่เพิ่งมีทีหลังและทิ้งค่าที่เลิกใช้
+ * ไปแล้ว - แผนที่คนเก็บไว้ตั้งแต่รุ่นก่อนจึงยังเปิดได้ และสิ่งที่ไหลเข้าไปถึง
+ * React มีรูปเดียวเสมอ
+ */
+function readStoredCourse(value: Record<string, unknown>): Record<string, unknown> {
+  const next: Record<string, unknown> = { section: 1, ...value };
+  delete next.minSeats;
+  return next;
+}
+
 function coursePatch(value: unknown, full = false): boolean {
   if (!object(value)) return false;
   if (full && (!string(value.id) || !/^[a-z0-9-]+$/.test(value.id))) return false;
@@ -92,7 +105,10 @@ function coursePatch(value: unknown, full = false): boolean {
   if ((full || "availability" in value) && !slots(value.availability)) return false;
   if ((full || "sessionsPerWeek" in value) && !count(value.sessionsPerWeek, 1, 18)) return false;
   if ((full || "weeks" in value) && !count(value.weeks, 1, 52)) return false;
-  if ((full || "minSeats" in value) && !count(value.minSeats)) return false;
+  // section และ minSeats ไม่บังคับแม้ใน full: แผนที่บันทึกก่อนมีตอนเรียนยังต้อง
+  // เปิดได้ และแผนที่บันทึกตอนยังมี minSeats ก็เช่นกัน
+  if ("section" in value && !count(value.section, 1, 99)) return false;
+  if ("minSeats" in value && !count(value.minSeats)) return false;
   if ((full || "capacity" in value) && !count(value.capacity)) return false;
   if ((full || "notes" in value) && !(value.notes === null || string(value.notes))) return false;
   return Object.keys(value).every((key) => [...COURSE_FIELDS, ...(full ? ["id"] : [])].includes(key));
@@ -124,12 +140,18 @@ export function decodePlan(raw: string, payload: PlanPayload): { document: PlanD
   const rooms = mergeRooms(payload.rooms, edits as RoomEdits);
   const roomIds = new Set(rooms.map((room) => room.id));
   if (roomIds.size !== rooms.length) throw new Error("มีรหัสห้องซ้ำในแผน");
-  const added = courseEdits.added as PlanCourse[];
+  const added = (courseEdits.added as Record<string, unknown>[]).map(readStoredCourse) as unknown as PlanCourse[];
+  const overrides = Object.fromEntries(Object.entries(courseOverrides as Record<string, Record<string, unknown>>)
+    .map(([id, patch]) => {
+      const next = { ...patch };
+      delete next.minSeats;
+      return [id, next];
+    })) as Record<string, CourseOverride>;
   const knownCourses = new Set([...payload.courses, ...added].map((course) => course.id));
   if (knownCourses.size !== payload.courses.length + added.length) throw new Error("มีรหัสวิชาซ้ำกับวิชาเดิมในแผน");
+  const edited: CourseEdits = { added, removed: courseEdits.removed as string[] };
   const courses = new Map(mergeCourses(payload.courses, {
-    courseEdits: courseEdits as CourseEdits,
-    courseOverrides: courseOverrides as Record<string, CourseOverride>,
+    courseEdits: edited, courseOverrides: overrides,
   }).map((course) => [course.id, course]));
   const ids = new Set<string>(), sessions = new Set<string>();
   for (const item of value.assignments) {
@@ -148,14 +170,13 @@ export function decodePlan(raw: string, payload: PlanPayload): { document: PlanD
   // throwing away work after a deployment changes the bundled facts. A course
   // the person hid is still "known", so hiding one does not invalidate the
   // paperwork already recorded against it.
-  if (Object.keys(courseOverrides).some((id) => !knownCourses.has(id)) || Object.keys(checklists).some((id) => !knownCourses.has(id))) throw new Error("แผนมีข้อมูลของวิชาที่ไม่อยู่ในชุดข้อมูลปัจจุบัน");
+  if (Object.keys(overrides).some((id) => !knownCourses.has(id)) || Object.keys(checklists).some((id) => !knownCourses.has(id))) throw new Error("แผนมีข้อมูลของวิชาที่ไม่อยู่ในชุดข้อมูลปัจจุบัน");
   const knownRooms = new Set([...payload.rooms, ...(edits.added as PlanRoom[])].map((room) => room.id));
   if (knownRooms.size !== payload.rooms.length + edits.added.length) throw new Error("มีรหัสห้องซ้ำกับห้องเดิมในแผน");
   if (Object.keys(edits.overrides).some((id) => !knownRooms.has(id))) throw new Error("แผนอ้างอิงห้องที่ถูกนำออกจากชุดข้อมูล");
   const document: PlanDocument = {
     ...emptyDocument(payload), assignments: value.assignments as Assignment[],
-    courseOverrides: courseOverrides as Record<string, CourseOverride>,
-    courseEdits: courseEdits as CourseEdits, roomEdits: edits as RoomEdits,
+    courseOverrides: overrides, courseEdits: edited, roomEdits: edits as RoomEdits,
     checklists: Object.fromEntries(Object.entries(checklists).map(([id, value]) => [id, readChecklist(value as Partial<CourseChecklist>)])),
     revision: legacy ? 0 : value.revision as number,
     editedAt: string(value.editedAt) ? value.editedAt : null,

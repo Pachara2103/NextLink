@@ -712,6 +712,14 @@ out — but it should never happen without the reader seeing it. */
   .elective-planner .course-form, .elective-planner .course-contact-fields { grid-template-columns: 1fr; }
 }
 
+/* วิชา + บริษัท + รหัส/หมวด อยู่ในเซลล์เดียว - ชื่อวิชากับชื่อบริษัทเป็นลิงก์
+   คนละที่ จึงซ้อนกันในเซลล์แทนที่จะเป็นลิงก์ก้อนเดียว */
+.elective-planner .course-cell { display: grid; gap: 3px; }
+.elective-planner .course-cell .course-link { gap: 0; }
+.elective-planner .course-provider { font-size: 13px; line-height: 1.35; }
+.elective-planner .course-provider.is-static { color: var(--ep-muted, #536077); font-weight: 650; }
+.elective-planner .course-cell .course-row-actions { margin-top: 4px; }
+
 /* A course somebody typed into this browser, and the way back into its form */
 .elective-planner .course-row-actions { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 7px; }
 .elective-planner .local-course-tag { padding: 3px 7px; border: 1px solid var(--ep-line, #e4e9f3); border-radius: 999px; color: var(--ep-muted, #53617a); background: var(--ep-raised, #f4f6fa); font-size: 11px; font-weight: 750; }

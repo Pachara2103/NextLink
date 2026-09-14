@@ -28,6 +28,7 @@ export type CourseFormTarget = { course: PlanCourse | null };
  */
 const NEW_COURSE: CourseDraft = {
   courseCode: "",
+  section: 1,
   title: "",
   category: "",
   provider: "",
@@ -36,7 +37,6 @@ const NEW_COURSE: CourseDraft = {
   deliveryMode: "ON_SITE",
   availability: [],
   sessionsPerWeek: 1,
-  minSeats: 40,
   capacity: 40,
   weeks: 10,
   notes: null,
@@ -162,17 +162,16 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
           </label>
 
           <label>
-            หมวดของวิชา
+            ตอนเรียน
+            {/* วิชาเดียวกันที่เปิดสองตอนคือสองวิชาสำหรับระบบนี้: คนละคาบ คนละห้อง
+                และเดินเอกสารแยกกัน สิ่งเดียวที่ใช้ร่วมกันคือรหัสวิชา */}
             <input
-              type="text"
-              list="course-categories"
-              value={draft.category}
-              placeholder="เช่น วิศวกรรมซอฟต์แวร์"
-              onChange={(event) => setDraft({ ...draft, category: event.target.value })}
+              type="number"
+              min={1}
+              max={99}
+              value={number(draft.section)}
+              onChange={(event) => setDraft({ ...draft, section: parse(event.target.value) })}
             />
-            <datalist id="course-categories">
-              {suggestions.categories.map((item) => <option key={item} value={item} />)}
-            </datalist>
           </label>
 
           <label className="course-form-wide">
@@ -210,6 +209,20 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
             />
             <datalist id="course-instructors">
               {suggestions.instructors.map((item) => <option key={item} value={item} />)}
+            </datalist>
+          </label>
+
+          <label>
+            หมวดของวิชา
+            <input
+              type="text"
+              list="course-categories"
+              value={draft.category}
+              placeholder="เช่น วิศวกรรมซอฟต์แวร์"
+              onChange={(event) => setDraft({ ...draft, category: event.target.value })}
+            />
+            <datalist id="course-categories">
+              {suggestions.categories.map((item) => <option key={item} value={item} />)}
             </datalist>
           </label>
 
@@ -281,6 +294,7 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
           </fieldset>
 
           <label>
+            {/* ตัวเลขเดียวกันนี้เป็นเกณฑ์เลือกห้องด้วย: ห้องที่นั่งน้อยกว่านี้ถือว่าเล็กไป */}
             จำนวนที่รับ (คน)
             <input
               type="number"
@@ -288,17 +302,6 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
               max={10000}
               value={number(draft.capacity)}
               onChange={(event) => setDraft({ ...draft, capacity: parse(event.target.value) })}
-            />
-          </label>
-
-          <label>
-            ที่นั่งขั้นต่ำที่ห้องต้องมี
-            <input
-              type="number"
-              min={0}
-              max={10000}
-              value={number(draft.minSeats)}
-              onChange={(event) => setDraft({ ...draft, minSeats: parse(event.target.value) })}
             />
           </label>
 

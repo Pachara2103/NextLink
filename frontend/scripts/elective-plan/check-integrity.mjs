@@ -3,14 +3,14 @@ import { planSchedule, placementBlockers } from '../../src/features/elective-pla
 import { detectConflicts } from '../../src/features/elective-plan/lib/conflicts.ts';
 import { moveAssignment, placeAssignment, changeAssignmentTime } from '../../src/features/elective-plan/lib/assignments.ts';
 
-const course=(id,patch={})=>({id,courseCode:id,title:id,category:'test',provider:id,instructor:id,coordinator:null,deliveryMode:'ON_SITE',availability:['MON_AM','TUE_AM'],sessionsPerWeek:1,minSeats:20,capacity:20,weeks:10,notes:null,...patch});
+const course=(id,patch={})=>({id,courseCode:id,title:id,category:'test',provider:id,instructor:id,coordinator:null,deliveryMode:'ON_SITE',availability:['MON_AM','TUE_AM'],section:1,sessionsPerWeek:1,capacity:20,weeks:10,notes:null,...patch});
 const room=(id,seats=60,tier='READY')=>({id,name:id,building:id,floor:'1',seats,tier,seatsIsEstimated:false,blockedSlots:[]});
 const assignment=(courseId,slotId='MON_AM',roomId='r1',patch={})=>({id:courseId+'@'+slotId,courseId,slotId,roomId,startTime:'09:00',endTime:'12:00',locked:false,source:'MANUAL',...patch});
 let checks=0;
 function check(name,fn){fn(); checks++; console.log('  ✓ '+name);}
 
 check('fallback returns relocated first-pass sessions without teacher conflicts',()=>{
- const courses=[course('A',{instructor:'same'}),course('B',{instructor:'same',availability:['MON_AM'],minSeats:80,capacity:80})];
+ const courses=[course('A',{instructor:'same'}),course('B',{instructor:'same',availability:['MON_AM'],capacity:80})];
  const rooms=[room('r1'),room('r2',100,'NEEDS_APPROVAL')];
  const result=planSchedule({courses,rooms});
  assert.equal(result.unassigned.length,0);
@@ -18,7 +18,7 @@ check('fallback returns relocated first-pass sessions without teacher conflicts'
  assert.equal(detectConflicts({...result,courses,rooms}).filter(c=>c.severity==='BLOCKED').length,0);
 });
 check('fallback preserves user locks and never duplicates them',()=>{
- const courses=[course('A'),course('B',{minSeats:80,capacity:80})];
+ const courses=[course('A'),course('B',{capacity:80})];
  const rooms=[room('r1'),room('r2',100,'NEEDS_APPROVAL')];
  const locked=[assignment('A','MON_AM','r1',{locked:true})];
  const result=planSchedule({courses,rooms,locked});
@@ -61,5 +61,19 @@ check('room-only moves preserve custom times and invalid ranges are refused',()=
  assert.equal(moved[0].startTime,'09:30');
  assert.throws(()=>changeAssignmentTime(assignments,assignments[0].id,'11:00','10:00'));
  assert(detectConflicts({courses,rooms,assignments:[assignment('A','MON_AM','r1',{startTime:'11:00',endTime:'10:00'})]}).some(c=>c.code==='INVALID_TIME'));
+});
+check('a room that already holds a class refuses another, in every entry point',()=>{
+ const courses=[course('A'),course('B')],rooms=[room('r1'),room('r2')];
+ const assignments=[assignment('A','MON_AM','r1')];
+ assert.throws(()=>placeAssignment({courses,rooms,assignments,courseId:'B',slotId:'MON_AM',roomId:'r1'}),/ห้องนี้มีคลาสอยู่แล้ว/);
+ const other=[...assignments,assignment('B','TUE_AM','r2')];
+ assert.throws(()=>moveAssignment({courses,rooms,assignments:other,assignmentId:'B@TUE_AM',slotId:'MON_AM',roomId:'r1'}),/ห้องนี้มีคลาสอยู่แล้ว/);
+ // ห้องว่างคาบอื่น และห้องอื่นคาบเดียวกัน ยังลงได้ตามปกติ
+ assert.equal(placeAssignment({courses,rooms,assignments,courseId:'B',slotId:'MON_AM',roomId:'r2'}).length,2);
+ assert.equal(placeAssignment({courses,rooms,assignments,courseId:'B',slotId:'TUE_AM',roomId:'r1'}).length,2);
+ // วิชาออนไลน์ไม่ถือครองห้อง จึงอยู่คาบเดียวกันได้ไม่จำกัด
+ const online=[course('A'),course('B',{deliveryMode:'ONLINE'}),course('C',{deliveryMode:'ONLINE'})];
+ const both=[assignment('B','MON_AM',null)];
+ assert.equal(placeAssignment({courses:online,rooms,assignments:both,courseId:'C',slotId:'MON_AM',roomId:null}).length,2);
 });
 console.log(`integrity: ok (${checks} checks)`);

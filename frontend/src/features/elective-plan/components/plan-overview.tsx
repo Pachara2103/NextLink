@@ -63,7 +63,7 @@ export function PlanOverview({ payload }: { payload: PlanPayload }) {
       return;
     }
     if (suggestion.kind === "REDUCE_CAPACITY") {
-      if (!await plan.setCourseField(suggestion.courseId, { minSeats: suggestion.seats, capacity: suggestion.seats })) return;
+      if (!await plan.setCourseField(suggestion.courseId, { capacity: suggestion.seats })) return;
       show(`ปรับจำนวนที่รับเป็น ${suggestion.seats} คนแล้ว`, plan.undo);
       return;
     }

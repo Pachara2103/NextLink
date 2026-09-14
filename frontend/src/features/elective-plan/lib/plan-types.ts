@@ -47,6 +47,13 @@ export type PlanRoom = {
 export type PlanCourse = {
   id: string;
   courseCode: string;
+  /**
+   * ตอนเรียน. Two sections of one course are two courses to this app: they meet
+   * at different times, in different rooms, and are signed off separately — the
+   * only thing they share is the code, which is why the code alone is not an
+   * identity here.
+   */
+  section: number;
   title: string;
   category: string;
   provider: string;
@@ -57,9 +64,13 @@ export type PlanCourse = {
   availability: SlotId[];
   /** How many periods a week this course needs. Usually 1. */
   sessionsPerWeek: number;
-  /** Seats the room must have. Room *type* is deliberately not modelled: every
-   *  class is taught with students on their own laptops. */
-  minSeats: number;
+  /**
+   * How many students the course takes, and therefore the smallest room it
+   * fits in. One number rather than two: the staff who fill this in know the
+   * real seat count, and a separate "minimum seats" was a second place for the
+   * same fact to be wrong. Room *type* is deliberately not modelled — every
+   * class is taught with students on their own laptops.
+   */
   capacity: number;
   weeks: number;
   notes: string | null;

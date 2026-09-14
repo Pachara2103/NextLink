@@ -24,7 +24,6 @@
         "WED_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 40,
       "capacity": 40,
       "weeks": 10,
       "notes": null
@@ -42,7 +41,6 @@
         "FRI_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 45,
       "capacity": 45,
       "weeks": 10,
       "notes": null
@@ -60,7 +58,6 @@
         "THU_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 40,
       "capacity": 37,
       "weeks": 10,
       "notes": null
@@ -79,7 +76,6 @@
         "FRI_PM"
       ],
       "sessionsPerWeek": 2,
-      "minSeats": 45,
       "capacity": 45,
       "weeks": 9,
       "notes": null
@@ -98,7 +94,6 @@
         "FRI_EVE"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 55,
       "capacity": 55,
       "weeks": 8,
       "notes": null
@@ -116,7 +111,6 @@
         "SAT_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 0,
       "capacity": 40,
       "weeks": 10,
       "notes": "ย้ายมาสอนออนไลน์เต็มรูปแบบตั้งแต่เทอมนี้"
@@ -134,7 +128,6 @@
         "FRI_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 45,
       "capacity": 45,
       "weeks": 10,
       "notes": null
@@ -152,7 +145,6 @@
         "THU_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 30,
       "capacity": 29,
       "weeks": 8,
       "notes": null
@@ -170,7 +162,6 @@
         "THU_EVE"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 30,
       "capacity": 30,
       "weeks": 9,
       "notes": null
@@ -187,7 +178,6 @@
         "FRI_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 45,
       "capacity": 41,
       "weeks": 10,
       "notes": "เปิดเป็นครั้งสุดท้าย ปีถัดมารวมเนื้อหาเข้ากับ 21105809"
@@ -205,7 +195,6 @@
         "THU_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 35,
       "capacity": 35,
       "weeks": 9,
       "notes": "ต้องใช้ห้องตึก 4 เพราะต้องต่ออุปกรณ์"
@@ -223,7 +212,6 @@
         "WED_EVE"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 40,
       "capacity": 40,
       "weeks": 8,
       "notes": null
@@ -241,7 +229,6 @@
         "THU_EVE"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 0,
       "capacity": 60,
       "weeks": 10,
       "notes": null

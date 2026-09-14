@@ -84,7 +84,33 @@ are required because the scheduler treats them as resources — two courses with
 the same lecturer cannot share a period, and blank names would read as one very
 busy lecturer. `scripts/elective-plan/check-courses.mjs` covers these rules and
 the merge/routing behaviour; it runs as part of `npm run check:planner`, which is
-now 98 domain checks, and the browser suite is 26 scenarios.
+now 100 domain checks, and the browser suite is 29 scenarios.
+
+### Sections, one capacity, and one class per room
+
+A course code is no longer an identity on its own: the same course taught to a
+second group is a second row with the same code and a different `section`. The
+form asks for it, the uniqueness rule is code + section, the id carries the
+section from the second one on (`plan-21105801-2`), and the table prints
+"ตอน 2" only where there is one — most courses have a single section, and
+"ตอน 1" on every row is a word that says nothing.
+
+`minSeats` is gone; `capacity` is the only number. The staff filling the form
+know the real seat count, and a separate "smallest room this fits in" was a
+second place for the same fact to be wrong. Room fitting, the "room is too
+small" conflict and the "reduce the intake" suggestion all read `capacity` now,
+and the bundled seed files no longer carry the field. A plan saved while it
+still existed opens unchanged — the schema accepts the key and drops it.
+
+Dropping a class into a room that already holds one at that period is refused
+where the drop happens, rather than accepted and reported as a conflict
+afterwards. Two classes in one room at one time is not a state worth saving,
+and `elective_sessions` does not accept the row either.
+
+The paperwork checklist has an eighth step, "สร้างคอร์สใน MCV", between asking
+for instructor rights and inviting anyone in — the course has to exist before
+anybody can be added to it. The course and company columns became one cell in
+both tables to pay for the extra column.
 
 ### Plan document version 4
 

@@ -44,6 +44,7 @@ import type {
 type RawCourse = {
   id: string;
   courseCode: string;
+  section?: number;
   title: string;
   category: string;
   provider: string;
@@ -52,7 +53,6 @@ type RawCourse = {
   deliveryMode: string;
   availability: unknown;
   sessionsPerWeek: number;
-  minSeats: number;
   capacity: number;
   weeks: number;
   notes?: string | null;
@@ -126,7 +126,8 @@ function readCourse(raw: RawCourse): PlanCourse {
   if (!["ONLINE", "HYBRID", "ON_SITE"].includes(raw.deliveryMode)) throw new Error(`course ${raw.id}: unknown delivery mode ${raw.deliveryMode}`);
   assertSeedNumber(`course ${raw.id} sessionsPerWeek`, raw.sessionsPerWeek, 1, 18);
   assertSeedNumber(`course ${raw.id} capacity`, raw.capacity, 0, 10000);
-  assertSeedNumber(`course ${raw.id} minSeats`, raw.minSeats, 0, 10000);
+  // ตอนเรียนไม่ได้อยู่ในไฟล์ทุกแถว วิชาที่เปิดตอนเดียวคือตอน 1
+  assertSeedNumber(`course ${raw.id} section`, raw.section ?? 1, 1, 99);
   assertSeedNumber(`course ${raw.id} weeks`, raw.weeks, 1, 52);
   const availability = readSlots(`course ${raw.courseCode}`, raw.availability);
   if (raw.sessionsPerWeek > availability.length) {
@@ -137,6 +138,7 @@ function readCourse(raw: RawCourse): PlanCourse {
   return {
     id: raw.id,
     courseCode: raw.courseCode,
+    section: raw.section ?? 1,
     title: raw.title,
     category: raw.category,
     provider: raw.provider,
@@ -145,7 +147,6 @@ function readCourse(raw: RawCourse): PlanCourse {
     deliveryMode: raw.deliveryMode === "ONLINE" ? "ONLINE" : raw.deliveryMode === "HYBRID" ? "HYBRID" : "ON_SITE",
     availability,
     sessionsPerWeek: raw.sessionsPerWeek,
-    minSeats: raw.minSeats,
     capacity: raw.capacity,
     weeks: raw.weeks,
     notes: raw.notes ?? null,

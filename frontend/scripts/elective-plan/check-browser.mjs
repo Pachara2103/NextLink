@@ -320,8 +320,70 @@ try {
     assert.ok(box.lines <= 2.1, `expected at most two lines, got ${box.lines}`);
     await seed(blank);
   });
+  await check('the same course code is allowed again only as another section', async () => {
+    await seed(blank); await go('/courses/list');
+    await page.getByRole('button', { name: '＋ เพิ่มรายวิชา', exact: true }).click();
+    const dialog = page.locator('dialog.course-form-dialog');
+    await dialog.waitFor();
+    await dialog.getByLabel('รหัสวิชา', { exact: true }).fill('21105801');
+    await dialog.getByLabel('ชื่อวิชา', { exact: true }).fill('SW Dev for CMMI Standard (ตอนที่สอง)');
+    await dialog.getByLabel('หมวดของวิชา', { exact: true }).fill('วิศวกรรมซอฟต์แวร์');
+    await dialog.getByLabel('บริษัทผู้สอน', { exact: true }).fill('Soft Square');
+    await dialog.getByLabel('ผู้สอน', { exact: true }).fill('อาจารย์กานต์ ศรีสุวรรณ');
+    await dialog.getByRole('button', { name: 'พุธเช้า — ไม่สะดวก', exact: true }).click();
+    // ตอนเดียวกันคือวิชาซ้ำ
+    await dialog.getByRole('button', { name: 'เพิ่มรายวิชา', exact: true }).click();
+    await dialog.locator('.room-form-error').getByText('ตอน 1 อยู่แล้ว', { exact: false }).waitFor();
+    // คนละตอนคือคนละวิชา
+    await dialog.getByLabel('ตอนเรียน').fill('2');
+    await dialog.getByRole('button', { name: 'เพิ่มรายวิชา', exact: true }).click();
+    await dialog.waitFor({ state: 'detached' });
+    const added = (await read()).courseEdits.added;
+    assert.equal(added.length, 1);
+    assert.equal(added[0].section, 2);
+    assert.equal(added[0].id, 'plan-21105801-2', 'the section is part of the id, so the two keep separate periods');
+    await page.getByText('21105801 ตอน 2', { exact: false }).first().waitFor();
+    await seed(blank);
+  });
+  await check('course and company share one column in both tables', async () => {
+    await seed(blank); await go('/courses/list');
+    await page.locator('tbody tr').first().waitFor();
+    assert.deepEqual(
+      (await page.locator('thead th').allInnerTexts()).map((text) => text.trim()),
+      ['วิชา', 'ผู้สอน', 'ช่วงที่สะดวก', 'คาบที่ได้', 'ห้อง'],
+    );
+    const cell = page.locator('tbody tr').first().locator('td').first();
+    // ชื่อวิชาและชื่อบริษัทยังเป็นลิงก์คนละที่ แม้อยู่ในเซลล์เดียวกัน
+    await cell.getByRole('link', { name: 'Soft Square', exact: true }).waitFor();
+    assert.match(await cell.innerText(), /SW Dev for CMMI Standard[\s\S]*Soft Square[\s\S]*21105801/);
+    await go('/courses/list?view=checklist');
+    await page.locator('select.checklist-select').first().waitFor();
+    // หนึ่งคอลัมน์วิชา + แปดขั้นของเช็กลิสต์
+    assert.equal(await page.locator('thead th').count(), 9);
+    assert.equal((await page.locator('thead th').first().innerText()).trim(), 'วิชา');
+    assert.equal(await page.locator('thead th').filter({ hasText: 'สร้างคอร์ส MCV' }).count(), 1);
+  });
+  await check('a room that already holds a class refuses another from the board', async () => {
+    await seed(scheduled); await go('/');
+    const seeded = JSON.parse(await readFile('src/features/elective-plan/data/plan-courses.json', 'utf8')).courses;
+    const target = scheduled.assignments.find((item) => item.roomId);
+    const mover = scheduled.assignments.find(
+      (item) => item.roomId && item.courseId !== target.courseId && item.slotId !== target.slotId,
+    );
+    const titleOf = (id) => seeded.find((item) => item.id === id).title;
+    // ยกวิชาหนึ่งขึ้นมา แล้วสั่งวางลงช่องที่อีกวิชาหนึ่งนั่งอยู่ - เล็งช่องจาก
+    // ชิปที่อยู่ในนั้น ไม่ใช่จากชื่อช่อง เพราะห้องในตึกเดียวกันใช้ชื่อคอลัมน์ร่วมกัน
+    await page.locator('.matrix-chip').filter({ hasText: titleOf(mover.courseId) }).first().click();
+    const occupied = page.locator('.matrix td')
+      .filter({ has: page.locator('.matrix-chip', { hasText: titleOf(target.courseId) }) })
+      .first();
+    await occupied.press('Enter');
+    await page.getByRole('region', { name: 'การบันทึกแผน' })
+      .getByText('ห้องนี้มีคลาสอยู่แล้วในคาบนี้ กรุณาเลือกห้องอื่นหรือคาบอื่น', { exact: true }).waitFor();
+    assert.deepEqual((await read()).assignments, scheduled.assignments);
+  });
   await check('MCV code remains editable until blur while incomplete filter is active', async () => {
-    const completedExceptCode = { invitationLetter: 'RECEIVED', teachingHoursLetter: 'RECEIVED', mcvInstructorRequest: 'DONE', mentorAdded: 'DONE', guestLecturerAdded: 'DONE', studentsAdded: 'DONE', mcvJoinCode: '' };
+    const completedExceptCode = { invitationLetter: 'RECEIVED', teachingHoursLetter: 'RECEIVED', mcvInstructorRequest: 'DONE', mcvCourseCreated: 'DONE', mentorAdded: 'DONE', guestLecturerAdded: 'DONE', studentsAdded: 'DONE', mcvJoinCode: '' };
     await seed({ ...blank, checklists: { [courseId]: completedExceptCode } });
     await go('/courses/list?view=checklist&done=incomplete');
     const code = page.getByRole('textbox', { name: 'รหัส Join MCV สำหรับนิสิต — SW Dev for CMMI Standard', exact: true });

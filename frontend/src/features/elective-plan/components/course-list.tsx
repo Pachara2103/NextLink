@@ -33,7 +33,7 @@ import {
 import { formatNumber } from "@/features/elective-plan/lib/format";
 import { DAY_COLORS } from "@/features/elective-plan/lib/day-colors.ts";
 import { DAY_LABELS, PERIODS, parseSlotId, slotLabel, type DayKey, type PeriodKey, type SlotId } from "@/features/elective-plan/lib/slots.ts";
-import type { ArchivedTerm, PlacedPeriod, PlanPayload, TermMeta } from "@/features/elective-plan/lib/plan-types.ts";
+import type { ArchivedTerm, PlacedPeriod, PlanCourse, PlanPayload, TermMeta } from "@/features/elective-plan/lib/plan-types.ts";
 import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
 import { useUrlFilters } from "@/features/elective-plan/lib/use-url-filters";
 
@@ -236,6 +236,54 @@ export function CourseList({
     setPlacement("all");
     setChecklistFilter("all");
   };
+
+  /**
+   * Course, company, code and category in one cell.
+   *
+   * They were four columns for two things: which course this row is, and whose
+   * it is. Split across the table they cost width that the paperwork columns
+   * needed more — and a reader looking for a course reads the name and the
+   * company together anyway, because two companies teach courses with nearly
+   * the same name. The links stay separate inside the cell: one goes to this
+   * course, the other to everything that company teaches.
+   */
+  const courseCell = (course: PlanCourse) => (
+    <span className="course-cell">
+      {archive ? (
+        <span className="course-link is-static"><strong>{course.title}</strong></span>
+      ) : (
+        <Link className="course-link" href={`/elective-plan/courses?q=${encodeURIComponent(course.title)}`}>
+          <strong>{course.title}</strong>
+        </Link>
+      )}
+      {archive ? (
+        <span className="course-provider is-static">{course.provider}</span>
+      ) : (
+        <Link className="provider-link course-provider" href={`/elective-plan/courses?provider=${encodeURIComponent(course.provider)}`}>
+          {course.provider}
+        </Link>
+      )}
+      <span className="course-code">
+        {course.courseCode}
+        {/* ตอนเรียนขึ้นเฉพาะตอนที่สองเป็นต้นไป วิชาส่วนใหญ่เปิดตอนเดียว การเขียน
+            "ตอน 1" ทุกแถวจึงเป็นคำที่ไม่ได้บอกอะไรใหม่ */}
+        {course.section > 1 ? ` ตอน ${course.section}` : ""} · {course.category}
+      </span>
+      {/* Only courses somebody typed in here can be edited as a whole. A seeded
+          course is the department's record of what a company offered; the
+          fields of it that planning depends on are edited where they are used —
+          periods on the availability page, paperwork in the checklist. */}
+      {!archive && plan.isAddedCourse(course.id) ? (
+        <span className="course-row-actions">
+          <span className="local-course-tag">เพิ่มเอง</span>
+          <button className="course-row-edit" type="button" onClick={() => setCourseForm({ course })}>
+            แก้ไข
+            <span className="sr-only"> {course.title}</span>
+          </button>
+        </span>
+      ) : null}
+    </span>
+  );
 
   /**
    * Show the course that was just added.
@@ -476,9 +524,9 @@ export function CourseList({
           <>
             <div className="table-wrap">
               {checklistView ? (
-              /* Course and company stay, so a row is still recognisable as the
-                 same row in either view; everything after them is the work
-                 itself. Seven controls in a row is a lot of table, which is
+              /* The course cell stays, so a row is still recognisable as the
+                 same row in either view; everything after it is the work
+                 itself. Eight controls in a row is a lot of table, which is
                  why the columns are headed with a phrase and the full step is
                  on the control's own label for anyone who needs it read out. */
               <table className="checklist-table">
@@ -490,16 +538,14 @@ export function CourseList({
                     several. Percentages so the whole thing still fits when a
                     sidebar takes a slice of the page. */}
                 <colgroup>
-                  <col style={{ width: "17%" }} />
-                  <col style={{ width: "9%" }} />
+                  <col style={{ width: "22%" }} />
                   {CHECKLIST_FIELDS.map((field) => (
-                    <col key={field.key} style={{ width: field.kind === "code" ? "8%" : "11%" }} />
+                    <col key={field.key} style={{ width: field.kind === "code" ? "8%" : "10%" }} />
                   ))}
                 </colgroup>
                 <thead>
                   <tr>
                     <th scope="col">วิชา</th>
-                    <th scope="col">บริษัท</th>
                     {CHECKLIST_FIELDS.map((field) => (
                       <th scope="col" key={field.key} title={field.label}>{field.short}</th>
                     ))}
@@ -508,13 +554,7 @@ export function CourseList({
                 <tbody>
                   {visible.map(({ course, checklist }) => (
                     <tr key={course.id} className={isChecklistComplete(checklist) ? "is-complete" : undefined}>
-                      <td>
-                        <Link className="course-link" href={`/elective-plan/courses?q=${encodeURIComponent(course.title)}`}>
-                          <strong>{course.title}</strong>
-                          <span className="course-code">{course.courseCode} · {course.category}</span>
-                        </Link>
-                      </td>
-                      <td><span className="schedule-text">{course.provider}</span></td>
+                      <td>{courseCell(course)}</td>
                       {CHECKLIST_FIELDS.map((field) => (
                         <td key={field.key}>{checklistControl(course.id, course.title, checklist, field)}</td>
                       ))}
@@ -527,7 +567,6 @@ export function CourseList({
                 <thead>
                   <tr>
                     <th scope="col">วิชา</th>
-                    <th scope="col">บริษัท</th>
                     <th scope="col">ผู้สอน</th>
                     <th scope="col">{archive ? "ช่วงที่แจ้งไว้" : "ช่วงที่สะดวก"}</th>
                     <th scope="col">{archive ? "คาบที่สอน" : "คาบที่ได้"}</th>
@@ -537,53 +576,11 @@ export function CourseList({
                 <tbody>
                   {visible.map(({ course, placed }) => (
                     <tr key={course.id}>
-                      <td>
-                        {/* Both the title and the company lead to the same page,
-                            filtered to what was clicked — from a row here the
-                            next question is always "what else can they do", and
-                            the answer lives on the availability page. That page
-                            only knows the term being planned, so a past term's
-                            rows are plain text rather than links into it. */}
-                        {archive ? (
-                          <span className="course-link is-static">
-                            <strong>{course.title}</strong>
-                            <span className="course-code">{course.courseCode} · {course.category}</span>
-                          </span>
-                        ) : (
-                          <Link className="course-link" href={`/elective-plan/courses?q=${encodeURIComponent(course.title)}`}>
-                            <strong>{course.title}</strong>
-                            <span className="course-code">{course.courseCode} · {course.category}</span>
-                          </Link>
-                        )}
-                        {/* Only courses somebody typed in here can be edited as
-                            a whole. A seeded course is the department's record
-                            of what a company offered; the fields of it that
-                            planning depends on are edited where they are used —
-                            periods on the availability page, paperwork in the
-                            checklist — and the rest is not this app's to rewrite. */}
-                        {!archive && plan.isAddedCourse(course.id) ? (
-                          <span className="course-row-actions">
-                            <span className="local-course-tag">เพิ่มเอง</span>
-                            <button
-                              className="course-row-edit"
-                              type="button"
-                              onClick={() => setCourseForm({ course })}
-                            >
-                              แก้ไข
-                              <span className="sr-only"> {course.title}</span>
-                            </button>
-                          </span>
-                        ) : null}
-                      </td>
-                      <td>
-                        {archive ? (
-                          <span className="schedule-text">{course.provider}</span>
-                        ) : (
-                          <Link className="provider-link" href={`/elective-plan/courses?provider=${encodeURIComponent(course.provider)}`}>
-                            {course.provider}
-                          </Link>
-                        )}
-                      </td>
+                      {/* ทั้งชื่อวิชาและชื่อบริษัทพาไปหน้าเดียวกัน โดยกรองตามสิ่งที่กด
+                          — คำถามถัดไปจากแถวนี้คือ "แล้วเขาสอนคาบไหนได้อีก" ซึ่ง
+                          ตอบอยู่ในหน้าช่วงที่สะดวก หน้านั้นรู้จักแต่เทอมที่กำลังจัด
+                          แถวของเทอมเก่าจึงเป็นข้อความเปล่า ไม่ใช่ลิงก์ */}
+                      <td>{courseCell(course)}</td>
                       <td><span className="schedule-text">{course.instructor}</span></td>
                       <td>
                         {course.availability.length === 0 ? (
