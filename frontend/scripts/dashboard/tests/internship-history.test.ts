@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildStats, applicationRanks } from '../../../src/features/dashboard/lib/internship-stats';
-import { scopeCompanies, positionPopularity, filterApplications, evaluationSummary } from '../../../src/features/dashboard/lib/internship-history';
+import { demoIntakeScopes, enrichInternshipDemo, scopeCompanies, positionPopularity, filterApplications, evaluationSummary } from '../../../src/features/dashboard/lib/internship-history';
 import { getInternshipDashboardData } from '../../../src/features/dashboard/lib/internship-data';
 import type { InternshipCompany, InternshipApplication } from '../../../src/features/dashboard/lib/types';
 const company: InternshipCompany = { id: 'c', rowNumber: 1, name: 'Synthetic', shortName: 'Test', industry: 'test', mouStatus: 'ลงนามแล้ว', coordinator: null, note: null, raw: {}, positions: [{ id: 'o1', name: 'Engineer', declaredIntake: 7, accepted: 5 }, { id: 'o2', name: 'Engineer', declaredIntake: 2, accepted: 1 }] };
@@ -28,4 +28,16 @@ test('historical demo contains ten ranks and scope filters do not manufacture un
 test('empty evaluations never become zero and scores use their own scale', () => {
   assert.equal(evaluationSummary([]).mean, null);
   assert.equal(evaluationSummary([{ id: 'e', companyId: 'c', academicYear: 2569, term: '1', track: 'ฝึกงาน', studyYear: 1, round: '1', score: 8, scale: 10, comment: '' }]).mean, 4);
+});
+
+test('large intake values partition in a fixed number of buckets and retain totals', () => {
+  const buckets = demoIntakeScopes(1000000000, 'ฝึกงาน', 1);
+  assert.equal(buckets.length, 6); assert.equal(buckets.reduce((n, b) => n + b.count, 0), 1000000000);
+  assert.deepEqual(demoIntakeScopes(2, 'ฝึกงาน', 1).map(b => b.count), [0, 1, 1, 0, 0, 0]);
+});
+test('demo enrichment preserves explicit opening identities when titles are identical', async () => {
+  const payload = await getInternshipDashboardData('ฝึกงาน');
+  const enriched = enrichInternshipDemo({ ...payload, companies: [company], applications: [{ id: 'a', department: '', track: 'ฝึกงาน', choices: [{ rank: 1, companyId: 'c', position: 'Engineer', openingId: 'o2' }] }] }, 1);
+  assert.equal(enriched.companies[0].positions[1].id, 'o2');
+  assert.equal(enriched.applications[0].choices[0].openingId, 'o2');
 });

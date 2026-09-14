@@ -21,6 +21,7 @@ test('contacts and backdated cases persist and latest case uses occurrence, not 
 });
 test('company history resolves current storage and tolerates unreadable module without inventing history', () => {
   const base = partnershipSnapshot();
+  assert.ok(base.events.every(e => directorySeed.some(c => c.id === e.companyId)), 'every history company has a registry entry');
   assert.ok(base.events.filter(e => e.companyId === 'partner-cloud').length > 1);
   const filtered = partnershipSnapshot((key, seed) => key.startsWith('nextlink.capstone.') ? [] : seed);
   assert.ok(filtered.events.length > 0); assert.equal(filtered.events.some(e => e.module === 'capstone'), false);

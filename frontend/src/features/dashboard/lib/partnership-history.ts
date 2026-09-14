@@ -9,7 +9,7 @@ import { internshipPeriodSource, selectCapstonePeriod, selectElectivePeriod, sel
 import { enrichInternshipDemo } from './internship-history';
 import { periodStorageKey, academicPeriodKey, matchesAcademicPeriod, withAcademicPeriod, type AcademicPeriod } from './academic-period';
 import { isDashboardCourse, isInternshipCompany, isMouCompany } from './dataset-validation';
-import { isFridayActivity, fridayStorageKey, selectFridayPeriod, type FridayActivity } from './friday-activity';
+import { isFridayActivity, FRIDAY_STATUS, fridayStorageKey, selectFridayPeriod, type FridayActivity } from './friday-activity';
 import { capstoneStorageRows, capstoneFromRows, isCapstoneStorageRow } from './capstone-storage-rows';
 import { companyKey, type BusinessModule } from './company-directory';
 import type { RowValidator } from './local-dataset';
@@ -41,7 +41,7 @@ export function partnershipSnapshot(read: SnapshotReader = (_key, seed) => seed)
     const capRows = read(`nextlink.capstone.v2.${academicPeriodKey(period)}`, capstoneStorageRows(capSeed), isCapstoneStorageRow);
     if (capRows.length) for (const t of capstoneFromRows(capRows).topics) if (t.companyId) add('capstone', t.companyId, t.id, t.title, `${t.assignments.length} ทีมยืนยัน · ${t.milestones.length} Milestone · ${t.notes.length} บันทึก`, '/dashboard/capstone', t.title);
     const acts = read(key(fridayStorageKey), selectFridayPeriod(fridayActivities, period), isFridayActivity); friday.push(...acts);
-    for (const a of acts) add('friday', a.companyId, a.id, a.title, `${a.date ?? 'ยังไม่กำหนดวัน'} · ${a.status} · ${a.attended === null ? 'ยังไม่ทราบจำนวนมาจริง' : `${a.attended} คน-ครั้ง`}`, '/dashboard/friday-activities', a.title);
+    for (const a of acts) add('friday', a.companyId, a.id, a.title, `${a.date ?? 'ยังไม่กำหนดวัน'} · ${FRIDAY_STATUS[a.status]} · ${a.attended === null ? 'ยังไม่ทราบจำนวนมาจริง' : `${a.attended} คน-ครั้ง`}`, '/dashboard/friday-activities', a.title);
   }
   return { events: events.sort((a, b) => b.year - a.year || b.term.localeCompare(a.term) || a.id.localeCompare(b.id)), friday, currentMous };
 }

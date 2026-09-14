@@ -6,7 +6,7 @@ export const openingKey = (companyId: string, index: number) => `${companyId}:op
 
 /** Explicit synthetic cohorts. This is not an importer or an inference about source students. */
 export function enrichInternshipDemo(payload: InternshipPayload, maxRanks = 5): InternshipPayload {
-  const companies = payload.companies.map(c => ({ ...c, positions: c.positions.map((p, i) => ({ ...p, id: openingKey(c.id, i) })) }));
+  const companies = payload.companies.map(c => ({ ...c, positions: c.positions.map((p, i) => ({ ...p, id: p.id ?? openingKey(c.id, i) })) }));
   const expanded = payload.applications.map(a => {
     const choices = [...a.choices];
     const available = companies.flatMap(c => c.positions.map(p => ({ companyId: c.id, position: p.name, openingId: p.id })));
@@ -18,7 +18,10 @@ export function enrichInternshipDemo(payload: InternshipPayload, maxRanks = 5): 
   });
   const applications = expanded.map((a, i) => ({ ...a, applicantRef: a.id,
     studyYear: a.studyYear ?? (payload.track === 'สหกิจศึกษา' ? 3 : i % 3 + 1), round: a.round ?? String(Math.floor(i / 3) % 2 + 1),
-    choices: a.choices.map(choice => ({ ...choice, openingId: companies.find(c => c.id === choice.companyId)?.positions.find(p => p.name === choice.position)?.id })),
+    choices: a.choices.map(choice => {
+      const matches = companies.find(c => c.id === choice.companyId)?.positions.filter(p => p.name === choice.position) ?? [];
+      return { ...choice, openingId: choice.openingId ?? (matches.length === 1 ? matches[0].id : undefined) };
+    }),
   }));
   return { ...payload, companies, applications };
 }
@@ -28,8 +31,8 @@ export function filterApplications(applications: InternshipApplication[], scope:
 export function demoIntakeScopes(count: number, track: InternshipTrack, offset = 0) {
   const groups = track === 'สหกิจศึกษา' ? [3] : [1, 2, 3];
   const cells = groups.flatMap(studyYear => ['1', '2'].map(round => ({ studyYear, round, count: 0 })));
-  for (let i = 0; i < count; i++) cells[(i + offset) % cells.length].count++;
-  return cells;
+  const start = ((offset % cells.length) + cells.length) % cells.length;
+  return cells.map((cell, i) => ({ ...cell, count: Math.floor(count / cells.length) + ((i - start + cells.length) % cells.length < count % cells.length ? 1 : 0) }));
 }
 export function scopeCompanies(companies: InternshipCompany[], scope: InternshipScope, track: InternshipTrack) {
   const total = (n: number, i: number) => demoIntakeScopes(n, track, i).filter(c => (scope.studyYear === 'all' || String(c.studyYear) === scope.studyYear) && (scope.round === 'all' || c.round === scope.round)).reduce((sum, c) => sum + c.count, 0);
