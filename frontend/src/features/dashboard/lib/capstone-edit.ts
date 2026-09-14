@@ -1,3 +1,4 @@
+import { validMilestones, milestoneChanges } from "./capstone-milestones";
 import type { CapstoneDataset, CapstoneDraft, CapstoneTopic } from "./capstone-types";
 import { TEAM_PHASES, TOPIC_STATUSES } from "./capstone-statuses";
 
@@ -14,7 +15,8 @@ export function applyCapstoneDraft(data: CapstoneDataset, draft: CapstoneDraft, 
   const before = data.topics.find(t => t.id === draft.topic.id);
   if (!before) throw new Error("Unknown Capstone topic");
   if (needsChangeReason(before, draft.topic) && !draft.reason.trim()) throw new Error("A change reason is required");
-  const changes: { field: string; before: string; after: string }[] = [];
+  if (!validMilestones(draft.topic)) throw new Error("ตรวจชื่อ Milestone ทีมที่ยืนยัน วันที่ และสถานะให้ถูกต้อง");
+  const changes: { field: string; before: string; after: string }[] = milestoneChanges(before, draft.topic);
   const fields = { title: "ชื่อหัวข้อ", category: "หมวดหมู่", status: "สถานะหัวข้อ", capacity: "จำนวนกลุ่มที่รับ", coordinator: "ผู้ประสานงาน", contactRole: "บทบาทผู้ติดต่อ", description: "รายละเอียด", scope: "ขอบเขต", deliverables: "สิ่งส่งมอบ", support: "สิ่งสนับสนุน", issue: "ปัญหาที่ต้องติดตาม" } as const;
   for (const key of Object.keys(fields) as (keyof typeof fields)[]) {
     if (before[key] !== draft.topic[key]) changes.push({ field: fields[key], before: key === "status" ? TOPIC_STATUSES[before.status].label : String(before[key] ?? "ยังไม่ทราบ"), after: key === "status" ? TOPIC_STATUSES[draft.topic.status].label : String(draft.topic[key] ?? "ยังไม่ทราบ") });

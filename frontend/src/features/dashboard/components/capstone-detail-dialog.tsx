@@ -1,4 +1,5 @@
 "use client";
+import { MILESTONE_STATUSES, validMilestones } from "../lib/capstone-milestones";
 import { CompanyContacts } from "./company-contacts";
 
 import { useState, type Ref } from "react";
@@ -56,6 +57,7 @@ export function CapstoneDetailDialog({ topic, data, dialogRef, initialTab, initi
         if (!draft.topic.title.trim() || !draft.topic.category.trim()) { setError("กรุณาระบุชื่อหัวข้อและหมวดหมู่"); setTab("topic"); return; }
         if (draft.topic.capacity !== null && (!Number.isSafeInteger(draft.topic.capacity) || draft.topic.capacity < 0 || draft.topic.capacity > 1000)) { setError("จำนวนกลุ่มต้องเป็นจำนวนเต็ม 0–1,000 หรือเว้นว่างเมื่อยังไม่ทราบ"); setTab("topic"); return; }
         if (draft.topic.notes.some(n => !n.text.trim())) { setError("กรุณาใส่ข้อความในบันทึกใหม่"); setTab("notes"); return; }
+        if (!validMilestones(draft.topic)) { setError("กรุณาระบุชื่อ Milestone ทีมที่ยืนยัน วันที่ และสถานะให้ครบ"); setTab("teams"); return; }
         if (needsReason && !draft.reason.trim()) { setError("กรุณาระบุเหตุผลที่เปลี่ยนขอบเขตหรือผู้ดูแล"); return; }
         setError("");
         try { await editor.saveEditing(event); }
@@ -94,8 +96,15 @@ export function CapstoneDetailDialog({ topic, data, dialogRef, initialTab, initi
               <Field label={`พี่เลี้ยงของ ${data.teams.find(t => t.id === a.teamId)?.name}`} value={a.mentor} editing={isEditing} onChange={v => setTopic("assignments", current.assignments.map(row => row.id === a.id ? { ...row, mentor: v } : row))} /></div>
               <fieldset className="cap-checkboxes"><legend>อาจารย์ที่ปรึกษาทีม</legend>{isEditing ? data.professors.map(p => <label key={p.id}><input type="checkbox" checked={a.professorIds.includes(p.id)} onChange={e => setTopic("assignments", current.assignments.map(row => row.id === a.id ? { ...row, professorIds: e.target.checked ? [...row.professorIds, p.id] : row.professorIds.filter(id => id !== p.id) } : row))} />{p.name}</label>) : <p>{a.professorIds.map(id => data.professors.find(p => p.id === id)?.name).join(", ") || "ยังไม่มีที่ปรึกษา"}</p>}</fieldset>
             </section>)}
-            <h3 className="cap-subheading">Milestone และนัดหมาย</h3>
-            {current.milestones.length ? current.milestones.map(m => <p key={m.id}>{m.title} · {data.teams.find(t => t.id === m.teamId)?.name} · {m.due} · {m.status}</p>) : <p>ยังไม่มีนัดหมาย</p>}
+            <div className="cap-section-heading"><h3 className="cap-subheading">Milestone และนัดหมาย</h3>{isEditing && <button className="secondary-button" type="button" disabled={!current.assignments.length} onClick={() => setTopic("milestones", [...current.milestones, { id: crypto.randomUUID(), title: "", teamId: current.assignments[0].teamId, due: "", status: "รอยืนยัน" }])}>เพิ่ม Milestone</button>}</div>
+            {!current.assignments.length && isEditing && <p className="panel-caption">ต้องมีทีมยืนยันก่อนเพิ่ม Milestone</p>}
+            {current.milestones.length ? current.milestones.map((m, i) => <section className="cap-team" key={m.id}>{isEditing ? <div className="cap-fields">
+              <Field label={`ชื่อ Milestone ${i + 1}`} value={m.title} editing onChange={title => setTopic("milestones", current.milestones.map(row => row.id === m.id ? { ...row, title } : row))} />
+              <label className="cap-field"><span>ทีม Milestone {i + 1}</span><select value={m.teamId} onChange={e => setTopic("milestones", current.milestones.map(row => row.id === m.id ? { ...row, teamId: e.target.value } : row))}>{current.assignments.map(a => <option key={a.teamId} value={a.teamId}>{data.teams.find(t => t.id === a.teamId)?.name}</option>)}</select></label>
+              <label className="cap-field"><span>วันที่ Milestone {i + 1} (ค.ศ.)</span><input type="date" value={m.due} onChange={e => setTopic("milestones", current.milestones.map(row => row.id === m.id ? { ...row, due: e.target.value } : row))} /></label>
+              <label className="cap-field"><span>สถานะ Milestone {i + 1}</span><select value={m.status} onChange={e => setTopic("milestones", current.milestones.map(row => row.id === m.id ? { ...row, status: e.target.value } : row))}>{MILESTONE_STATUSES.map(status => <option key={status}>{status}</option>)}</select></label>
+              <button className="text-button" type="button" onClick={() => setTopic("milestones", current.milestones.filter(row => row.id !== m.id))}>ลบ Milestone {i + 1}</button>
+            </div> : <p>{m.title} · {data.teams.find(t => t.id === m.teamId)?.name} · {m.due} · {m.status}</p>}</section>) : <p>ยังไม่มีนัดหมาย</p>}
           </>}
           {tab === "company" && <>
             {current.companyId && <CompanyContacts module="capstone" sourceId={current.companyId} />}

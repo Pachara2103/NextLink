@@ -1,3 +1,4 @@
+import { validMilestones } from "./capstone-milestones";
 import type { CapstoneDataset } from "./capstone-types";
 import { validateRanking } from "./capstone-ranking";
 
@@ -59,7 +60,7 @@ export function isCapstoneDataset(value: unknown): value is CapstoneDataset {
     if (!unique(t.rankings.map(r => r.round)) || !t.rankings.every(r => t.rounds.includes(r.round) && validateRanking(t, r.round, r.applicationIds))) return false;
     if (!unique(t.assignments.map(a => a.teamId)) || !t.assignments.every(a => teams.has(a.teamId) && unique(a.professorIds) && a.professorIds.every(p => professors.has(p)) && ["proposal", "development", "testing", "completed", "terminated"].includes(a.phase))) return false;
     if (!t.notes.every(n => ["บันทึก", "ปัญหา", "Feedback"].includes(n.type) && ["ข้อเท็จจริง", "ความคิดเห็น"].includes(n.basis))) return false;
-    if (!t.milestones.every(m => teams.has(m.teamId))) return false;
+    if (!validMilestones(t)) return false;
     // A saved browser override must not turn document links into executable URLs.
     return t.links.every(l => /^https?:\/\//i.test(l.url) || /^\/(?!\/)/.test(l.url));
   });
