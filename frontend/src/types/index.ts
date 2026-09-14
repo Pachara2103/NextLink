@@ -13,8 +13,16 @@ type Schemas = components["schemas"];
 
 // --- resources -----------------------------------------------------------
 
-/** One LINE group, left-joined with the company row it points at. */
-export type GroupLine = Schemas["LineGroup"];
+/**
+ * One LINE group merged with the company row it points at.
+ *
+ * Merged **here**, not by the API: `line_groups` is in `line_db` and
+ * `companies` in `nl_db`, so there is no join to do it server-side.
+ * `GET /line/groups` returns the LINE half (`LineGroup`) and
+ * `GET /companies` the company half; `lineService.getGroupLines()` puts them
+ * together. See `./line.ts`.
+ */
+export type { GroupLine, LineGroup } from "./line";
 
 /** A company row as `GET /companies` returns it. */
 export type Company = Schemas["Company"];
