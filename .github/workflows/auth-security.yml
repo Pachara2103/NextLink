@@ -34,3 +34,5 @@ jobs:
       - run: python -m pytest backend/tests -q
         env:
           TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/nextlink_security_test
+          NEXTLINK_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/nextlink_security_test
+          LINE_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/nextlink_security_test
