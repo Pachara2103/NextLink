@@ -6,7 +6,7 @@ import { PageSections } from "@/features/dashboard/components/page-sections";
 
 import { isPending, isSigned, nextAction, queueKind } from "@/features/dashboard/lib/mou-stats";
 
-import { AppNav } from "@/features/dashboard/components/app-nav";
+import { AppNav, DashboardModuleNav } from "@/features/dashboard/components/app-nav";
 import { lazy, useDeferredValue, useMemo, useRef, useState } from "react";
 
 import { DeferredRecordDialog } from "@/features/dashboard/components/deferred-record-dialog";
@@ -105,7 +105,7 @@ export function MouDashboard({ payload }: Props) {
     if (sortBy === "company") return left.companyThai.localeCompare(right.companyThai, "th");
     return left.documentStatus.localeCompare(right.documentStatus, "th") || left.companyThai.localeCompare(right.companyThai, "th");
   });
-  const sourceLabel = payload.isMock ? "MOCK DATA" : "POSTGRESQL";
+
 
   const [page, setPage] = useState(1);
   const pageCount = Math.max(1, Math.ceil(displayCompanies.length / PAGE_SIZE));
@@ -221,23 +221,23 @@ export function MouDashboard({ payload }: Props) {
   return (
     <div className="app-shell mou-shell" data-ready={ready}>
       <header className="topbar">
-        <AppNav title="MOU" eyebrow="NEXTLINK / PARTNERSHIPS" />
+        <AppNav title="MOU" />
         <div className="header-tools">
           <div className="header-meta">
-            <span className="demo-badge"><span className="status-dot" /> {sourceLabel}</span>
-            <span>อัปเดต: {formatUpdated(payload.lastUpdated, payload.timezone)}</span>
+            <span>{payload.isMock ? "ข้อมูลตัวอย่าง ณ" : "ข้อมูลอัปเดต:"} {formatUpdated(payload.lastUpdated, payload.timezone)}</span>
             <LocalDataStatus editedAt={editedAt} warning={warning} hasOverrides={hasOverrides} timezone={payload.timezone} onReset={resetDemoData} />
           </div>
           <AcademicPeriodSelector />
         </div>
       </header>
+      <DashboardModuleNav />
 
       <main id="main-content" tabIndex={-1} className="page-content">
         <AcademicPeriodEmptyState hasData={payload.companies.length > 0} />
         <StorageWarning message={warning} /><StorageRecoveryPanel key={recovery?.raw} recovery={recovery} onRecover={recover} />
         <section className="intro-row">
           <div><p className="section-kicker">ภาพรวมการจัดการคู่สัญญา</p><h2>ภาพรวมคู่สัญญา MOU</h2><p className="intro-copy">เห็นสถานะเอกสาร งานตรวจแก้ การมอบอำนาจ และคนที่ต้องติดตามต่อ</p></div>
-          <div className="intro-badges"><div className="data-note"><span className="note-icon" aria-hidden="true">i</span><span>{payload.isMock ? "Mock data · ใช้สำหรับ demo" : "ข้อมูลจากระบบ"} · {payload.sourceFile}</span></div><span className="scope-chip"><span className="scope-chip-label">ทะเบียน</span>{formatNumber(companies.length)} คู่สัญญา · ชีต {payload.sheetName}</span><p className="academic-period-copy">ภาพสถานะงานติดตามเอกสารในปีและเทอมที่เลือก ไม่ใช่ช่วงอายุสัญญา</p></div>
+          <div className="intro-badges"><span className="scope-chip"><span className="scope-chip-label">ทะเบียน</span>{formatNumber(companies.length)} คู่สัญญา · ชีต {payload.sheetName}</span><p className="academic-period-copy">ภาพสถานะงานติดตามเอกสารในปีและเทอมที่เลือก ไม่ใช่ช่วงอายุสัญญา</p></div>
         </section>
 
         <PageSections />

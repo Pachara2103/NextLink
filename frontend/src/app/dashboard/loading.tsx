@@ -1,7 +1,7 @@
-import { AppNav } from "@/features/dashboard/components/app-nav";
+import { AppNav, DashboardModuleNav } from "@/features/dashboard/components/app-nav";
 
 /**
- * Shared by all three dashboards — each route segment inherits the nearest
+ * Shared by all dashboard modules — each route segment inherits the nearest
  * parent loading UI, and every page has the same KPI-then-table shape.
  *
  * The header here mirrors the real one exactly, nav included. An earlier
@@ -12,7 +12,7 @@ export default function Loading() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <AppNav title="กำลังโหลด…" eyebrow="NEXTLINK" />
+        <AppNav title="กำลังโหลด…" />
         <div className="header-tools" aria-hidden="true">
           <div className="header-meta"><span className="skeleton skeleton-line" style={{ width: 280, height: 28 }} /></div>
           <div className="academic-period-panel"><div className="academic-period-fields">
@@ -23,6 +23,7 @@ export default function Loading() {
           </div></div>
         </div>
       </header>
+      <DashboardModuleNav />
       <main id="main-content" tabIndex={-1} className="page-content">
         <p className="sr-only" role="status">กำลังโหลดข้อมูลแดชบอร์ด</p>
         <section className="kpi-grid" aria-hidden="true">

@@ -1,13 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { AppNav } from "@/features/dashboard/components/app-nav";
+import { AppNav, DashboardModuleNav } from "@/features/dashboard/components/app-nav";
 import { DASHBOARD_ROUTES } from "@/features/dashboard/lib/navigation";
 import { AcademicPeriodSelector } from "@/features/dashboard/components/academic-period-selector";
 import { withAcademicPeriod } from "@/features/dashboard/lib/academic-period";
 import { useAcademicPeriod } from "@/features/dashboard/lib/use-academic-period";
 
 const moduleDetails = {
+  "/dashboard/friday-activities": {
+    category: "กิจกรรมร่วมกับบริษัท", tone: "green",
+    description: "ดูบริษัทที่มาจัดกิจกรรมในแต่ละเทอม จำนวนผู้เข้าร่วม และผลประเมินจากนิสิตและบริษัท",
+    features: "กิจกรรมรายเทอม · บริษัทที่เข้าร่วม · ผลประเมิน",
+    icon: "M5 5h14v16H5V5Zm3-3v6m8-6v6M5 10h14m-10 4h2m2 0h2m-6 3h2",
+  },
   "/dashboard/electives": {
     category: "การเรียนการสอน", tone: "blue",
     description: "ดูความพร้อมก่อนเปิดสอน จำนวนที่นั่ง และเอกสารที่ต้องดำเนินการของแต่ละรายวิชา",
@@ -45,12 +51,13 @@ export function HomeDashboard() {
   return (
     <div className="app-shell" data-ready="true">
       <header className="topbar">
-        <AppNav title="Dashboard" eyebrow="NEXTLINK / WORKSPACE" />
+        <AppNav title="Dashboard" />
         <div className="header-tools">
           <div className="header-meta"><span>{DASHBOARD_ROUTES.length} โมดูลการทำงาน</span></div>
           <AcademicPeriodSelector />
         </div>
       </header>
+      <DashboardModuleNav />
 
       <main id="main-content" tabIndex={-1} className="page-content home-content">
         <section className="intro-row">

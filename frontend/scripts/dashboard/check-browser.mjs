@@ -49,7 +49,7 @@ try {
   page.on('response', response => { if (response.url().includes('/_next/') && response.status() >= 400) failedAssets.push(`${response.status()} ${response.url()}`); });
   let allowDiscard = true;
   page.on('dialog', dialog => allowDiscard ? dialog.accept() : dialog.dismiss());
-  const paths = ['', '/electives', '/mou', '/internship', '/cooperative', '/capstone'];
+  const paths = ['', '/electives', '/mou', '/internship', '/cooperative', '/capstone', '/friday-activities'];
   const go = async path => { await page.goto(base + '/dashboard' + path); await page.locator('.app-shell[data-ready="true"]').waitFor(); };
   const theme = async value => {
     await page.getByRole('button', { name: value === 'classic' ? 'สีดั้งเดิม' : 'โหมดมืด', exact: true }).filter({ visible: true }).click();
@@ -75,7 +75,7 @@ try {
     assert.equal(await page.getByRole('searchbox').inputValue(), 'Cloud');
     assert.equal(await page.getByLabel('เลือกปีการศึกษา', { exact: true }).inputValue(), '2568');
   });
-  await check('five modules and overview render in both themes without global overflow', async () => {
+  await check('six modules and overview render in both themes without global overflow', async () => {
     for (const value of ['classic', 'dark']) {
       for (const path of paths) {
         await go(path); await theme(value);
@@ -107,8 +107,35 @@ try {
     assert.equal(await page.locator('#dashboard-directory tbody .row-action').count(), 0);
   });
   const storage = () => page.evaluate(() => Object.fromEntries(Object.entries(localStorage).filter(([key]) => key.startsWith('nextlink.dashboard.demo.'))));
+  await check('visible module navigation preserves periods and marks the current page', async () => {
+    await go('/electives?year=2568&term=2');
+    const nav = page.getByRole('navigation', { name: 'โมดูล Dashboard', exact: true });
+    assert.equal(await nav.getByRole('link').count(), 7);
+    assert.equal(await nav.getByRole('link', { name: 'วิชาเลือก', exact: true }).getAttribute('aria-current'), 'page');
+    await nav.getByRole('link', { name: 'MOU', exact: true }).click();
+    await page.waitForURL('**/dashboard/mou?year=2568&term=2');
+    await page.locator('.app-shell[data-ready="true"]').waitFor();
+    assert.equal(await nav.locator('[aria-current="page"]').innerText(), 'MOU');
+    await page.locator('.dashboard-demo-notice summary').click();
+    assert.match(await page.locator('.dashboard-demo-notice p').innerText(), /ไม่ส่งต่อไปยังเครื่อง/);
+  });
+  await check('search shortcuts move focus to results, including empty results, on every module', async () => {
+    for (const path of paths.filter(Boolean)) {
+      await go(path);
+      await page.getByRole('searchbox').fill('UX-NO-MATCH');
+      await page.waitForFunction(() => document.querySelector('#dashboard-directory .empty-state'));
+      await page.getByRole('searchbox').press('Enter');
+      assert.equal(await page.evaluate(() => document.activeElement?.id), 'dashboard-directory');
+      await page.getByRole('link', { name: 'ค้นหา', exact: true }).click();
+      assert.equal(await page.evaluate(() => document.activeElement?.id), 'dashboard-filters');
+      await page.getByRole('button', { name: 'ล้างตัวกรอง', exact: true }).click();
+      await page.locator('#dashboard-directory .row-action').filter({ visible: true }).first().waitFor();
+      await page.getByRole('link', { name: 'ดูผลการค้นหา', exact: true }).click();
+      assert.equal(await page.evaluate(() => document.activeElement?.id), 'dashboard-directory');
+    }
+  });
   await check('each module opens its lazy dialog and persists demo edits after reload', async () => {
-    const fields = { '/electives': 'ชื่อรายวิชา', '/mou': 'ชื่อบริษัท (ภาษาไทย)', '/internship': 'ชื่อตำแหน่งที่ 1', '/cooperative': 'ชื่อตำแหน่งที่ 1', '/capstone': 'ชื่อหัวข้อ' };
+    const fields = { '/electives': 'ชื่อรายวิชา', '/mou': 'ชื่อบริษัท (ภาษาไทย)', '/internship': 'ชื่อตำแหน่งที่ 1', '/cooperative': 'ชื่อตำแหน่งที่ 1', '/capstone': 'ชื่อหัวข้อ', '/friday-activities': 'ชื่อกิจกรรม' };
     for (const [path, field] of Object.entries(fields)) {
       await go(path);
       await page.locator('#dashboard-directory .row-action').filter({ visible: true }).first().click();
@@ -130,6 +157,42 @@ try {
       await page.locator('#dashboard-directory .row-action').filter({ visible: true }).first().click();
       await page.locator('dialog[open]').getByText(changed, { exact: true }).first().waitFor();
     }
+  });
+  await check('Friday term, company filtering, evaluation sources and missing attendance remain distinct', async () => {
+    await go('/friday-activities');
+    const kpi = label => page.locator('article.kpi-card').filter({ has: page.locator('.kpi-label', { hasText: label }) }).locator('.kpi-value');
+    assert.equal(await kpi('กิจกรรมทั้งหมด').innerText(), '7');
+    assert.equal(await kpi('บริษัทที่มาจัดแล้ว').innerText(), '3');
+    assert.equal(await kpi('ผู้เข้าร่วมจริง').innerText(), '140');
+    assert.equal(await page.locator('#dashboard-analysis .friday-rating').count(), 4);
+    await page.locator('#friday-companies').getByRole('button', { name: /คลาวด์แล็บ/ }).click();
+    assert.equal(await page.locator('#dashboard-directory tbody tr').count(), 3);
+    await page.getByRole('button', { name: 'ล้างตัวกรอง', exact: true }).click();
+    await page.locator('#dashboard-directory .row-action').filter({ visible: true }).first().click();
+    let dialog = page.locator('dialog[open]:not([data-dialog-status])');
+    await dialog.locator('.friday-reported-score').waitFor();
+    assert.match(await dialog.locator('.friday-reported-score').innerText(), /4\.60 \/ 5/);
+    assert.match(await dialog.locator('.friday-rating').last().innerText(), /4\.67 \/ 5/);
+    await dialog.getByRole('button', { name: 'ปิดรายละเอียด', exact: true }).click();
+    await page.getByRole('searchbox').fill('เยี่ยมชมทีม');
+    await page.locator('#dashboard-directory .row-action').filter({ visible: true }).first().click();
+    dialog = page.locator('dialog[open]:not([data-dialog-status])');
+    await dialog.getByRole('button', { name: 'แก้ไขข้อมูล', exact: true }).click();
+    assert.equal(await dialog.getByLabel('จำนวนมาจริง', { exact: true }).inputValue(), '');
+    await dialog.getByLabel('จำนวนมาจริง', { exact: true }).fill('0');
+    await dialog.getByRole('button', { name: 'บันทึกการแก้ไข', exact: true }).click();
+    await dialog.getByRole('button', { name: 'แก้ไขข้อมูล', exact: true }).waitFor();
+    await page.reload(); await page.locator('.app-shell[data-ready="true"]').waitFor();
+    assert.equal(await kpi('ผู้เข้าร่วมจริง').innerText(), '0');
+    await go('/friday-activities?year=2568&term=2');
+    assert.equal(await kpi('กิจกรรมทั้งหมด').innerText(), '1');
+    assert.doesNotMatch(await page.locator('#dashboard-directory').innerText(), /Dashboard migration/);
+    await go('/friday-activities?year=2569&term=summer');
+    await page.locator('.academic-period-empty').waitFor();
+    assert.equal(await kpi('กิจกรรมทั้งหมด').innerText(), '0');
+    assert.equal(await kpi('ผู้เข้าร่วมจริง').innerText(), '—');
+    await go('/friday-activities?year=2566&term=1');
+    assert.equal(await kpi('ผู้เข้าร่วมจริง').innerText(), '0');
   });
   await check('unsaved dialog edits can be kept or discarded without leaking into another record', async () => {
     await go('/electives');
@@ -160,11 +223,28 @@ try {
     assert.doesNotMatch(await page.locator('.nextlink-dashboard').innerText(), /\[Dashboard migration\]/);
   });
   await check('responsive layouts, mobile navigation and shared console styles survive route changes', async () => {
-    for (const width of [390, 820]) {
+    for (const width of [320, 390, 820]) {
       await page.setViewportSize({ width, height: 844 });
       for (const path of paths) {
         await go(path);
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `mobile fits: ${path} ${width}`);
+        const links = await page.locator('.dashboard-module-nav a').all();
+        for (const link of links) {
+          const rect = await link.boundingBox();
+          assert.ok(rect.height >= 44 && rect.x >= 0 && rect.x + rect.width <= width, `reachable module at ${width}`);
+        }
+        if (path === '/electives' && width < 760) {
+          assert.ok(await page.locator('.mobile-course-stats .status-select').evaluateAll(selects => selects.every(select => {
+            const rect = select.getBoundingClientRect();
+            return rect.width <= select.parentElement.getBoundingClientRect().width + 1;
+          })), 'status controls do not overlap enrollment figures');
+          await page.locator('#dashboard-directory .row-action').filter({ visible: true }).first().click();
+          const dialog = page.locator('dialog[open]:not([data-dialog-status])');
+          await dialog.getByRole('button', { name: 'แก้ไขข้อมูล', exact: true }).click();
+          const save = await dialog.getByRole('button', { name: 'บันทึกการแก้ไข', exact: true }).boundingBox();
+          assert.ok(save.y >= 0 && save.y + save.height <= 844 && save.x + save.width <= width, 'mobile save stays in view');
+          await dialog.getByRole('button', { name: 'ปิดรายละเอียด', exact: true }).click();
+        }
       }
       await page.screenshot({ path: `${output}/mobile-${width}.png`, fullPage: true });
     }

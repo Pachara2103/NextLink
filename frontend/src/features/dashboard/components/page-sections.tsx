@@ -1,9 +1,10 @@
 "use client";
 
 import type { MouseEvent } from "react";
+import { focusDashboardSection } from "@/features/dashboard/lib/section-navigation";
 
 /** Shortcuts stay available while reading a long dashboard. */
-export function PageSections({ capstone = false }: { capstone?: boolean }) {
+export function PageSections({ capstone = false, friday = false }: { capstone?: boolean; friday?: boolean }) {
   const sections = [
     { id: "dashboard-filters", label: "ค้นหา" },
     { id: "action-queue", label: "งานติดตาม" },
@@ -12,16 +13,14 @@ export function PageSections({ capstone = false }: { capstone?: boolean }) {
       { id: "capstone-ranking", label: "อันดับกลุ่ม" },
       { id: "capstone-relationships", label: "บริษัทและอาจารย์" },
     ] : []),
-    { id: "dashboard-analysis", label: "สถิติ" },
+    ...(friday ? [{ id: "friday-companies", label: "บริษัทในเทอมนี้" }] : []),
+    { id: "dashboard-analysis", label: friday ? "ผลประเมิน" : "สถิติ" },
   ];
 
   function jump(event: MouseEvent<HTMLAnchorElement>, id: string) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const section = document.getElementById(id);
-    if (!section) return;
     event.preventDefault();
-    section.focus({ preventScroll: true });
-    section.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
+    focusDashboardSection(id);
   }
 
   return <nav className="page-sections" aria-label="ทางลัดในหน้านี้">
