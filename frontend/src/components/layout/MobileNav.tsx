@@ -29,10 +29,11 @@ export function MobileNav({
   active,
   onNavigate,
 }: {
-  active: PanelKey | "planner";
+  active: PanelKey | "planner" | "dashboard";
   onNavigate: (panel: PanelKey) => void;
 }) {
   const nav = useRef<HTMLElement>(null);
+  const NavControl = active === "dashboard" ? Link : "button";
   useEffect(() => {
     const element = nav.current;
     if (!element) return;
@@ -54,10 +55,11 @@ export function MobileNav({
       <ThemeSwitcher />
     <nav ref={nav} aria-label="เมนูหลัก" className="mb-5 flex gap-1 overflow-x-auto rounded-xl border border-line-soft bg-sunken p-1 lg:hidden">
       {NAV_ITEMS.map((item) => (
-        <button
+        <NavControl
           key={item.key}
+          href={`/?panel=${item.key}`}
           type="button"
-          onClick={() => onNavigate(item.key)}
+          onClick={active === "dashboard" ? undefined : () => onNavigate(item.key)}
           aria-current={item.key === active ? "page" : undefined}
           className={cn(
             "flex min-h-11 shrink-0 items-center rounded-lg px-3 py-1.5 text-[13px] transition",
@@ -67,8 +69,10 @@ export function MobileNav({
           )}
         >
           {SHORT_LABELS[item.key]}
-        </button>
+        </NavControl>
       ))}
+      <Link href="/dashboard" aria-current={active === "dashboard" ? "page" : undefined}
+        className={cn("flex min-h-11 shrink-0 items-center rounded-lg px-3 py-1.5 text-[13px]", active === "dashboard" ? "bg-accent-soft text-accent" : "text-text-2")}>Dashboard</Link>
       <Link href="/elective-plan" aria-current={active === "planner" ? "page" : undefined}
         className={cn("flex min-h-11 shrink-0 items-center rounded-lg px-3 py-1.5 text-[13px]", active === "planner" ? "bg-accent-soft text-accent" : "text-text-2")}>จัดตารางวิชาเลือก</Link>
     </nav>
