@@ -10,11 +10,11 @@ import pytest
 
 BACKEND = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND))
-TEST_URL = os.environ.get("TEST_DATABASE_URL", "")
+TEST_URL = os.environ.get("NEXTLINK_DATABASE_URL", "")
 parsed = urlparse(TEST_URL)
 if parsed.hostname not in {"localhost", "127.0.0.1", "::1"} or not parsed.path.startswith("/nextlink_security_test"):
     raise RuntimeError("TEST_DATABASE_URL must name a disposable local nextlink_security_test database")
-os.environ["DATABASE_PUBLIC_URL"] = TEST_URL
+os.environ["NEXTLINK_DATABASE_URL"] = TEST_URL
 os.environ["AUTH_SECRET"] = "security-regression-fixture-key-not-a-production-secret"
 os.environ["PG_POOL_MAX"] = "20"
 os.environ["PYTHON_DOTENV_DISABLED"] = "1"
