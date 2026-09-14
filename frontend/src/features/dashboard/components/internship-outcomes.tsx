@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { openingKey, type InternshipScope } from '../lib/internship-history';
 import { applyOutcomeDraft, OUTCOME_STAGES, outcomeCount, outcomeStageSummary, outcomeStorageKey, outcomeValidator, selectOutcomes, toOutcomeDraft, type OutcomeDraft } from '../lib/internship-outcomes';
 import type { InternshipCompany, InternshipOutcome, InternshipTrack } from '../lib/types';
@@ -14,7 +14,9 @@ const EMPTY_OUTCOMES: InternshipOutcome[] = [];
 
 function OutcomeEditor({ record, onSave, onClose }: { record: InternshipOutcome; onSave: (id: string, draft: OutcomeDraft) => Promise<boolean>; onClose: () => void }) {
   const editor = useRecordEditor({ record, toDraft: toOutcomeDraft, onSave, onClose });
-  return <article className="insight-card outcome-editor" aria-label="บันทึกผลรายนิสิต">
+  const editorRef = useRef<HTMLElement>(null);
+  useEffect(() => { editorRef.current?.focus(); }, []);
+  return <article className="insight-card outcome-editor" ref={editorRef} tabIndex={-1} aria-label="บันทึกผลรายนิสิต">
     <h4>{record.studentRef ?? 'ยังไม่มีรหัสอ้างอิงนิสิต'} · รอบ {record.round}</h4>
     <p className="panel-caption">แก้เฉพาะสถานะที่ยืนยันได้ แต่ละขั้นบันทึกแยกกัน รหัสอ้างอิงและบริษัทคงเดิม</p>
     {editor.isEditing && editor.draft ? <form onSubmit={editor.saveEditing}>
@@ -44,7 +46,7 @@ export function InternshipOutcomes({ seed = EMPTY_OUTCOMES, allCompanies, compan
     <StorageWarning message={dataset.warning} /><StorageRecoveryPanel key={dataset.recovery?.raw} recovery={dataset.recovery} onRecover={dataset.recover} />
     <div className="insight-card-grid">{OUTCOME_STAGES.map(stage => {
       const summary = outcomeStageSummary(rows, stage.key);
-      return <article className="insight-card" key={stage.key} data-stage={stage.key}><h4>{stage.label}</h4><strong>{readable ? outcomeCount(summary) : 'กำลังตรวจข้อมูล'}</strong><small>คนไม่ซ้ำจาก {summary.records} รายการผล</small>{readable && (summary.unknown > 0 || summary.unidentified > 0) && <small>ยังไม่ทราบสถานะ {summary.unknown} รายการ · ไม่ทราบรหัสนิสิต {summary.unidentified} รายการ</small>}</article>;
+      return <article className="insight-card" key={stage.key} data-stage={stage.key}><h4>{stage.label}</h4><strong>{readable ? outcomeCount(summary) : dataset.warning ? 'อ่านข้อมูลไม่ได้' : 'กำลังโหลดข้อมูล'}</strong>{readable && <small>คนไม่ซ้ำจาก {summary.records} รายการผล</small>}{readable && (summary.unknown > 0 || summary.unidentified > 0) && <small>ยังไม่ทราบสถานะ {summary.unknown} รายการ · ไม่ทราบรหัสนิสิต {summary.unidentified} รายการ</small>}</article>;
     })}</div>
     <p className="panel-caption">คนเดิมข้ามรอบนับครั้งเดียวในแต่ละขั้น แต่ละขั้นอาจมีคนซ้ำกันจึงนำยอดมาบวกกันไม่ได้ · ≥ คือจำนวนที่ยืนยันได้อย่างน้อย · ตำแหน่งที่ไม่มีผลบันทึกยังสรุปว่าไม่มีคนเข้าฝึกไม่ได้</p>
     {readable && <details className="outcome-breakdown"><summary>ดูบริษัทและตำแหน่งที่เข้าฝึก ({companies.length} บริษัท)</summary>

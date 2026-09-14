@@ -101,7 +101,11 @@ try {
     await page.waitForURL('**/dashboard/electives?year=2568&term=2');
     await page.locator('.app-shell[data-ready="true"]').waitFor();
     await page.getByLabel('เลือกปีการศึกษา', { exact: true }).selectOption('2569');
+    await page.waitForURL('**/electives?year=2569&term=2');
+    await page.locator('.academic-period-panel[aria-busy="false"]').waitFor();
     await page.getByLabel('เลือกภาคการศึกษา', { exact: true }).selectOption('1');
+    await page.waitForURL('**/electives?year=2569&term=1');
+    await page.locator('.academic-period-panel[aria-busy="false"]').waitFor();
     await page.locator('.app-shell[data-ready="true"]').waitFor();
     await page.getByRole('searchbox').fill('DOES-NOT-EXIST');
     await page.waitForURL('**/*q=DOES-NOT-EXIST*');
@@ -283,6 +287,10 @@ try {
     assert.doesNotMatch(await page.locator('.nextlink-dashboard').innerText(), /\[Dashboard migration\]/);
     await go('/companies?company=partner-cloud');
     assert.doesNotMatch(await page.locator('main').innerText(), /Shared synthetic coordinator|ย้อนหลังสำหรับทดสอบ/);
+    await go('/internship?year=2569&term=1&q=Mock%20Cloud&round=1');
+    await page.locator('#internship-outcomes[data-ready="true"]').waitFor();
+    assert.equal(await page.locator('#internship-outcomes [data-stage="accepted"] > strong').innerText(), '0');
+    assert.doesNotMatch(await page.locator('main').innerText(), /Synthetic result saved in browser check|Case ล่าสุดจากอีกแท็บ/);
     assert.deepEqual(await storage(), before, 'other account does not mutate the saved demo');
   });
   await check('offline and expired sessions cannot render a dashboard', async () => {

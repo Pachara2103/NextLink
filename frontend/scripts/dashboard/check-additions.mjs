@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { checkInternshipOutcomes } from './check-internship-outcomes.mjs';
 
 // Runs with the existing isolated staff/API fixture, never against the live backend.
 export async function checkAdditions({ page, context, base, go, check, theme, output }) {
@@ -99,6 +100,7 @@ export async function checkAdditions({ page, context, base, go, check, theme, ou
     await openFirst();
     assert.equal(await dialog().getByRole('button', { name: 'บันทึกจำนวนที่รับ', exact: true }).isDisabled(), true);
   });
+  await checkInternshipOutcomes({ page, context, base, go, check, theme, output });
   await check('company overview and editor fit light, dark and narrow screens', async () => {
     for (const value of ['classic', 'dark']) {
       await go('/companies?company=partner-cloud'); await theme(value);
