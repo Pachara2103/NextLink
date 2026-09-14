@@ -10,7 +10,7 @@ export function CompanyDetailDialog({
   stats,
   dialogRef,
   totalApplications,
-  track,
+  track, readOnlyIntake = false,
   onClose,
   onSave,
 }: {
@@ -18,6 +18,7 @@ export function CompanyDetailDialog({
   dialogRef: React.Ref<HTMLDialogElement>;
   totalApplications: number;
   track: InternshipPayload["track"];
+  readOnlyIntake?: boolean;
   onClose: () => void;
   onSave: (id: string, draft: CompanyEditDraft) => boolean | Promise<boolean>;
 }) {
@@ -35,7 +36,7 @@ export function CompanyDetailDialog({
     });
   };
 
-  const maxRankPicks = stats ? Math.max(...RANKS.map((rank) => stats.picksByRank[rank]), 1) : 1;
+  const maxRankPicks = stats ? Math.max(...(stats ? Object.keys(stats.picksByRank).map(Number).filter(r => r > 0) : RANKS).map((rank) => stats.picksByRank[rank]), 1) : 1;
 
   return (
     <dialog
@@ -55,12 +56,12 @@ export function CompanyDetailDialog({
               <p className="internship-dialog-subtitle">{company.shortName} · {company.industry}</p>
             </div>
             <div className="dialog-header-actions">
-              {!isEditing ? <button className="secondary-button" type="button" onClick={startEditing}>บันทึกจำนวนที่รับ</button> : null}
+              {!isEditing ? <button className="secondary-button" type="button" onClick={startEditing} disabled={readOnlyIntake} title={readOnlyIntake ? "เลือกทุกชั้นปีและทุกรอบก่อนแก้จำนวนรวม" : undefined}>บันทึกจำนวนที่รับ</button> : null}
               <button className="icon-button" type="button" onClick={requestClose} disabled={saving} aria-label="ปิดรายละเอียด" title="ปิดรายละเอียด">×</button>
             </div>
           </div>
 
-          <div className="dialog-statusbar">
+          <div className="dialog-statusbar">{readOnlyIntake && <p>กำลังดูเฉพาะกลุ่มที่เลือก หากต้องการแก้จำนวนรวมให้เลือกทุกชั้นปีและทุกรอบ</p>}
             <div><span>สถานะ MOU</span><strong className={`status-pill ${mouTone(company.mouStatus)}`}>{company.mouStatus}</strong></div>
             <div><span>ผู้ประสานงาน</span><strong>{display(company.coordinator, "ยังไม่มีผู้ประสานงาน")}</strong></div>
             <div><span>ผลการรับ</span><strong className={`status-pill ${INTAKE_META[stats.intake].tone}`}>{INTAKE_META[stats.intake].label}</strong></div>
@@ -135,10 +136,10 @@ export function CompanyDetailDialog({
                 <div className="detail-section">
                   <div className="section-heading-row"><h3>นิสิตเลือกบริษัทนี้เป็นอันดับใด</h3><span className="panel-caption">จาก {formatNumber(totalApplications)} ใบสมัคร</span></div>
                   <div className="rank-breakdown">
-                    {RANKS.map((rank) => (
+                    {(stats ? Object.keys(stats.picksByRank).map(Number).filter(r => r > 0) : RANKS).map((rank) => (
                       <div className="rank-breakdown-row" key={rank}>
                         <span className={`rank-key rank-${rank}`} aria-hidden="true" />
-                        <span>{RANK_LABELS[rank]}</span>
+                        <span>{RANK_LABELS[rank] ?? `อันดับ ${rank}`}</span>
                         <span className="bar-track"><span className={`bar-fill rank-${rank}`} style={{ width: `${(stats.picksByRank[rank] / maxRankPicks) * 100}%` }} /></span>
                         <strong>{formatNumber(stats.picksByRank[rank])}</strong>
                       </div>

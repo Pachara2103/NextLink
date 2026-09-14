@@ -1,3 +1,4 @@
+@import "./insights.css";
 /* Scoped from nextlink-elective-dashboard; no selectors escape this feature. */
 .nextlink-dashboard {
   /* The design is light-only; say so, or a dark-mode browser restyles

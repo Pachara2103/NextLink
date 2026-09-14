@@ -142,6 +142,7 @@ export type InternshipMouStatus = MouDocumentStatusValue | "กำลังป�
  * disagree.
  */
 export type InternshipPosition = {
+  id?: string;
   name: string;
   declaredIntake: number;
   accepted: number;
@@ -169,6 +170,7 @@ export type InternshipCompany = {
  * from.
  */
 export type InternshipApplicationChoice = {
+  openingId?: string;
   rank: number;
   companyId: string;
   position: string;
@@ -176,6 +178,9 @@ export type InternshipApplicationChoice = {
 
 export type InternshipApplication = {
   id: string;
+  applicantRef?: string;
+  studyYear?: number;
+  round?: string;
   track: InternshipTrack;
   department: string;
   choices: InternshipApplicationChoice[];

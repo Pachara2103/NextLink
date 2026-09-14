@@ -39,7 +39,7 @@ const course: Shape = {
 const internship: Shape = {
   id: nonempty, rowNumber: count, name: nonempty, shortName: nonempty, industry: nonempty,
   mouStatus: nonempty, coordinator: nullable(text), note: nullable(text), raw,
-  positions: [{ name: nonempty, declaredIntake: count, accepted: count }],
+  positions: [{ id: optional(nonempty), name: nonempty, declaredIntake: count, accepted: count }],
 };
 const mou: Shape = {
   id: nonempty, rowNumber: count, companyThai: nonempty, companyEnglish: nonempty,

@@ -8,6 +8,9 @@ export type CompanyStats = {
   shortfall: number; surplus: number; unfilledPositions: number; intake: IntakeKind;
 };
 export const RANKS = [1, 2, 3, 4, 5];
+export function applicationRanks(applications: InternshipApplication[]) {
+  return [...new Set(applications.flatMap(a => a.choices.map(c => c.rank)))].filter(r => Number.isSafeInteger(r) && r > 0).sort((a, b) => a - b);
+}
 export const INTAKE_META: Record<IntakeKind, { label: string; tone: string }> = {
   complete: { label: "รับครบตามที่แจ้ง", tone: "tone-green" },
   short: { label: "รับไม่ครบ", tone: "tone-orange" },
@@ -29,7 +32,7 @@ export function buildStats(companies: InternshipCompany[], applications: Interns
   }
   return companies.map(company => {
     const picksByRank = picks.get(company.id) ?? [0, 0, 0, 0, 0, 0];
-    const totalPicks = RANKS.reduce((n, r) => n + picksByRank[r], 0);
+    const totalPicks = picksByRank.reduce((n, count) => n + count, 0);
     const declared = sumDeclared(company.positions), accepted = sumAccepted(company.positions);
     const shortfall = company.positions.reduce((n, p) => n + Math.max(p.declaredIntake - p.accepted, 0), 0);
     const surplus = company.positions.reduce((n, p) => n + Math.max(p.accepted - p.declaredIntake, 0), 0);

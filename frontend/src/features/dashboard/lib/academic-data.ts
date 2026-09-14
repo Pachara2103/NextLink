@@ -21,7 +21,7 @@ export function selectMouPeriod(payload: MouPayload, period: AcademicPeriod): Mo
 
 export function internshipPeriodSource(source: Omit<InternshipPayload, "track">, intakes: TrackIntakes, period: AcademicPeriod) {
   if (isDefaultPeriod(period)) return { source, intakes };
-  if (isHistoryPeriod(period)) return {
+  if (isHistoryPeriod(period) || ([2566, 2567].includes(period.year) && period.term === "summer")) return {
     source: { ...source, dataset: `${source.dataset}-${academicPeriodKey(period)}`, sourceFile: "ข้อมูลใบสมัครและจำนวนรับย้อนหลังจำลอง", lastUpdated: history.lastUpdated, applications: structuredClone(history.internshipApplications) },
     intakes: structuredClone(history.internshipIntakes),
   };

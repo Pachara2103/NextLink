@@ -4,7 +4,7 @@ import { AcademicPeriodEmptyState, AcademicPeriodSelector } from "@/features/das
 import { FilterFields } from "@/features/dashboard/components/filter-fields";
 import { PageSections } from "@/features/dashboard/components/page-sections";
 
-import { buildStats, INTAKE_META, queueKind, RANKS, toCount, type CompanyStats, type IntakeKind } from "@/features/dashboard/lib/internship-stats";
+import { buildStats, INTAKE_META, queueKind, applicationRanks, toCount, type CompanyStats, type IntakeKind } from "@/features/dashboard/lib/internship-stats";
 
 import { AppNav, DashboardModuleNav } from "@/features/dashboard/components/app-nav";
 import { lazy, useDeferredValue, useMemo, useRef, useState } from "react";
@@ -27,6 +27,9 @@ import { INTERNSHIP_TRACKS } from "@/features/dashboard/lib/internship-tracks";
 import { sortMouStatuses } from "@/features/dashboard/lib/mou-statuses";
 import { QUEUE_META, queueRank, type QueueKind } from "@/features/dashboard/lib/queue";
 import type { InternshipMouStatus } from "@/features/dashboard/lib/types";
+import { useAcademicPeriod } from '../lib/use-academic-period';
+import { filterApplications, scopeCompanies, positionPopularity } from '../lib/internship-history';
+import { InternshipEvaluations } from './internship-evaluations';
 import { useLocalDataset } from "@/features/dashboard/lib/use-local-dataset";
 import { useRecordDialog } from "@/features/dashboard/lib/use-record-dialog";
 import { useUrlFilters } from "@/features/dashboard/lib/use-url-filters";
@@ -34,9 +37,16 @@ const CompanyDetailDialog = lazy(() => import("./internship-detail-dialog").then
 
 export function InternshipDashboard({ payload }: Props) {
   const track = payload.track;
-  const { items: companies, update: updateCompanies, reset: resetCompanies, editedAt, ready, warning, hasOverrides, undo, recovery, recover } = useLocalDataset(INTERNSHIP_TRACKS[track].storageKey, payload.companies, isInternshipCompany);
+  const { items: allCompanies, update: updateCompanies, reset: resetCompanies, editedAt, ready, warning, hasOverrides, undo, recovery, recover } = useLocalDataset(INTERNSHIP_TRACKS[track].storageKey, payload.companies, isInternshipCompany);
   const { toast, show: showToast, dismiss: dismissToast, holdTimer, resumeTimer } = useStatusToast();
 
+  const period = useAcademicPeriod();
+  const [studyYear, setStudyYear] = useState("all");
+  const [round, setRound] = useState("all");
+  const scope = useMemo(() => ({ studyYear, round }), [studyYear, round]);
+  const companies = useMemo(() => scopeCompanies(allCompanies, scope, track), [allCompanies, scope, track]);
+  const applications = useMemo(() => filterApplications(payload.applications, scope), [payload.applications, scope]);
+  const RANKS = useMemo(() => applicationRanks(applications), [applications]);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
   const [industryFilter, setIndustryFilter] = useState<FilterValue>("all");
@@ -46,8 +56,8 @@ export function InternshipDashboard({ payload }: Props) {
   const [sortBy, setSortBy] = useState<SortOption>("demand");
   const queueRef = useRef<HTMLElement>(null);
 
-  const allStats = useMemo(() => buildStats(companies, payload.applications), [companies, payload.applications]);
-  const totalApplications = payload.applications.length;
+  const allStats = useMemo(() => buildStats(companies, applications), [companies, applications]);
+  const totalApplications = applications.length;
 
   const industries = useMemo(() => [...new Set(companies.map((company) => company.industry))].sort((left, right) => left.localeCompare(right, "th")), [companies]);
   const mouStatuses = useMemo(() => sortMouStatuses(companies.map((company) => company.mouStatus)), [companies]);
@@ -99,16 +109,18 @@ export function InternshipDashboard({ payload }: Props) {
 
   const shownFollowUps = followUps.filter((entry) => queueFilter === "all" || entry.kind === queueFilter);
 
-  const rankBoard = useMemo(() => [...filteredStats].sort((left, right) => right.totalPicks - left.totalPicks || right.firstPicks - left.firstPicks).slice(0, 8), [filteredStats]);
+  const rankBoard = useMemo(() => [...filteredStats].sort((left, right) => right.totalPicks - left.totalPicks || right.firstPicks - left.firstPicks).slice(0, 10), [filteredStats]);
   const maxPicks = Math.max(...rankBoard.map((stats) => stats.totalPicks), 1);
   const shownPicks = filteredStats.reduce((sum, stats) => sum + stats.totalPicks, 0);
 
-  const intakeBoard = useMemo(() => [...filteredStats].sort((left, right) => right.shortfall - left.shortfall || right.declared - left.declared).slice(0, 8), [filteredStats]);
+  const intakeBoard = useMemo(() => [...filteredStats].sort((left, right) => right.shortfall - left.shortfall || right.declared - left.declared).slice(0, 10), [filteredStats]);
   const maxSeats = Math.max(...intakeBoard.flatMap((stats) => [stats.declared, stats.accepted]), 1);
 
-  const hasFilters = Boolean(query.trim()) || industryFilter !== "all" || mouFilter !== "all" || intakeFilter !== "all" || queueFilter !== "all";
+  const hasFilters = studyYear !== "all" || round !== "all" || Boolean(query.trim()) || industryFilter !== "all" || mouFilter !== "all" || intakeFilter !== "all" || queueFilter !== "all";
 
   useUrlFilters({
+    studyYear: studyYear === "all" ? "" : studyYear,
+    round: round === "all" ? "" : round,
     q: query.trim(),
     industry: industryFilter === "all" ? "" : industryFilter,
     mou: mouFilter === "all" ? "" : mouFilter,
@@ -116,6 +128,8 @@ export function InternshipDashboard({ payload }: Props) {
     queue: queueFilter === "all" ? "" : queueFilter,
     sort: sortBy === "demand" ? "" : sortBy,
   }, (found) => {
+    if (["1", "2", "3", "unknown"].includes(found.studyYear)) setStudyYear(found.studyYear);
+    if (["1", "2", "unknown"].includes(found.round)) setRound(found.round);
     if (found.q) setQuery(found.q);
     if (found.industry) setIndustryFilter(found.industry);
     setMouFilter(allowedValue(found.mou, mouStatuses) ?? "all");
@@ -132,7 +146,7 @@ export function InternshipDashboard({ payload }: Props) {
   // Any change to the filters puts the reader back at the first page; without
   // this a narrowed result set can land on a page that no longer exists.
   // Reset before committing a new filter view, without a second effect render.
-  const pageScope = JSON.stringify([query, industryFilter, mouFilter, intakeFilter, queueFilter, sortBy]);
+  const pageScope = JSON.stringify([studyYear, round, query, industryFilter, mouFilter, intakeFilter, queueFilter, sortBy]);
   const [previousPageScope, setPreviousPageScope] = useState(pageScope);
   if (previousPageScope !== pageScope) { setPreviousPageScope(pageScope); setPage(1); }
 
@@ -143,6 +157,7 @@ export function InternshipDashboard({ payload }: Props) {
   );
 
   const resetFilters = () => {
+    setStudyYear("all"); setRound("all");
     setQuery("");
     setIndustryFilter("all");
     setMouFilter("all");
@@ -171,6 +186,7 @@ export function InternshipDashboard({ payload }: Props) {
       coordinator: optionalValue(draft.coordinator),
       note: optionalValue(draft.note),
       positions: draft.positions.map((position, index) => ({
+        ...item.positions[index],
         name: position.name.trim() || item.positions[index]?.name || `ตำแหน่งที่ ${index + 1}`,
         declaredIntake: toCount(position.declaredIntake),
         accepted: toCount(position.accepted),
@@ -203,7 +219,7 @@ export function InternshipDashboard({ payload }: Props) {
         <StorageWarning message={warning} /><StorageRecoveryPanel key={recovery?.raw} recovery={recovery} onRecover={recover} />
         <section className="intro-row">
           <div><p className="section-kicker">การรับนิสิตเข้าร่วมงาน</p><h2>ภาพรวมบริษัทรับ{track}</h2><p className="intro-copy">เห็นอันดับที่นิสิตเลือก จำนวนที่บริษัทแจ้งว่าจะรับ และจำนวนที่รับจริง</p></div>
-          <div className="intro-badges"><span className="scope-chip"><span className="scope-chip-label">{track}</span>{formatNumber(totalApplications)} ใบสมัคร · 5 อันดับต่อคน</span></div>
+          <div className="intro-badges"><span className="scope-chip"><span className="scope-chip-label">{track}</span>{formatNumber(totalApplications)} ใบสมัคร · อันดับที่พบ {RANKS.length ? RANKS.join(", ") : "ยังไม่มี"}</span></div>
         </section>
 
         <PageSections />
@@ -217,8 +233,10 @@ export function InternshipDashboard({ payload }: Props) {
 
         <section id="dashboard-filters" tabIndex={-1} className="control-panel" aria-label="ตัวกรองข้อมูลบริษัท">
           <div className="control-heading"><div><h3>ค้นหาและกรองข้อมูล</h3></div><button className="text-button" type="button" onClick={resetFilters} disabled={!hasFilters}>ล้างตัวกรอง</button></div>
-          <FilterFields activeCount={[industryFilter, mouFilter, intakeFilter].filter(value => value !== "all").length} search={<label className="search-field"><span>ค้นหาบริษัท ตำแหน่ง หรือผู้ประสานงาน</span><input value={query} onChange={(event) => setQuery(event.target.value)} type="search" placeholder="เช่น Mock Cloud, Data Engineering, ผู้ประสานงานจำลอง 01…" /></label>}>
+          <FilterFields activeCount={[studyYear, round, industryFilter, mouFilter, intakeFilter].filter(value => value !== "all").length} search={<label className="search-field"><span>ค้นหาบริษัท ตำแหน่ง หรือผู้ประสานงาน</span><input value={query} onChange={(event) => setQuery(event.target.value)} type="search" placeholder="เช่น Mock Cloud, Data Engineering, ผู้ประสานงานจำลอง 01…" /></label>}>
             <label><span>ประเภทธุรกิจ</span><select value={industryFilter} onChange={(event) => setIndustryFilter(event.target.value)}><option value="all">ทุกประเภท</option>{industries.map((industry) => <option key={industry} value={industry}>{industry}</option>)}</select></label>
+            <label><span>ชั้นปีนิสิต</span><select value={studyYear} onChange={event => setStudyYear(event.target.value)}><option value="all">ทุกชั้นปี</option>{[1, 2, 3].map(y => <option key={y} value={y}>ปี {y}</option>)}<option value="unknown">ยังไม่ทราบชั้นปี</option></select></label>
+            <label><span>รอบสมัคร</span><select value={round} onChange={event => setRound(event.target.value)}><option value="all">ทุกรอบ</option><option value="1">รอบ 1</option><option value="2">รอบ 2</option><option value="unknown">ยังไม่ทราบรอบ</option></select></label>
             <label><span>สถานะ MOU</span><select value={mouFilter} onChange={(event) => setMouFilter(event.target.value)}><option value="all">ทุกสถานะ</option>{mouStatuses.map((status) => <option key={status} value={status}>{status}</option>)}</select></label>
             <label><span>ผลการรับ</span><select value={intakeFilter} onChange={(event) => setIntakeFilter(event.target.value as IntakeKind | "all")}><option value="all">ทุกผลการรับ</option>{(Object.keys(INTAKE_META) as IntakeKind[]).map((kind) => <option key={kind} value={kind}>{INTAKE_META[kind].label}</option>)}</select></label>
           </FilterFields>
@@ -258,8 +276,8 @@ export function InternshipDashboard({ payload }: Props) {
 
         <section id="dashboard-analysis" tabIndex={-1} className="analytics-grid">
           <article className="panel chart-panel">
-            <div className="panel-heading"><div><p className="section-kicker">สัดส่วนอันดับ</p><h3>บริษัทที่ถูกเลือกมากที่สุด</h3></div><span className="panel-caption">จาก {formatNumber(shownPicks)} การเลือก · กดแถบเพื่อดูรายละเอียด</span></div>
-            <ul className="rank-legend">{RANKS.map((rank) => <li key={rank}><span className={`rank-key rank-${rank}`} aria-hidden="true" />{RANK_LABELS[rank]}</li>)}</ul>
+            <div className="panel-heading"><div><p className="section-kicker">สัดส่วนอันดับ</p><h3>Top 10 บริษัทที่ถูกเลือกมากที่สุด</h3></div><span className="panel-caption">จาก {formatNumber(shownPicks)} การเลือก · กดแถบเพื่อดูรายละเอียด</span></div>
+            <ul className="rank-legend">{RANKS.map((rank) => <li key={rank}><span className={`rank-key rank-${rank}`} aria-hidden="true" />{RANK_LABELS[rank] ?? `อันดับ ${rank}`}</li>)}</ul>
             <div className="bar-chart">
               {rankBoard.length ? rankBoard.map((stats) => (
                 <button className="bar-row" key={stats.company.id} type="button" onClick={(event) => openCompany(stats.company.id, event.currentTarget)} aria-label={`${stats.company.shortName} ถูกเลือก ${stats.totalPicks} ครั้ง เป็นอันดับ 1 จำนวน ${stats.firstPicks} คน`}>
@@ -289,7 +307,13 @@ export function InternshipDashboard({ payload }: Props) {
           </article>
         </section>
 
-        <section id="dashboard-directory" tabIndex={-1} className="panel table-panel" aria-labelledby="internship-directory-heading">
+        <section className="panel insight-panel" aria-labelledby="position-ranking-title">
+        <div className="panel-heading"><div><p className="section-kicker">ความสนใจแยกตำแหน่ง</p><h3 id="position-ranking-title">Top 10 ตำแหน่งที่ถูกเลือกมากที่สุด</h3></div><span className="panel-caption">ตามตัวกรอง · นับทุกอันดับที่มีข้อมูล</span></div>
+        <ol className="insight-ranking">{positionPopularity(filteredStats.map(s => s.company), applications).filter(p => p.picks > 0).slice(0, 10).map(p => <li key={p.id}><button type="button" onClick={event => openCompany(p.companyId, event.currentTarget)}><strong>{p.title}</strong><span>{p.company}</span><span>{p.picks} การเลือก · {p.people} คน · อันดับ 1: {p.first}</span></button></li>)}</ol>
+        {!applications.length && <p className="empty-state">ยังไม่มีการสมัครในขอบเขตนี้</p>}
+      </section>
+      <InternshipEvaluations companies={filteredStats.map(s => s.company)} period={period} track={track} scope={scope} />
+      <section id="dashboard-directory" tabIndex={-1} className="panel table-panel" aria-labelledby="internship-directory-heading">
           <div className="panel-heading table-heading">
             <div><p className="section-kicker">รายการทั้งหมด</p><h3 id="internship-directory-heading">ทะเบียนบริษัทรับ{track}</h3></div>
             <div className="table-heading-actions">
@@ -337,7 +361,7 @@ export function InternshipDashboard({ payload }: Props) {
                     <td>
                       <div className="picks-cell">
                         <strong>{formatNumber(stats.totalPicks)}</strong>
-                        <span className="bar-track rank-stack" role="img" aria-label={RANKS.map((rank) => `${RANK_LABELS[rank]} ${stats.picksByRank[rank]} คน`).join(", ")}>
+                        <span className="bar-track rank-stack" role="img" aria-label={RANKS.map((rank) => `${RANK_LABELS[rank] ?? `อันดับ ${rank}`} ${stats.picksByRank[rank]} คน`).join(", ")}>
                           {RANKS.map((rank) => (stats.picksByRank[rank] ? <span className={`rank-segment rank-${rank}`} key={rank} style={{ width: `${(stats.picksByRank[rank] / Math.max(stats.totalPicks, 1)) * 100}%` }} /> : null))}
                         </span>
                       </div>
@@ -368,7 +392,7 @@ export function InternshipDashboard({ payload }: Props) {
                   </label>
                 </div>
                 <div className="mobile-course-meta"><span>นิสิตเลือก {formatNumber(stats.totalPicks)} ครั้ง</span><span>อันดับ 1: {formatNumber(stats.firstPicks)} คน</span></div>
-                <span className="bar-track rank-stack" role="img" aria-label={RANKS.map((rank) => `${RANK_LABELS[rank]} ${stats.picksByRank[rank]} คน`).join(", ")}>
+                <span className="bar-track rank-stack" role="img" aria-label={RANKS.map((rank) => `${RANK_LABELS[rank] ?? `อันดับ ${rank}`} ${stats.picksByRank[rank]} คน`).join(", ")}>
                   {RANKS.map((rank) => (stats.picksByRank[rank] ? <span className={`rank-segment rank-${rank}`} key={rank} style={{ width: `${(stats.picksByRank[rank] / Math.max(stats.totalPicks, 1)) * 100}%` }} /> : null))}
                 </span>
                 <div className="mobile-course-next"><span>แจ้งจะรับ / รับจริง</span><strong>{formatNumber(stats.declared)} → {formatNumber(stats.accepted)} · {gapLabel(stats)}</strong></div>
@@ -381,7 +405,7 @@ export function InternshipDashboard({ payload }: Props) {
         </section>
       </main>
 
-      {selectedCompany && <DeferredRecordDialog dialogRef={dialogRef} onClose={closeCompany}><CompanyDetailDialog key={selectedCompany.id} track={track} stats={selectedStats} dialogRef={dialogRef} totalApplications={totalApplications} onClose={closeCompany} onSave={saveCompany} /></DeferredRecordDialog>}
+      {selectedCompany && <DeferredRecordDialog dialogRef={dialogRef} onClose={closeCompany}><CompanyDetailDialog key={selectedCompany.id} track={track} readOnlyIntake={studyYear !== "all" || round !== "all"} stats={selectedStats} dialogRef={dialogRef} totalApplications={totalApplications} onClose={closeCompany} onSave={saveCompany} /></DeferredRecordDialog>}
       <StatusToast toast={toast} onDismiss={dismissToast} onHold={holdTimer} onResume={resumeTimer} />
     </div>
   );

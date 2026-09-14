@@ -7,7 +7,7 @@ export type AcademicTerm = typeof ACADEMIC_TERMS[number]["value"];
 export type AcademicPeriod = { year: number; term: AcademicTerm };
 export type PeriodSearchParams = Record<string, string | string[] | undefined>;
 export const DEFAULT_ACADEMIC_PERIOD: AcademicPeriod = { year: 2569, term: "1" };
-export const DEMO_ACADEMIC_YEARS = [2569, 2568];
+export const DEMO_ACADEMIC_YEARS = [2569, 2568, 2567, 2566];
 
 export function parseAcademicPeriod(params: PeriodSearchParams): AcademicPeriod {
   const year = typeof params.year === "string" && /^\d{4}$/.test(params.year) ? Number(params.year) : NaN;
