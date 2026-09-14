@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS companies (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     -- create_company_pg / update_company_pg เช็คเงื่อนไขนี้ใน Python อยู่แล้ว
-    CONSTRAINT ck_companies_has_name CHECK (company_th IS NOT NULL OR company_en IS NOT NULL)
+    -- CONSTRAINT ck_companies_has_name CHECK (company_th IS NOT NULL OR company_en IS NOT NULL)
 );
 
 

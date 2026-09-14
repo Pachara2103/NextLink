@@ -161,26 +161,6 @@ export function Sidebar({
 
       <div className="mt-auto space-y-3 p-4">
         <ThemeSwitcher />
-        <div className="rounded-xl border border-line-soft bg-surface p-4">
-          <span className="font-mono text-[10px] tracking-[0.14em] text-text-3 uppercase">
-            ความคืบหน้าการผูกบริษัท
-          </span>
-          <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="font-display text-2xl font-semibold tabular-nums text-text">
-              {ratio}
-            </span>
-            <span className="text-sm text-text-3">%</span>
-          </div>
-          <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-accent to-ok"
-              style={{ width: `${ratio}%` }}
-            />
-          </div>
-          <p className="mt-2 text-[11px] text-text-3">
-            ผูกแล้ว {linkedGroups.length} จาก {groupLines.length} กลุ่ม
-          </p>
-        </div>
 
         <div className="flex items-center gap-3 rounded-xl px-2 py-1.5">
           {/* One glyph rather than the first two letters of the name: sliced
