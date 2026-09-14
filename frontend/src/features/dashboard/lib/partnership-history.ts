@@ -35,7 +35,7 @@ export function partnershipSnapshot(read: SnapshotReader = (_key, seed) => seed)
       const businessModule = track === 'ฝึกงาน' ? 'internship' : 'cooperative';
       const source = enrichInternshipDemo(selectInternshipTrack(selection.source as Omit<InternshipPayload, 'track'>, selection.intakes, track));
       const companies = read(key(track === 'ฝึกงาน' ? 'nextlink.internship.companies.v2' : 'nextlink.cooperative.companies.v1'), source.companies, isInternshipCompany);
-      for (const c of companies) add(businessModule, c.id, c.id, `${track}: ${c.positions.map(p => p.name).join(', ')}`, `แจ้งรับ ${c.positions.reduce((n, p) => n + p.declaredIntake, 0)} · รับจริง ${c.positions.reduce((n, p) => n + p.accepted, 0)} · ${c.note ?? ''}`, `/dashboard/${businessModule}`, c.shortName);
+      for (const c of companies) add(businessModule, c.id, c.id, `${track}: ${c.positions.map(p => p.name).join(', ')}`, `แจ้งรับ ${c.positions.reduce((n, p) => n + p.declaredIntake, 0)} · รับตามทะเบียน ${c.positions.reduce((n, p) => n + p.accepted, 0)} · ${c.note ?? ''}`, `/dashboard/${businessModule}`, c.shortName);
     }
     const capSeed = selectCapstonePeriod(capstoneData as CapstoneDataset, period);
     const capRows = read(`nextlink.capstone.v2.${academicPeriodKey(period)}`, capstoneStorageRows(capSeed), isCapstoneStorageRow);

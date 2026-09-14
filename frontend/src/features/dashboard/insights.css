@@ -28,3 +28,8 @@
 .nextlink-dashboard .company-dashboard .page-content > .local-edit-note { color: var(--muted); border-color: var(--line); margin: 0 12px 12px 0; flex-wrap: wrap; }
 .nextlink-dashboard .company-dashboard .local-edit-reset { color: var(--ink); border-color: var(--line); background: var(--surface); min-height: 44px; }
 .nextlink-dashboard .company-dashboard .local-edit-reset:hover { background: var(--canvas); }
+.nextlink-dashboard .outcome-breakdown > summary { cursor: pointer; min-height: 44px; padding-block: 12px; }
+.nextlink-dashboard .outcome-position + .outcome-position { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 16px; }
+.nextlink-dashboard .outcome-editor { margin-top: 20px; border-color: var(--blue); }
+.nextlink-dashboard .outcome-editor form > label { margin-top: 16px; }
+.nextlink-dashboard .outcome-editor textarea { width: 100%; min-height: 90px; }

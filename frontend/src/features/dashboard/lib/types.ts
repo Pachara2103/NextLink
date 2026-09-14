@@ -137,10 +137,9 @@ export type InternshipMouStatus = MouDocumentStatusValue | "กำลังป�
 /**
  * One opening a company advertised, and what it did with it.
  *
- * `declaredIntake` is what the company said it would take at the start of the
- * round; `accepted` is what it actually took. The pair is the point of the
- * dashboard, so they live together rather than in separate places that could
- * disagree.
+ * `declaredIntake` and `accepted` are legacy reported aggregate headcounts.
+ * They are not evidence of an individual match, acceptance or training start;
+ * those facts live in InternshipOutcome.
  */
 export type InternshipPosition = {
   id?: string;
@@ -163,7 +162,7 @@ export type InternshipCompany = {
 };
 
 /**
- * A student's five ranked picks, without the student.
+ * Ranked preferences with an optional pseudonymous student reference.
  *
  * The dashboard reports on companies, so nothing here identifies who applied —
  * but the ranking has to be counted from the picks themselves. Storing counts
@@ -179,7 +178,7 @@ export type InternshipApplicationChoice = {
 
 export type InternshipApplication = {
   id: string;
-  applicantRef?: string;
+  applicantRef?: string | null;
   studyYear?: number;
   round?: string;
   track: InternshipTrack;
@@ -187,7 +186,21 @@ export type InternshipApplication = {
   choices: InternshipApplicationChoice[];
 };
 
+export type InternshipOutcome = {
+  id: string;
+  studentRef: string | null;
+  companyId: string;
+  openingId: string;
+  studyYear: number | null;
+  round: string;
+  matched: boolean | null;
+  accepted: boolean | null;
+  started: boolean | null;
+  note: string;
+};
+
 export type InternshipPayload = {
+  outcomes?: InternshipOutcome[];
   track: InternshipTrack;
   dataset: string;
   sourceFile: string;

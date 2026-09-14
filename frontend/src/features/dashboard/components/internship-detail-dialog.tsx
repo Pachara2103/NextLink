@@ -75,9 +75,9 @@ export function CompanyDetailDialog({
                 <div className="edit-mode-note"><span className="note-icon" aria-hidden="true">i</span><span>บันทึกจำนวนรับ{track}สำหรับ demo · เก็บไว้เฉพาะหน้านี้ในเบราว์เซอร์</span></div>
 
                 <div className="detail-section">
-                  <div className="section-heading-row"><h3>จำนวนรับรายตำแหน่ง</h3><span className="panel-caption">ที่แจ้งไว้ เทียบกับที่รับจริง</span></div>
+                  <div className="section-heading-row"><h3>จำนวนรับรายตำแหน่ง</h3><span className="panel-caption">ที่แจ้งไว้ เทียบกับที่รับตามทะเบียน</span></div>
                   <div className="intake-edit-list">
-                    <div className="intake-edit-head" aria-hidden="true"><span>ตำแหน่ง</span><span>แจ้งจะรับ</span><span>รับจริง</span></div>
+                    <div className="intake-edit-head" aria-hidden="true"><span>ตำแหน่ง</span><span>แจ้งจะรับ</span><span>รับตามทะเบียน</span></div>
                     {draft.positions.map((position, index) => (
                       <div className="intake-edit-row" key={`${company.id}-position-${index}`}>
                         <label><span className="sr-only">ชื่อตำแหน่งที่ {index + 1}</span>
@@ -86,7 +86,7 @@ export function CompanyDetailDialog({
                         <label><span className="sr-only">จำนวนที่แจ้งจะรับของ {position.name}</span>
                           <input type="number" min={0} inputMode="numeric" value={position.declaredIntake} onChange={(event) => updatePosition(index, "declaredIntake", event.target.value)} />
                         </label>
-                        <label><span className="sr-only">จำนวนที่รับจริงของ {position.name}</span>
+                        <label><span className="sr-only">จำนวนที่รับตามทะเบียนของ {position.name}</span>
                           <input type="number" min={0} inputMode="numeric" value={position.accepted} onChange={(event) => updatePosition(index, "accepted", event.target.value)} />
                         </label>
                       </div>
@@ -109,7 +109,7 @@ export function CompanyDetailDialog({
               <>
                 <div className="internship-detail-grid">
                   <div className="detail-block"><span>แจ้งจะรับ</span><strong>{formatNumber(stats.declared)} คน</strong></div>
-                  <div className="detail-block"><span>รับจริง</span><strong>{formatNumber(stats.accepted)} คน</strong></div>
+                  <div className="detail-block"><span>รับตามทะเบียน</span><strong>{formatNumber(stats.accepted)} คน</strong></div>
                   <div className="detail-block"><span>ผลต่าง</span><strong>{gapLabel(stats)}</strong></div>
                   <div className="detail-block"><span>อัตราการรับ</span><strong>{stats.declared ? `${stats.fillRate}%` : "—"}</strong></div>
                   <div className="detail-block"><span>นิสิตเลือกทั้งหมด</span><strong>{formatNumber(stats.totalPicks)} ครั้ง</strong></div>
@@ -127,7 +127,7 @@ export function CompanyDetailDialog({
                         <div className="intake-position-row" key={position.name}>
                           <strong>{position.name}</strong>
                           <span>แจ้ง {formatNumber(position.declaredIntake)}</span>
-                          <span>รับจริง {formatNumber(position.accepted)}</span>
+                          <span>รับตามทะเบียน {formatNumber(position.accepted)}</span>
                           <small className={INTAKE_META[kind].tone}>{INTAKE_META[kind].label}</small>
                         </div>
                       );

@@ -16,7 +16,7 @@ export function enrichInternshipDemo(payload: InternshipPayload, maxRanks = 5): 
     }
     return { ...a, choices };
   });
-  const applications = expanded.map((a, i) => ({ ...a, applicantRef: a.id,
+  const applications = expanded.map((a, i) => ({ ...a, applicantRef: a.applicantRef === undefined ? `demo-${payload.track === 'ฝึกงาน' ? 'intern' : 'coop'}-student-${Math.floor(i / 6) * 3 + i % 3 + 1}` : a.applicantRef,
     studyYear: a.studyYear ?? (payload.track === 'สหกิจศึกษา' ? 3 : i % 3 + 1), round: a.round ?? String(Math.floor(i / 3) % 2 + 1),
     choices: a.choices.map(choice => {
       const matches = companies.find(c => c.id === choice.companyId)?.positions.filter(p => p.name === choice.position) ?? [];
@@ -39,11 +39,11 @@ export function scopeCompanies(companies: InternshipCompany[], scope: Internship
   return companies.map(c => ({ ...c, positions: c.positions.map((p, i) => ({ ...p, id: p.id ?? openingKey(c.id, i), declaredIntake: total(p.declaredIntake, i), accepted: total(p.accepted, i) })) }));
 }
 export function positionPopularity(companies: InternshipCompany[], applications: InternshipApplication[]) {
-  const rows = companies.flatMap(c => c.positions.map((p, i) => ({ id: p.id ?? openingKey(c.id, i), companyId: c.id, company: c.shortName, title: p.name, picks: 0, first: 0, people: new Set<string>() })));
+  const rows = companies.flatMap(c => c.positions.map((p, i) => ({ id: p.id ?? openingKey(c.id, i), companyId: c.id, company: c.shortName, title: p.name, picks: 0, first: 0, unidentified: 0, people: new Set<string>() })));
   for (const a of applications) for (const choice of a.choices) {
     const candidates = rows.filter(p => p.companyId === choice.companyId && (choice.openingId ? p.id === choice.openingId : p.title === choice.position));
     if (candidates.length !== 1) continue; // Ambiguous titles must be mapped, never merged by guessing.
-    const row = candidates[0]; row.picks++; if (choice.rank === 1) row.first++; row.people.add(a.applicantRef ?? a.id);
+    const row = candidates[0]; row.picks++; if (choice.rank === 1) row.first++; if (a.applicantRef) row.people.add(a.applicantRef); else row.unidentified++;
   }
   return rows.map(({ people, ...r }) => ({ ...r, people: people.size })).sort((a, b) => b.picks - a.picks || b.first - a.first || a.id.localeCompare(b.id));
 }

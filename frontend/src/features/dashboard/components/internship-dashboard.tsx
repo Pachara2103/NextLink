@@ -30,6 +30,8 @@ import type { InternshipMouStatus } from "@/features/dashboard/lib/types";
 import { useAcademicPeriod } from '../lib/use-academic-period';
 import { filterApplications, scopeCompanies, positionPopularity } from '../lib/internship-history';
 import { InternshipEvaluations } from './internship-evaluations';
+import { InternshipOutcomes } from './internship-outcomes';
+import { applicantSummary, countOpenings } from '../lib/internship-outcomes';
 import { useLocalDataset } from "@/features/dashboard/lib/use-local-dataset";
 import { useRecordDialog } from "@/features/dashboard/lib/use-record-dialog";
 import { useUrlFilters } from "@/features/dashboard/lib/use-url-filters";
@@ -86,6 +88,9 @@ export function InternshipDashboard({ payload }: Props) {
     return sorted;
   }, [filteredStats, queueFilter, sortBy]);
 
+  const filteredCompanies = useMemo(() => filteredStats.map(s => s.company), [filteredStats]);
+  const applicants = applicantSummary(applications, new Set(filteredCompanies.map(c => c.id)));
+  const openingCount = countOpenings(filteredCompanies);
   const total = filteredStats.length;
   const declaredTotal = filteredStats.reduce((sum, stats) => sum + stats.declared, 0);
   const acceptedTotal = filteredStats.reduce((sum, stats) => sum + stats.accepted, 0);
@@ -218,7 +223,7 @@ export function InternshipDashboard({ payload }: Props) {
         <AcademicPeriodEmptyState hasData={payload.companies.length > 0} />
         <StorageWarning message={warning} /><StorageRecoveryPanel key={recovery?.raw} recovery={recovery} onRecover={recover} />
         <section className="intro-row">
-          <div><p className="section-kicker">การรับนิสิตเข้าร่วมงาน</p><h2>ภาพรวมบริษัทรับ{track}</h2><p className="intro-copy">เห็นอันดับที่นิสิตเลือก จำนวนที่บริษัทแจ้งว่าจะรับ และจำนวนที่รับจริง</p></div>
+          <div><p className="section-kicker">การรับนิสิตเข้าร่วมงาน</p><h2>ภาพรวมบริษัทรับ{track}</h2><p className="intro-copy">เห็นอันดับที่นิสิตเลือก จำนวนที่บริษัทแจ้งว่าจะรับ และจำนวนที่รับตามทะเบียน</p></div>
           <div className="intro-badges"><span className="scope-chip"><span className="scope-chip-label">{track}</span>{formatNumber(totalApplications)} ใบสมัคร · อันดับที่พบ {RANKS.length ? RANKS.join(", ") : "ยังไม่มี"}</span></div>
         </section>
 
@@ -226,9 +231,11 @@ export function InternshipDashboard({ payload }: Props) {
       <section className="kpi-grid" aria-label="ตัวชี้วัดการรับนิสิตของบริษัท">
           <PriorityKpi label="ต้องติดตาม" count={followUps.length} counts={queueCounts} note="ดูรายการที่ต้องทำต่อ" onClick={showFollowUps} />
           <article className="kpi-card blue"><div className="kpi-topline"><span className="kpi-label">บริษัทที่เปิดรับ</span><span className="kpi-context">ตามตัวกรอง</span></div><div className="kpi-value">{formatNumber(total)}</div><div className="kpi-note">แห่งที่อยู่ในรอบนี้</div></article>
-          <article className="kpi-card green"><div className="kpi-topline"><span className="kpi-label">รับจริง</span><span className="kpi-context">{fillRate}%</span></div><div className="kpi-value">{formatNumber(acceptedTotal)} / {formatNumber(declaredTotal)}</div><span className="kpi-progress" role="progressbar" aria-label="สัดส่วนที่รับจริงเทียบกับที่แจ้งไว้" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(fillRate, 100)}><i className="kpi-progress-fill green" style={{ width: `${Math.min(fillRate, 100)}%` }} /></span><div className="kpi-note">{shortCompanies} บริษัทยังรับไม่ครบ</div></article>
+          <article className="kpi-card blue" data-kpi="unique-applicants"><div className="kpi-topline"><span className="kpi-label">นิสิตที่สมัคร (ไม่ซ้ำ)</span></div><div className="kpi-value">{applicants.unidentified ? '≥ ' : ''}{formatNumber(applicants.people)}</div><div className="kpi-note">จาก {formatNumber(applicants.applications)} ใบสมัคร · นับคนเดิมข้ามรอบครั้งเดียว{applicants.unidentified > 0 && ` · ไม่ทราบรหัส ${applicants.unidentified} ใบสมัคร`}</div></article>
+          <article className="kpi-card purple" data-kpi="openings"><div className="kpi-topline"><span className="kpi-label">ตำแหน่งทั้งหมด</span></div><div className="kpi-value">{formatNumber(openingCount)}</div><div className="kpi-note">ของบริษัทตามตัวกรอง รวมตำแหน่งที่ยังไม่มีคนรับ</div></article>
+          <article className="kpi-card green"><div className="kpi-topline"><span className="kpi-label">รับตามทะเบียน</span><span className="kpi-context">{fillRate}%</span></div><div className="kpi-value">{formatNumber(acceptedTotal)} / {formatNumber(declaredTotal)}</div><span className="kpi-progress" role="progressbar" aria-label="สัดส่วนที่รับตามทะเบียนเทียบกับที่แจ้งไว้" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(fillRate, 100)}><i className="kpi-progress-fill green" style={{ width: `${Math.min(fillRate, 100)}%` }} /></span><div className="kpi-note">{shortCompanies} บริษัทยังรับไม่ครบ</div></article>
           <article className="kpi-card purple"><div className="kpi-topline"><span className="kpi-label">ที่นั่งที่แจ้งจะรับ</span><span className="kpi-context">ทุกตำแหน่ง</span></div><div className="kpi-value">{formatNumber(declaredTotal)}</div><div className="kpi-note">จำนวนที่บริษัทแจ้งไว้ตอนเปิดรอบ</div></article>
-          <article className="kpi-card orange"><div className="kpi-topline"><span className="kpi-label">การแข่งขันอันดับ 1</span><span className="kpi-context">ต่อที่นั่ง</span></div><div className="kpi-value">{competition.toFixed(1)}</div><div className="kpi-note">{formatNumber(firstPicksTotal)} คนเลือกเป็นอันดับ 1</div></article>
+          <article className="kpi-card orange"><div className="kpi-topline"><span className="kpi-label">การแข่งขันอันดับ 1</span><span className="kpi-context">ต่อที่นั่ง</span></div><div className="kpi-value">{competition.toFixed(1)}</div><div className="kpi-note">{formatNumber(firstPicksTotal)} ใบสมัครเลือกเป็นอันดับ 1</div></article>
         </section>
 
         <section id="dashboard-filters" tabIndex={-1} className="control-panel" aria-label="ตัวกรองข้อมูลบริษัท">
@@ -265,7 +272,7 @@ export function InternshipDashboard({ payload }: Props) {
                   <span className="follow-up-copy">
                     <span className={`follow-up-severity ${meta.className}`}>{meta.label}</span>
                     <strong>{stats.company.shortName}</strong>
-                    <small>{INTAKE_META[stats.intake].label} · แจ้ง {formatNumber(stats.declared)} รับจริง {formatNumber(stats.accepted)}</small>
+                    <small>{INTAKE_META[stats.intake].label} · แจ้ง {formatNumber(stats.declared)} รับตามทะเบียน {formatNumber(stats.accepted)}</small>
                   </span>
                   <span className="chevron" aria-hidden="true">›</span>
                 </button>
@@ -280,7 +287,7 @@ export function InternshipDashboard({ payload }: Props) {
             <ul className="rank-legend">{RANKS.map((rank) => <li key={rank}><span className={`rank-key rank-${rank}`} aria-hidden="true" />{RANK_LABELS[rank] ?? `อันดับ ${rank}`}</li>)}</ul>
             <div className="bar-chart">
               {rankBoard.length ? rankBoard.map((stats) => (
-                <button className="bar-row" key={stats.company.id} type="button" onClick={(event) => openCompany(stats.company.id, event.currentTarget)} aria-label={`${stats.company.shortName} ถูกเลือก ${stats.totalPicks} ครั้ง เป็นอันดับ 1 จำนวน ${stats.firstPicks} คน`}>
+                <button className="bar-row" key={stats.company.id} type="button" onClick={(event) => openCompany(stats.company.id, event.currentTarget)} aria-label={`${stats.company.shortName} ถูกเลือก ${stats.totalPicks} ครั้ง เป็นอันดับ 1 จำนวน ${stats.firstPicks} ใบสมัคร`}>
                   <span className="bar-label"><span>{stats.company.shortName}</span><strong>{formatNumber(stats.totalPicks)} ครั้ง · อันดับ 1: {formatNumber(stats.firstPicks)}</strong></span>
                   <span className="bar-track rank-stack">
                     {RANKS.map((rank) => (stats.picksByRank[rank] ? <span className={`rank-segment rank-${rank}`} key={rank} style={{ width: `${(stats.picksByRank[rank] / maxPicks) * 100}%` }} /> : null))}
@@ -291,11 +298,11 @@ export function InternshipDashboard({ payload }: Props) {
           </article>
 
           <article className="panel chart-panel">
-            <div className="panel-heading"><div><p className="section-kicker">ความครบถ้วน</p><h3>บริษัทที่รับไม่ครบมากที่สุด</h3></div><span className="panel-caption">รับจริง {formatNumber(acceptedTotal)} จาก {formatNumber(declaredTotal)} ที่นั่ง · กดแถบเพื่อดูรายละเอียด</span></div>
-            <ul className="rank-legend"><li><span className="rank-key intake-key-declared" aria-hidden="true" />แจ้งจะรับ</li><li><span className="rank-key intake-key-accepted" aria-hidden="true" />รับจริง</li></ul>
+            <div className="panel-heading"><div><p className="section-kicker">ความครบถ้วน</p><h3>บริษัทที่รับไม่ครบมากที่สุด</h3></div><span className="panel-caption">รับตามทะเบียน {formatNumber(acceptedTotal)} จาก {formatNumber(declaredTotal)} ที่นั่ง · กดแถบเพื่อดูรายละเอียด</span></div>
+            <ul className="rank-legend"><li><span className="rank-key intake-key-declared" aria-hidden="true" />แจ้งจะรับ</li><li><span className="rank-key intake-key-accepted" aria-hidden="true" />รับตามทะเบียน</li></ul>
             <div className="bar-chart">
               {intakeBoard.length ? intakeBoard.map((stats) => (
-                <button className="bar-row" key={stats.company.id} type="button" onClick={(event) => openCompany(stats.company.id, event.currentTarget)} aria-label={`${stats.company.shortName} แจ้งจะรับ ${stats.declared} คน รับจริง ${stats.accepted} คน`}>
+                <button className="bar-row" key={stats.company.id} type="button" onClick={(event) => openCompany(stats.company.id, event.currentTarget)} aria-label={`${stats.company.shortName} แจ้งจะรับ ${stats.declared} คน รับตามทะเบียน ${stats.accepted} คน`}>
                   <span className="bar-label"><span>{stats.company.shortName}</span><strong>{formatNumber(stats.accepted)} / {formatNumber(stats.declared)} · {gapLabel(stats)}</strong></span>
                   <span className="bar-track intake-track">
                     <span className="intake-declared" style={{ width: `${(stats.declared / maxSeats) * 100}%` }} />
@@ -309,9 +316,10 @@ export function InternshipDashboard({ payload }: Props) {
 
         <section className="panel insight-panel" aria-labelledby="position-ranking-title">
         <div className="panel-heading"><div><p className="section-kicker">ความสนใจแยกตำแหน่ง</p><h3 id="position-ranking-title">Top 10 ตำแหน่งที่ถูกเลือกมากที่สุด</h3></div><span className="panel-caption">ตามตัวกรอง · นับทุกอันดับที่มีข้อมูล</span></div>
-        <ol className="insight-ranking">{positionPopularity(filteredStats.map(s => s.company), applications).filter(p => p.picks > 0).slice(0, 10).map(p => <li key={p.id}><button type="button" onClick={event => openCompany(p.companyId, event.currentTarget)}><strong>{p.title}</strong><span>{p.company}</span><span>{p.picks} การเลือก · {p.people} คน · อันดับ 1: {p.first}</span></button></li>)}</ol>
+        <ol className="insight-ranking">{positionPopularity(filteredStats.map(s => s.company), applications).filter(p => p.picks > 0).slice(0, 10).map(p => <li key={p.id}><button type="button" onClick={event => openCompany(p.companyId, event.currentTarget)}><strong>{p.title}</strong><span>{p.company}</span><span>{p.picks} การเลือก · {p.unidentified ? '≥ ' : ''}{p.people} คน{p.unidentified > 0 && ` (ไม่ทราบรหัส ${p.unidentified} การเลือก)`} · อันดับ 1: {p.first}</span></button></li>)}</ol>
         {!applications.length && <p className="empty-state">ยังไม่มีการสมัครในขอบเขตนี้</p>}
       </section>
+      <InternshipOutcomes seed={payload.outcomes} allCompanies={allCompanies} companies={filteredCompanies} scope={scope} track={track} />
       <InternshipEvaluations companies={filteredStats.map(s => s.company)} period={period} track={track} scope={scope} />
       <section id="dashboard-directory" tabIndex={-1} className="panel table-panel" aria-labelledby="internship-directory-heading">
           <div className="panel-heading table-heading">
@@ -332,14 +340,14 @@ export function InternshipDashboard({ payload }: Props) {
           <div className="table-scroll-note">บนมือถือจะแสดงเป็นการ์ดพร้อมสถานะและงานถัดไป</div>
           <div className="table-wrap">
             <table className="internship-table">
-              <caption className="sr-only">ทะเบียนบริษัทรับ{track}พร้อมอันดับที่นิสิตเลือกและจำนวนที่รับจริง</caption>
+              <caption className="sr-only">ทะเบียนบริษัทรับ{track}พร้อมอันดับที่นิสิตเลือกและจำนวนที่รับตามทะเบียน</caption>
               <thead><tr>
                 <th scope="col">บริษัท</th>
                 <th scope="col">MOU</th>
                 <th scope="col">นิสิตเลือก</th>
                 <th scope="col">อันดับ 1</th>
                 <th scope="col">แจ้งจะรับ</th>
-                <th scope="col">รับจริง</th>
+                <th scope="col">รับตามทะเบียน</th>
                 <th scope="col">ผลการรับ</th>
                 <th scope="col"><span className="sr-only">รายละเอียด</span></th>
               </tr></thead>
@@ -361,7 +369,7 @@ export function InternshipDashboard({ payload }: Props) {
                     <td>
                       <div className="picks-cell">
                         <strong>{formatNumber(stats.totalPicks)}</strong>
-                        <span className="bar-track rank-stack" role="img" aria-label={RANKS.map((rank) => `${RANK_LABELS[rank] ?? `อันดับ ${rank}`} ${stats.picksByRank[rank]} คน`).join(", ")}>
+                        <span className="bar-track rank-stack" role="img" aria-label={RANKS.map((rank) => `${RANK_LABELS[rank] ?? `อันดับ ${rank}`} ${stats.picksByRank[rank]} ใบสมัคร`).join(", ")}>
                           {RANKS.map((rank) => (stats.picksByRank[rank] ? <span className={`rank-segment rank-${rank}`} key={rank} style={{ width: `${(stats.picksByRank[rank] / Math.max(stats.totalPicks, 1)) * 100}%` }} /> : null))}
                         </span>
                       </div>
@@ -391,11 +399,11 @@ export function InternshipDashboard({ payload }: Props) {
                     </select>
                   </label>
                 </div>
-                <div className="mobile-course-meta"><span>นิสิตเลือก {formatNumber(stats.totalPicks)} ครั้ง</span><span>อันดับ 1: {formatNumber(stats.firstPicks)} คน</span></div>
-                <span className="bar-track rank-stack" role="img" aria-label={RANKS.map((rank) => `${RANK_LABELS[rank] ?? `อันดับ ${rank}`} ${stats.picksByRank[rank]} คน`).join(", ")}>
+                <div className="mobile-course-meta"><span>นิสิตเลือก {formatNumber(stats.totalPicks)} ครั้ง</span><span>อันดับ 1: {formatNumber(stats.firstPicks)} ใบสมัคร</span></div>
+                <span className="bar-track rank-stack" role="img" aria-label={RANKS.map((rank) => `${RANK_LABELS[rank] ?? `อันดับ ${rank}`} ${stats.picksByRank[rank]} ใบสมัคร`).join(", ")}>
                   {RANKS.map((rank) => (stats.picksByRank[rank] ? <span className={`rank-segment rank-${rank}`} key={rank} style={{ width: `${(stats.picksByRank[rank] / Math.max(stats.totalPicks, 1)) * 100}%` }} /> : null))}
                 </span>
-                <div className="mobile-course-next"><span>แจ้งจะรับ / รับจริง</span><strong>{formatNumber(stats.declared)} → {formatNumber(stats.accepted)} · {gapLabel(stats)}</strong></div>
+                <div className="mobile-course-next"><span>แจ้งจะรับ / รับตามทะเบียน</span><strong>{formatNumber(stats.declared)} → {formatNumber(stats.accepted)} · {gapLabel(stats)}</strong></div>
                 <button className="row-action mobile-detail-action" type="button" onClick={(event) => openCompany(stats.company.id, event.currentTarget)} aria-label={`ดูรายละเอียดของ ${stats.company.shortName}`}>ดูรายละเอียด</button>
               </article>
             )) : <EmptyResult message="ไม่พบบริษัทที่ตรงกับตัวกรอง" hasFilters={hasFilters} onClear={resetFilters} />}
