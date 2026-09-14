@@ -24,7 +24,7 @@ function matches(value: unknown, shape: Shape): boolean {
 const course: Shape = {
   id: nonempty, academicYear: count, term: text, courseCode: text, title: nonempty,
   category: nonempty, provider: text, section: text, instructor: text,
-  coordinator: v => v === null || matches(v, { name: text, email: nullable(text), lineId: nullable(text) }),
+  coordinator: v => v === null || matches(v, { name: text, email: nullable(text), lineId: nullable(text), phone: v => v === undefined || v === null || text(v) }),
   deliveryMode: oneOf(["ON_SITE", "HYBRID", "ONLINE"]),
   sessions: [{ id: optional(nonempty), dayOfWeek: oneOf(["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]), startTime: text, endTime: text, location: text, onlineUrl: optional(url), validFrom: optional(nullable(date)), validUntil: optional(nullable(date)), timezone: optional(timezone) }],
   weeks: count, capacity: nullable(count), enrolled: count,

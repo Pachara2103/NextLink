@@ -1,4 +1,5 @@
 "use client";
+import { CompanyContacts } from "./company-contacts";
 import { DialogEditFooter } from "@/features/dashboard/components/dialog-edit-footer";
 import { display, formatNumber } from "@/features/dashboard/lib/format";
 import { CompanyEditDraft, gapLabel, mouTone, RANK_LABELS, toEditDraft } from "@/features/dashboard/lib/internship-presentation";
@@ -68,6 +69,7 @@ export function CompanyDetailDialog({
           </div>
 
           <div className="dialog-content" tabIndex={0}>
+            <CompanyContacts module={track === "ฝึกงาน" ? "internship" : "cooperative"} sourceId={company.id} />
             {isEditing && draft ? (
               <form id="internship-edit-form" className="course-edit-form" onSubmit={saveEditing}>
                 <div className="edit-mode-note"><span className="note-icon" aria-hidden="true">i</span><span>บันทึกจำนวนรับ{track}สำหรับ demo · เก็บไว้เฉพาะหน้านี้ในเบราว์เซอร์</span></div>

@@ -55,6 +55,7 @@ export type DashboardSource = {
 };
 
 export type DashboardContact = {
+  phone?: string | null;
   name: string;
   email: string | null;
   lineId: string | null;

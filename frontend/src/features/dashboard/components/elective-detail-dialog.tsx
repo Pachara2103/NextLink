@@ -1,4 +1,6 @@
 "use client";
+import { mockDashboardData } from "../lib/mock-data";
+import { CompanyContacts } from "./company-contacts";
 import type { Ref } from "react";
 import { DialogEditFooter } from "@/features/dashboard/components/dialog-edit-footer";
 import { CourseEditDraft, sessionValidity, courseOccupancy, courseStatusOptions, dayNames, deliveryModeLabels, deliveryModeOptions, documentsStatusOptions, documentTypeLabels, invitationStatusOptions, mcvStatusOptions, statusClass, toCourseEditDraft, workflowProgress, workflowRawStatus, workflowStatusClass, workflowStatusOptions, workflowStatusText } from "@/features/dashboard/lib/elective-presentation";
@@ -63,6 +65,7 @@ export function CourseDialog({
             </div>
           </div>
           <div className="dialog-content" tabIndex={0}>
+            {course && <CompanyContacts module="elective" sourceId={mockDashboardData.courses.find(c => c.id === course.id)?.provider ?? course.provider} />}
             {isEditing && draft ? (
               <form id="elective-edit-form" className="course-edit-form" onSubmit={saveEditing}>
                 <div className="edit-mode-note"><span className="note-icon" aria-hidden="true">i</span><span>{isLive ? "บันทึกในฐานข้อมูลส่วนกลาง พร้อมประวัติผู้แก้ไข" : "แก้ไขข้อมูลสำหรับ demo · บันทึกไว้ในเบราว์เซอร์เครื่องนี้"}</span></div>
@@ -76,6 +79,8 @@ export function CourseDialog({
                     <label><span>อาจารย์ผู้สอน</span><input value={draft.instructor} onChange={(event) => updateDraft("instructor", event.target.value)} required /></label>
                     <label><span>ผู้ประสานงาน</span><input value={draft.coordinatorName} onChange={(event) => updateDraft("coordinatorName", event.target.value)} placeholder="ยังไม่ระบุ" /></label>
                     <label><span>อีเมลผู้ประสานงาน</span><input type="email" value={draft.coordinatorEmail} onChange={(event) => updateDraft("coordinatorEmail", event.target.value)} placeholder="ยังไม่ระบุ" /></label>
+                    <label><span>เบอร์โทรผู้ประสานงาน</span><input type="tel" value={draft.coordinatorPhone} onChange={event => updateDraft("coordinatorPhone", event.target.value)} /></label>
+                    <label><span>LINE ผู้ประสานงาน</span><input value={draft.coordinatorLineId} onChange={event => updateDraft("coordinatorLineId", event.target.value)} /></label>
                     <label><span>นิสิตลงทะเบียน</span><input type="number" min={0} value={draft.enrolled} readOnly={isLive} title={isLive ? "คำนวณจากทะเบียนนิสิตที่ลงทะเบียน" : undefined} onChange={(event) => updateDraft("enrolled", Number(event.target.value))} /></label>
                     <label><span>ที่นั่งทั้งหมด</span><input type="number" min={0} value={draft.capacity ?? ""} placeholder="ยังไม่ทราบ" onChange={(event) => updateDraft("capacity", event.target.value === "" ? null : Number(event.target.value))} /></label>
                     <label><span>รหัส Join MCV</span><input value={draft.mcvJoinCode} onChange={(event) => updateDraft("mcvJoinCode", event.target.value)} placeholder="ยังไม่มีรหัส" /></label>
@@ -110,7 +115,7 @@ export function CourseDialog({
             <div className="dialog-grid">
               <div className="detail-block"><span>บริษัท / หน่วยงาน</span><strong>{course.provider}</strong></div>
               <div className="detail-block"><span>อาจารย์ผู้สอน</span><strong>{course.instructor}</strong></div>
-              <div className="detail-block"><span>ผู้ประสานงาน</span><strong>{course.coordinator?.name ?? "ยังไม่ระบุ"}</strong><small>{course.coordinator?.email ?? "ยังไม่ระบุ"}</small></div>
+              <div className="detail-block"><span>ผู้ประสานงาน</span><strong>{course.coordinator?.name ?? "ยังไม่ระบุ"}</strong><small>{course.coordinator?.email ?? "ยังไม่ระบุ"}</small><small>โทร: {course.coordinator?.phone || "ยังไม่ระบุ"} · LINE: {course.coordinator?.lineId || "ยังไม่ระบุ"}</small></div>
               <div className="detail-block"><span>การลงทะเบียน</span><strong>{formatNumber(course.enrolled)} / {formatNumber(course.capacity)} คน</strong><small>{courseOccupancy(course) === null ? "ยังคำนวณอัตราไม่ได้" : `${courseOccupancy(course)}% ของที่นั่ง`}</small></div>
               <div className="detail-block"><span>รหัส Join MCV</span><strong>{course.mcvJoinCode ?? "ยังไม่มีรหัส"}</strong><small>แหล่งข้อมูลแถวที่ {course.source.rowNumber ?? "ยังไม่ระบุ"}</small></div>
               <div className="detail-block"><span>ภาคการศึกษา</span><strong>ปีการศึกษา {course.academicYear} / {course.term}</strong><small>{course.weeks} สัปดาห์ · {deliveryModeLabels[course.deliveryMode]}</small></div>

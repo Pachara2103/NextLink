@@ -37,6 +37,8 @@ export type CourseEditDraft = {
   instructor: string;
   coordinatorName: string;
   coordinatorEmail: string;
+  coordinatorPhone: string;
+  coordinatorLineId: string;
   mcvJoinCode: string;
   deliveryMode: DeliveryMode;
   capacity: number | null;
@@ -153,6 +155,8 @@ export function toCourseEditDraft(course: DashboardCourse): CourseEditDraft {
     instructor: course.instructor,
     coordinatorName: course.coordinator?.name ?? "",
     coordinatorEmail: course.coordinator?.email ?? "",
+    coordinatorPhone: course.coordinator?.phone ?? "",
+    coordinatorLineId: course.coordinator?.lineId ?? "",
     mcvJoinCode: course.mcvJoinCode ?? "",
     deliveryMode: course.deliveryMode,
     capacity: course.capacity,

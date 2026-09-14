@@ -197,10 +197,11 @@ export function ElectiveDashboard({ payload }: Props) {
         category: draft.category.trim(),
         provider: draft.provider.trim(),
         instructor: draft.instructor.trim(),
-        coordinator: coordinatorName || coordinatorEmail ? {
+        coordinator: coordinatorName || coordinatorEmail || draft.coordinatorPhone.trim() || draft.coordinatorLineId.trim() ? {
           name: coordinatorName || "ยังไม่ระบุ",
           email: coordinatorEmail,
-          lineId: course.coordinator?.lineId ?? null,
+          lineId: optionalValue(draft.coordinatorLineId),
+          phone: optionalValue(draft.coordinatorPhone),
         } : null,
         mcvJoinCode: optionalValue(draft.mcvJoinCode),
         deliveryMode: draft.deliveryMode,

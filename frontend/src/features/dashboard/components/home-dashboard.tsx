@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CompanyOverview } from './company-overview';
 import { AppNav, DashboardModuleNav } from "@/features/dashboard/components/app-nav";
 import { DASHBOARD_ROUTES } from "@/features/dashboard/lib/navigation";
 import { AcademicPeriodSelector } from "@/features/dashboard/components/academic-period-selector";
@@ -86,6 +87,7 @@ export function HomeDashboard() {
           })}
         </section>
 
+        <CompanyOverview />
         <section className="panel home-follow-ups" aria-labelledby="home-follow-ups-title">
           <div><h2 id="home-follow-ups-title">เริ่มจากงานที่ต้องติดตาม</h2><p>เปิดรายการงานค้างของแต่ละส่วนได้โดยตรง</p></div>
           <div className="home-shortcuts">

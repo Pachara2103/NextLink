@@ -1,4 +1,5 @@
 "use client";
+import { CompanyContacts } from "./company-contacts";
 
 import { useState, type Ref } from "react";
 import { CapstoneRanking } from "@/features/dashboard/components/capstone-ranking";
@@ -97,6 +98,7 @@ export function CapstoneDetailDialog({ topic, data, dialogRef, initialTab, initi
             {current.milestones.length ? current.milestones.map(m => <p key={m.id}>{m.title} · {data.teams.find(t => t.id === m.teamId)?.name} · {m.due} · {m.status}</p>) : <p>ยังไม่มีนัดหมาย</p>}
           </>}
           {tab === "company" && <>
+            {current.companyId && <CompanyContacts module="capstone" sourceId={current.companyId} />}
             <h3>{company?.name ?? "ยังไม่มีบริษัทเจ้าของโครงการ"}</h3>
             {company && <><p>{company.englishName} · {company.domain}<br />{company.address}</p><p className="panel-caption">ความเชื่อมโยงนี้ใช้ร่วมทุกหัวข้อของบริษัท ส่วนที่ปรึกษาทีมแก้ในหมวดกลุ่มและอันดับ</p>
               {data.professors.map(p => {

@@ -16,3 +16,11 @@
 .nextlink-dashboard .rank-6 { background: #b25dd4; }.nextlink-dashboard .rank-7 { background: #8c6f4e; }
 .nextlink-dashboard .rank-8 { background: #de768a; }.nextlink-dashboard .rank-9 { background: #46787b; }.nextlink-dashboard .rank-10 { background: #7983cc; }
 @media (max-width: 600px) { .nextlink-dashboard .insight-panel { padding: 16px; } .nextlink-dashboard .insight-ranking button { flex-direction: column; } }
+.nextlink-dashboard .insight-filters, .nextlink-dashboard .insight-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-block: 20px; }
+.nextlink-dashboard .insight-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 12px; }
+.nextlink-dashboard .insight-checkboxes { border: 1px solid var(--line); margin-block: 16px; border-radius: 8px; }
+.nextlink-dashboard .insight-checkboxes label { display: inline-flex; align-items: center; gap: 8px; padding: 8px; }
+.nextlink-dashboard .insight-checkboxes input { min-height: 20px; width: 20px; }
+.nextlink-dashboard .insight-card h3 { margin-top: 0; }
+.nextlink-dashboard .insight-card > label { margin-block: 10px; }
+.nextlink-dashboard .insight-panel > form > .secondary-button { margin-top: 16px; }

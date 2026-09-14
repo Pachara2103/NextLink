@@ -72,7 +72,9 @@ export function useLocalDataset<T extends { id: string }>(baseKey: string, bundl
     refresh();
     const changed = (event: StorageEvent) => { if (event.storageArea === localStorage && (event.key === storageKey || event.key === null)) refresh(); };
     window.addEventListener("storage", changed);
-    return () => window.removeEventListener("storage", changed);
+    const sameWindow = (event: Event) => { if ((event as CustomEvent<string>).detail === storageKey) refresh(); };
+    window.addEventListener('dashboard-dataset-changed', sameWindow);
+    return () => { window.removeEventListener("storage", changed); window.removeEventListener('dashboard-dataset-changed', sameWindow); };
   }, [read, publish, describeError, storageKey, options.disabled]);
 
   const lock = useCallback(async (action: () => boolean): Promise<boolean> => {
@@ -87,6 +89,7 @@ export function useLocalDataset<T extends { id: string }>(baseKey: string, bundl
     const at = new Date().toISOString();
     const saved = storedDataset(next, initial.current, at, crypto.randomUUID());
     localStorage.setItem(storageKey, JSON.stringify(saved));
+    window.dispatchEvent(new CustomEvent('dashboard-dataset-changed', { detail: storageKey }));
     publish({ items: next, editedAt: at, hasOverrides: saved.items.length > 0 });
     setRecovery(null); setWarning("");
     return true;
@@ -121,6 +124,7 @@ export function useLocalDataset<T extends { id: string }>(baseKey: string, bundl
       if (localStorage.getItem(storageKey) !== observed) throw new DatasetConflict(["ข้อมูลที่กำลังคืนค่า"]);
       if (settings.current.legacyKey) return commit(initial.current);
       localStorage.removeItem(storageKey);
+      window.dispatchEvent(new CustomEvent('dashboard-dataset-changed', { detail: storageKey }));
       publish({ items: initial.current, editedAt: null, hasOverrides: false });
       history.current = null; setWarning(""); setRecovery(null);
       return true;

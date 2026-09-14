@@ -1,4 +1,5 @@
 "use client";
+import { CompanyContacts } from "./company-contacts";
 import { DialogEditFooter } from "@/features/dashboard/components/dialog-edit-footer";
 import { display } from "@/features/dashboard/lib/format";
 import { authorizationStatusOptions, MouEditDraft, statusClass, toMouEditDraft } from "@/features/dashboard/lib/mou-presentation";
@@ -54,6 +55,7 @@ export function MouDetailDialog({
           </div>
 
           <div className="dialog-content" tabIndex={0}>
+            <CompanyContacts module="mou" sourceId={company.id} />
             {isEditing && draft ? (
               <form id="mou-edit-form" className="course-edit-form" onSubmit={saveEditing}>
                 <div className="edit-mode-note"><span className="note-icon" aria-hidden="true">i</span><span>แก้ไขข้อมูล MOU สำหรับ demo · บันทึกไว้ในเบราว์เซอร์เครื่องนี้</span></div>
