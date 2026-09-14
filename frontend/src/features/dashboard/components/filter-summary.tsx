@@ -1,5 +1,7 @@
 "use client";
 
+import { focusDashboardSection } from "@/features/dashboard/lib/section-navigation";
+
 /** `value` is omitted for a plain on/off filter, which reads as just its label. */
 export type ActiveFilter = { label: string; value?: string; onClear: () => void };
 
@@ -25,6 +27,11 @@ export function FilterSummary({ summary, filters }: { summary: string; filters: 
           {filter.value ? `${filter.label}: ${filter.value}` : filter.label} ×
         </button>
       ))}
+      <a className="filter-results-link" href="#dashboard-directory" onClick={event => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        focusDashboardSection("dashboard-directory");
+      }}>ดูผลการค้นหา <span aria-hidden="true">↓</span></a>
     </div>
   );
 }

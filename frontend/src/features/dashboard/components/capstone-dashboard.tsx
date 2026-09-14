@@ -5,7 +5,7 @@ import { PageSections } from "@/features/dashboard/components/page-sections";
 import { FilterFields } from "@/features/dashboard/components/filter-fields";
 
 import { lazy, useDeferredValue, useMemo, useRef, useState } from "react";
-import { AppNav } from "@/features/dashboard/components/app-nav";
+import { AppNav, DashboardModuleNav } from "@/features/dashboard/components/app-nav";
 import { PriorityKpi } from "@/features/dashboard/components/priority-kpi";
 import { QueueFilterGroup } from "@/features/dashboard/components/queue-filter";
 import { PAGE_SIZE, Pager } from "@/features/dashboard/components/pager";
@@ -128,15 +128,16 @@ export function CapstoneDashboard({ payload }: { payload: CapstoneDataset }) {
 
   return <div className="app-shell cap-shell" data-ready={ready}>
     <header className="topbar">
-      <AppNav title="Capstone" eyebrow="NEXTLINK / PROJECTS" />
+      <AppNav title="Capstone" />
       <div className="header-tools">
-        <div className="header-meta"><span className="demo-badge"><span className="status-dot" />MOCK DATA</span><span>อัปเดต: {formatUpdated(data.lastUpdated, "Asia/Bangkok")}</span>{ready && (editedAt || warning) && <span className="local-edit-note">{editedAt ? `แก้ในเบราว์เซอร์นี้ ${formatUpdated(editedAt, "Asia/Bangkok")}` : "ข้อมูลในเบราว์เซอร์มีปัญหา"}<button type="button" className="local-edit-reset" onClick={resetDemo}>คืนค่าข้อมูลตัวอย่าง</button></span>}</div>
+        <div className="header-meta"><span>ข้อมูลตัวอย่าง ณ {formatUpdated(data.lastUpdated, "Asia/Bangkok")}</span>{ready && (editedAt || warning) && <span className="local-edit-note">{editedAt ? `แก้ในเบราว์เซอร์นี้ ${formatUpdated(editedAt, "Asia/Bangkok")}` : "ข้อมูลในเบราว์เซอร์มีปัญหา"}<button type="button" className="local-edit-reset" onClick={resetDemo}>คืนค่าข้อมูลตัวอย่าง</button></span>}</div>
         <AcademicPeriodSelector />
       </div>
     </header>
+    <DashboardModuleNav />
     <main id="main-content" tabIndex={-1} className="page-content">
       <AcademicPeriodEmptyState hasData={payload.topics.length > 0} /><StorageRecoveryPanel key={recovery?.raw} recovery={recovery} onRecover={recover} />
-      <section className="intro-row"><div><p className="section-kicker">โครงการและความร่วมมือ</p><h2>ภาพรวม Capstone</h2><p className="intro-copy">ติดตามหัวข้อที่นิสิตสนใจ อันดับกลุ่มจากบริษัท และอาจารย์ที่ร่วมงาน</p></div><div className="intro-badges"><div className="data-note"><span className="note-icon" aria-hidden="true">i</span><span>Mock data · ใช้สำหรับ demo</span></div><span className="scope-chip">{data.topics.length} โครงการ · {periodCompanies.length} บริษัท</span></div></section>
+      <section className="intro-row"><div><p className="section-kicker">โครงการและความร่วมมือ</p><h2>ภาพรวม Capstone</h2><p className="intro-copy">ติดตามหัวข้อที่นิสิตสนใจ อันดับกลุ่มจากบริษัท และอาจารย์ที่ร่วมงาน</p></div><div className="intro-badges"><span className="scope-chip">{data.topics.length} โครงการ · {periodCompanies.length} บริษัท</span></div></section>
       {warning && <p className="cap-warning" role="status">{warning}</p>}
       <PageSections capstone />
       <section className="kpi-grid" aria-label="ตัวชี้วัด Capstone">

@@ -6,7 +6,7 @@ import { PageSections } from "@/features/dashboard/components/page-sections";
 
 import { electiveCapacity, firstIssue, isBlocked, isFollowUp, nextAction, operationalReadiness, queueSeverity, queueSeverityRank, workflowStatusLabels, type OperationalReadinessKey } from "@/features/dashboard/lib/elective-stats";
 
-import { AppNav } from "@/features/dashboard/components/app-nav";
+import { AppNav, DashboardModuleNav } from "@/features/dashboard/components/app-nav";
 import { lazy, useDeferredValue, useMemo, useRef, useState } from "react";
 
 import { DeferredRecordDialog } from "@/features/dashboard/components/deferred-record-dialog";
@@ -245,23 +245,23 @@ export function ElectiveDashboard({ payload }: Props) {
   return (
     <div className="app-shell" data-ready={ready}>
       <header className="topbar">
-        <AppNav title="วิชาเลือก" eyebrow="NEXTLINK / ACADEMIC OPERATIONS" />
+        <AppNav title="วิชาเลือก" />
         <div className="header-tools">
           <div className="header-meta">
-            <span className="demo-badge"><span className="status-dot" /> {payload.source === "mock" ? "MOCK DATA" : "POSTGRESQL"}</span>
-            <span>ข้อมูลอัปเดต: {formatUpdated(payload.lastUpdated, payload.timezone)}</span>
+            <span>{payload.isMock ? "ข้อมูลตัวอย่าง ณ" : "ข้อมูลอัปเดต:"} {formatUpdated(payload.lastUpdated, payload.timezone)}</span>
             <LocalDataStatus source={payload.source} editedAt={editedAt} warning={warning} hasOverrides={hasOverrides} timezone={payload.timezone} onReset={resetDemoData} />
           </div>
           <AcademicPeriodSelector availableYears={payload.availableAcademicYears} />
         </div>
       </header>
+      <DashboardModuleNav />
 
       <main id="main-content" tabIndex={-1} className="page-content">
         <AcademicPeriodEmptyState hasData={payload.courses.length > 0} />
         <StorageWarning message={warning} /><StorageRecoveryPanel key={recovery?.raw} recovery={recovery} onRecover={recover} />
         <section className="intro-row">
           <div><p className="section-kicker">ภาพรวมการจัดการรายวิชา</p><h2>ภาพรวมวิชาเลือก</h2><p className="intro-copy">เห็นความพร้อม จำนวนที่นั่ง และงานที่ต้องติดตามก่อนเปิดสอน</p></div>
-          <div className="intro-badges"><div className="data-note"><span className="note-icon" aria-hidden="true">i</span><span>{payload.isMock ? "Mock data · ใช้สำหรับ demo" : "ข้อมูลจาก PostgreSQL"} · {payload.dataset}</span></div><span className="scope-chip"><span className="scope-chip-label">ภาคการศึกษา</span>{scopeLabel}</span></div>
+          <div className="intro-badges"><span className="scope-chip"><span className="scope-chip-label">ภาคการศึกษา</span>{scopeLabel}</span></div>
         </section>
 
         <PageSections />

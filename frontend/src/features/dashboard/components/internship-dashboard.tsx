@@ -6,7 +6,7 @@ import { PageSections } from "@/features/dashboard/components/page-sections";
 
 import { buildStats, INTAKE_META, queueKind, RANKS, toCount, type CompanyStats, type IntakeKind } from "@/features/dashboard/lib/internship-stats";
 
-import { AppNav } from "@/features/dashboard/components/app-nav";
+import { AppNav, DashboardModuleNav } from "@/features/dashboard/components/app-nav";
 import { lazy, useDeferredValue, useMemo, useRef, useState } from "react";
 
 import { DeferredRecordDialog } from "@/features/dashboard/components/deferred-record-dialog";
@@ -187,23 +187,23 @@ export function InternshipDashboard({ payload }: Props) {
   return (
     <div className="app-shell internship-shell" data-track={track} data-ready={ready}>
       <header className="topbar">
-        <AppNav title={track} eyebrow="NEXTLINK / STUDENT OPERATIONS" />
+        <AppNav title={track} />
         <div className="header-tools">
           <div className="header-meta">
-            <span className="demo-badge"><span className="status-dot" /> {payload.isMock ? "MOCK DATA" : "POSTGRESQL"}</span>
-            <span>อัปเดต: {formatUpdated(payload.lastUpdated, payload.timezone)}</span>
+            <span>{payload.isMock ? "ข้อมูลตัวอย่าง ณ" : "ข้อมูลอัปเดต:"} {formatUpdated(payload.lastUpdated, payload.timezone)}</span>
             <LocalDataStatus editedAt={editedAt} warning={warning} hasOverrides={hasOverrides} timezone={payload.timezone} onReset={resetDemoData} />
           </div>
           <AcademicPeriodSelector />
         </div>
       </header>
+      <DashboardModuleNav />
 
       <main id="main-content" tabIndex={-1} className="page-content">
         <AcademicPeriodEmptyState hasData={payload.companies.length > 0} />
         <StorageWarning message={warning} /><StorageRecoveryPanel key={recovery?.raw} recovery={recovery} onRecover={recover} />
         <section className="intro-row">
           <div><p className="section-kicker">การรับนิสิตเข้าร่วมงาน</p><h2>ภาพรวมบริษัทรับ{track}</h2><p className="intro-copy">เห็นอันดับที่นิสิตเลือก จำนวนที่บริษัทแจ้งว่าจะรับ และจำนวนที่รับจริง</p></div>
-          <div className="intro-badges"><div className="data-note"><span className="note-icon" aria-hidden="true">i</span><span>{payload.isMock ? "Mock data · ใช้สำหรับ demo" : "ข้อมูลจากระบบ"} · {payload.sourceFile}</span></div><span className="scope-chip"><span className="scope-chip-label">{track}</span>{formatNumber(totalApplications)} ใบสมัคร · 5 อันดับต่อคน</span></div>
+          <div className="intro-badges"><span className="scope-chip"><span className="scope-chip-label">{track}</span>{formatNumber(totalApplications)} ใบสมัคร · 5 อันดับต่อคน</span></div>
         </section>
 
         <PageSections />
