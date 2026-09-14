@@ -1,0 +1,2371 @@
+{
+  "dataset": "nextlink-internship-companies-demo",
+  "sourceFile": "internship-companies-mock.xlsx",
+  "sheetName": "companies",
+  "lastUpdated": "2026-08-24T09:00:00+07:00",
+  "timezone": "Asia/Bangkok",
+  "companies": [
+    {
+      "id": "internship-company-mock-cloud",
+      "rowNumber": 2,
+      "name": "บริษัท ตัวอย่างคลาวด์ จำกัด",
+      "shortName": "Mock Cloud",
+      "industry": "Cloud & Infrastructure",
+      "mouStatus": "ลงนามแล้ว",
+      "coordinator": "ผู้ประสานงานจำลอง 01",
+      "positions": [
+        {
+          "name": "Software Engineering",
+          "declaredIntake": 4,
+          "accepted": 4
+        },
+        {
+          "name": "Site Reliability",
+          "declaredIntake": 2,
+          "accepted": 2
+        }
+      ],
+      "note": null,
+      "raw": {
+        "No": 1,
+        "บริษัท": "บริษัท ตัวอย่างคลาวด์ จำกัด",
+        "Company Name": "Mock Cloud",
+        "ประเภทธุรกิจ": "Cloud & Infrastructure",
+        "จำนวนที่แจ้งรับ": 6,
+        "จำนวนที่รับจริง": 6
+      }
+    },
+    {
+      "id": "internship-company-mock-softmatrix",
+      "rowNumber": 3,
+      "name": "บริษัท ตัวอย่างซอฟต์แวร์ จำกัด",
+      "shortName": "Mock SoftMatrix",
+      "industry": "Software House",
+      "mouStatus": "ลงนามแล้ว",
+      "coordinator": "ผู้ประสานงานจำลอง 02",
+      "positions": [
+        {
+          "name": "Platform",
+          "declaredIntake": 3,
+          "accepted": 3
+        },
+        {
+          "name": "Frontend",
+          "declaredIntake": 3,
+          "accepted": 3
+        }
+      ],
+      "note": null,
+      "raw": {
+        "No": 2,
+        "บริษัท": "บริษัท ตัวอย่างซอฟต์แวร์ จำกัด",
+        "Company Name": "Mock SoftMatrix",
+        "ประเภทธุรกิจ": "Software House",
+        "จำนวนที่แจ้งรับ": 6,
+        "จำนวนที่รับจริง": 6
+      }
+    },
+    {
+      "id": "internship-company-mock-dataforge",
+      "rowNumber": 4,
+      "name": "บริษัท ตัวอย่างดาต้า จำกัด",
+      "shortName": "Mock DataForge",
+      "industry": "Data & Analytics",
+      "mouStatus": "ลงนามแล้ว",
+      "coordinator": "ผู้ประสานงานจำลอง 03",
+      "positions": [
+        {
+          "name": "Data Engineering",
+          "declaredIntake": 3,
+          "accepted": 3
+        },
+        {
+          "name": "Data Science",
+          "declaredIntake": 2,
+          "accepted": 2
+        }
+      ],
+      "note": null,
+      "raw": {
+        "No": 3,
+        "บริษัท": "บริษัท ตัวอย่างดาต้า จำกัด",
+        "Company Name": "Mock DataForge",
+        "ประเภทธุรกิจ": "Data & Analytics",
+        "จำนวนที่แจ้งรับ": 5,
+        "จำนวนที่รับจริง": 5
+      }
+    },
+    {
+      "id": "internship-company-mock-ai-path",
+      "rowNumber": 5,
+      "name": "บริษัท ตัวอย่างเอไอ จำกัด",
+      "shortName": "Mock AI Path",
+      "industry": "AI & Machine Learning",
+      "mouStatus": "รอลงนาม",
+      "coordinator": "ผู้ประสานงานจำลอง 04",
+      "positions": [
+        {
+          "name": "ML Engineering",
+          "declaredIntake": 3,
+          "accepted": 2
+        }
+      ],
+      "note": "ยังรับไม่ครบตามจำนวนที่แจ้งไว้",
+      "raw": {
+        "No": 4,
+        "บริษัท": "บริษัท ตัวอย่างเอไอ จำกัด",
+        "Company Name": "Mock AI Path",
+        "ประเภทธุรกิจ": "AI & Machine Learning",
+        "จำนวนที่แจ้งรับ": 3,
+        "จำนวนที่รับจริง": 2
+      }
+    },
+    {
+      "id": "internship-company-mock-cyberflow",
+      "rowNumber": 6,
+      "name": "บริษัท ตัวอย่างไซเบอร์ จำกัด",
+      "shortName": "Mock CyberFlow",
+      "industry": "Cybersecurity",
+      "mouStatus": "แก้ไขที่นิติกรจุฬาฯ",
+      "coordinator": "ผู้ประสานงานจำลอง 05",
+      "positions": [
+        {
+          "name": "Security Operations",
+          "declaredIntake": 2,
+          "accepted": 2
+        },
+        {
+          "name": "AppSec",
+          "declaredIntake": 2,
+          "accepted": 2
+        }
+      ],
+      "note": null,
+      "raw": {
+        "No": 5,
+        "บริษัท": "บริษัท ตัวอย่างไซเบอร์ จำกัด",
+        "Company Name": "Mock CyberFlow",
+        "ประเภทธุรกิจ": "Cybersecurity",
+        "จำนวนที่แจ้งรับ": 4,
+        "จำนวนที่รับจริง": 4
+      }
+    },
+    {
+      "id": "internship-company-mock-platform",
+      "rowNumber": 7,
+      "name": "บริษัท ตัวอย่างแพลตฟอร์ม จำกัด",
+      "shortName": "Mock Platform",
+      "industry": "Platform & DevOps",
+      "mouStatus": "กำลังประสาน",
+      "coordinator": null,
+      "positions": [
+        {
+          "name": "DevOps",
+          "declaredIntake": 3,
+          "accepted": 3
+        }
+      ],
+      "note": null,
+      "raw": {
+        "No": 6,
+        "บริษัท": "บริษัท ตัวอย่างแพลตฟอร์ม จำกัด",
+        "Company Name": "Mock Platform",
+        "ประเภทธุรกิจ": "Platform & DevOps",
+        "จำนวนที่แจ้งรับ": 3,
+        "จำนวนที่รับจริง": 3
+      }
+    },
+    {
+      "id": "internship-company-mock-product",
+      "rowNumber": 8,
+      "name": "บริษัท ตัวอย่างผลิตภัณฑ์ จำกัด",
+      "shortName": "Mock Product",
+      "industry": "Product & Design",
+      "mouStatus": "ไม่พบ MOU",
+      "coordinator": "ผู้ประสานงานจำลอง 07",
+      "positions": [
+        {
+          "name": "Product Analyst",
+          "declaredIntake": 2,
+          "accepted": 2
+        },
+        {
+          "name": "UX Research",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "note": null,
+      "raw": {
+        "No": 7,
+        "บริษัท": "บริษัท ตัวอย่างผลิตภัณฑ์ จำกัด",
+        "Company Name": "Mock Product",
+        "ประเภทธุรกิจ": "Product & Design",
+        "จำนวนที่แจ้งรับ": 3,
+        "จำนวนที่รับจริง": 3
+      }
+    },
+    {
+      "id": "internship-company-mock-quantum",
+      "rowNumber": 9,
+      "name": "บริษัท ตัวอย่างควอนตัม จำกัด",
+      "shortName": "Mock Quantum",
+      "industry": "Deep Tech",
+      "mouStatus": "ลงนามแล้ว",
+      "coordinator": "ผู้ประสานงานจำลอง 08",
+      "positions": [
+        {
+          "name": "Research Assistant",
+          "declaredIntake": 2,
+          "accepted": 0
+        }
+      ],
+      "note": "ยังรับไม่ครบตามจำนวนที่แจ้งไว้",
+      "raw": {
+        "No": 8,
+        "บริษัท": "บริษัท ตัวอย่างควอนตัม จำกัด",
+        "Company Name": "Mock Quantum",
+        "ประเภทธุรกิจ": "Deep Tech",
+        "จำนวนที่แจ้งรับ": 2,
+        "จำนวนที่รับจริง": 0
+      }
+    },
+    {
+      "id": "internship-company-mock-market",
+      "rowNumber": 10,
+      "name": "บริษัท ตัวอย่างมาร์เก็ต จำกัด",
+      "shortName": "Mock Market",
+      "industry": "E-commerce",
+      "mouStatus": "ลงนามแล้ว",
+      "coordinator": "ผู้ประสานงานจำลอง 09",
+      "positions": [
+        {
+          "name": "Backend",
+          "declaredIntake": 3,
+          "accepted": 2
+        },
+        {
+          "name": "Growth Analytics",
+          "declaredIntake": 2,
+          "accepted": 2
+        }
+      ],
+      "note": "ยังรับไม่ครบตามจำนวนที่แจ้งไว้",
+      "raw": {
+        "No": 9,
+        "บริษัท": "บริษัท ตัวอย่างมาร์เก็ต จำกัด",
+        "Company Name": "Mock Market",
+        "ประเภทธุรกิจ": "E-commerce",
+        "จำนวนที่แจ้งรับ": 5,
+        "จำนวนที่รับจริง": 4
+      }
+    },
+    {
+      "id": "internship-company-mock-design",
+      "rowNumber": 11,
+      "name": "บริษัท ตัวอย่างดีไซน์ จำกัด",
+      "shortName": "Mock Design",
+      "industry": "Product & Design",
+      "mouStatus": "ลงนามแล้ว",
+      "coordinator": "ผู้ประสานงานจำลอง 10",
+      "positions": [
+        {
+          "name": "Design System",
+          "declaredIntake": 2,
+          "accepted": 2
+        }
+      ],
+      "note": null,
+      "raw": {
+        "No": 10,
+        "บริษัท": "บริษัท ตัวอย่างดีไซน์ จำกัด",
+        "Company Name": "Mock Design",
+        "ประเภทธุรกิจ": "Product & Design",
+        "จำนวนที่แจ้งรับ": 2,
+        "จำนวนที่รับจริง": 2
+      }
+    },
+    {
+      "id": "internship-company-mock-nextcompass",
+      "rowNumber": 12,
+      "name": "บริษัท ตัวอย่างเน็กซ์คอมพาส จำกัด",
+      "shortName": "Mock NextCompass",
+      "industry": "Consulting",
+      "mouStatus": "รอลงนาม",
+      "coordinator": "ผู้ประสานงานจำลอง 11",
+      "positions": [
+        {
+          "name": "Solution Analyst",
+          "declaredIntake": 3,
+          "accepted": 4
+        }
+      ],
+      "note": "รับเกินจำนวนที่แจ้งไว้",
+      "raw": {
+        "No": 11,
+        "บริษัท": "บริษัท ตัวอย่างเน็กซ์คอมพาส จำกัด",
+        "Company Name": "Mock NextCompass",
+        "ประเภทธุรกิจ": "Consulting",
+        "จำนวนที่แจ้งรับ": 3,
+        "จำนวนที่รับจริง": 4
+      }
+    },
+    {
+      "id": "internship-company-mock-greentech",
+      "rowNumber": 13,
+      "name": "บริษัท ตัวอย่างกรีนเทค จำกัด",
+      "shortName": "Mock GreenTech",
+      "industry": "Energy & Sustainability",
+      "mouStatus": "แก้ไขที่นิติกรจุฬาฯ",
+      "coordinator": "ผู้ประสานงานจำลอง 12",
+      "positions": [
+        {
+          "name": "Embedded Software",
+          "declaredIntake": 2,
+          "accepted": 2
+        },
+        {
+          "name": "IoT",
+          "declaredIntake": 2,
+          "accepted": 2
+        }
+      ],
+      "note": null,
+      "raw": {
+        "No": 12,
+        "บริษัท": "บริษัท ตัวอย่างกรีนเทค จำกัด",
+        "Company Name": "Mock GreenTech",
+        "ประเภทธุรกิจ": "Energy & Sustainability",
+        "จำนวนที่แจ้งรับ": 4,
+        "จำนวนที่รับจริง": 4
+      }
+    },
+    {
+      "id": "internship-company-mock-healthlink",
+      "rowNumber": 14,
+      "name": "บริษัท ตัวอย่างเฮลท์ จำกัด",
+      "shortName": "Mock HealthLink",
+      "industry": "Health Tech",
+      "mouStatus": "กำลังประสาน",
+      "coordinator": null,
+      "positions": [
+        {
+          "name": "Backend",
+          "declaredIntake": 2,
+          "accepted": 2
+        }
+      ],
+      "note": null,
+      "raw": {
+        "No": 13,
+        "บริษัท": "บริษัท ตัวอย่างเฮลท์ จำกัด",
+        "Company Name": "Mock HealthLink",
+        "ประเภทธุรกิจ": "Health Tech",
+        "จำนวนที่แจ้งรับ": 2,
+        "จำนวนที่รับจริง": 2
+      }
+    },
+    {
+      "id": "internship-company-mock-logistics",
+      "rowNumber": 15,
+      "name": "บริษัท ตัวอย่างโลจิสติกส์ จำกัด",
+      "shortName": "Mock Logistics",
+      "industry": "Logistics",
+      "mouStatus": "ไม่พบ MOU",
+      "coordinator": "ผู้ประสานงานจำลอง 14",
+      "positions": [
+        {
+          "name": "Optimization",
+          "declaredIntake": 2,
+          "accepted": 2
+        },
+        {
+          "name": "Mobile",
+          "declaredIntake": 1,
+          "accepted": 0
+        }
+      ],
+      "note": "ยังรับไม่ครบตามจำนวนที่แจ้งไว้",
+      "raw": {
+        "No": 14,
+        "บริษัท": "บริษัท ตัวอย่างโลจิสติกส์ จำกัด",
+        "Company Name": "Mock Logistics",
+        "ประเภทธุรกิจ": "Logistics",
+        "จำนวนที่แจ้งรับ": 3,
+        "จำนวนที่รับจริง": 2
+      }
+    },
+    {
+      "id": "internship-company-mock-fincore",
+      "rowNumber": 16,
+      "name": "บริษัท ตัวอย่างไฟแนนซ์ จำกัด",
+      "shortName": "Mock FinCore",
+      "industry": "Financial Technology",
+      "mouStatus": "ลงนามแล้ว",
+      "coordinator": "ผู้ประสานงานจำลอง 15",
+      "positions": [
+        {
+          "name": "Core Banking",
+          "declaredIntake": 3,
+          "accepted": 2
+        }
+      ],
+      "note": "ยังรับไม่ครบตามจำนวนที่แจ้งไว้",
+      "raw": {
+        "No": 15,
+        "บริษัท": "บริษัท ตัวอย่างไฟแนนซ์ จำกัด",
+        "Company Name": "Mock FinCore",
+        "ประเภทธุรกิจ": "Financial Technology",
+        "จำนวนที่แจ้งรับ": 3,
+        "จำนวนที่รับจริง": 2
+      }
+    },
+    {
+      "id": "internship-company-mock-edutech",
+      "rowNumber": 17,
+      "name": "บริษัท ตัวอย่างเอ็ดดูเทค จำกัด",
+      "shortName": "Mock EduTech",
+      "industry": "Education Technology",
+      "mouStatus": "ลงนามแล้ว",
+      "coordinator": "ผู้ประสานงานจำลอง 16",
+      "positions": [
+        {
+          "name": "Fullstack",
+          "declaredIntake": 2,
+          "accepted": 0
+        }
+      ],
+      "note": "ยังรับไม่ครบตามจำนวนที่แจ้งไว้",
+      "raw": {
+        "No": 16,
+        "บริษัท": "บริษัท ตัวอย่างเอ็ดดูเทค จำกัด",
+        "Company Name": "Mock EduTech",
+        "ประเภทธุรกิจ": "Education Technology",
+        "จำนวนที่แจ้งรับ": 2,
+        "จำนวนที่รับจริง": 0
+      }
+    }
+  ],
+  "applications": [
+    {
+      "id": "internship-application-001",
+      "track": "ฝึกงาน",
+      "department": "วิศวกรรมซอฟต์แวร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "Security Operations"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-market",
+          "position": "Backend"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Engineering"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Software Engineering"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Frontend"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-002",
+      "track": "สหกิจศึกษา",
+      "department": "วิศวกรรมคอมพิวเตอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Frontend"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-healthlink",
+          "position": "Backend"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Software Engineering"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-003",
+      "track": "ฝึกงาน",
+      "department": "วิทยาการข้อมูล",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Platform"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "Security Operations"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-greentech",
+          "position": "Embedded Software"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Engineering"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-004",
+      "track": "สหกิจศึกษา",
+      "department": "ความมั่นคงไซเบอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Platform"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Software Engineering"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "AppSec"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-quantum",
+          "position": "Research Assistant"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-005",
+      "track": "ฝึกงาน",
+      "department": "วิศวกรรมซอฟต์แวร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Site Reliability"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-quantum",
+          "position": "Research Assistant"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-fincore",
+          "position": "Core Banking"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-006",
+      "track": "สหกิจศึกษา",
+      "department": "วิศวกรรมคอมพิวเตอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Site Reliability"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Platform"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-healthlink",
+          "position": "Backend"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-design",
+          "position": "Design System"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-007",
+      "track": "ฝึกงาน",
+      "department": "วิทยาการข้อมูล",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Software Engineering"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-nextcompass",
+          "position": "Solution Analyst"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Platform"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-008",
+      "track": "สหกิจศึกษา",
+      "department": "ความมั่นคงไซเบอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-design",
+          "position": "Design System"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-product",
+          "position": "UX Research"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-market",
+          "position": "Growth Analytics"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-009",
+      "track": "ฝึกงาน",
+      "department": "วิศวกรรมซอฟต์แวร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-quantum",
+          "position": "Research Assistant"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-greentech",
+          "position": "IoT"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "AppSec"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-010",
+      "track": "สหกิจศึกษา",
+      "department": "วิศวกรรมคอมพิวเตอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Frontend"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Science"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-nextcompass",
+          "position": "Solution Analyst"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-quantum",
+          "position": "Research Assistant"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "Security Operations"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-011",
+      "track": "ฝึกงาน",
+      "department": "วิทยาการข้อมูล",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Site Reliability"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Engineering"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-greentech",
+          "position": "IoT"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-nextcompass",
+          "position": "Solution Analyst"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-fincore",
+          "position": "Core Banking"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-012",
+      "track": "สหกิจศึกษา",
+      "department": "ความมั่นคงไซเบอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "AppSec"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-design",
+          "position": "Design System"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-healthlink",
+          "position": "Backend"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-013",
+      "track": "ฝึกงาน",
+      "department": "วิศวกรรมซอฟต์แวร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Site Reliability"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-product",
+          "position": "UX Research"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Science"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-design",
+          "position": "Design System"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-fincore",
+          "position": "Core Banking"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-014",
+      "track": "สหกิจศึกษา",
+      "department": "วิศวกรรมคอมพิวเตอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Platform"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Software Engineering"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-market",
+          "position": "Growth Analytics"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Engineering"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-product",
+          "position": "UX Research"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-015",
+      "track": "ฝึกงาน",
+      "department": "วิทยาการข้อมูล",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Software Engineering"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "AppSec"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-healthlink",
+          "position": "Backend"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Science"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-016",
+      "track": "สหกิจศึกษา",
+      "department": "ความมั่นคงไซเบอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-greentech",
+          "position": "IoT"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Science"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-product",
+          "position": "UX Research"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-017",
+      "track": "ฝึกงาน",
+      "department": "วิศวกรรมซอฟต์แวร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-nextcompass",
+          "position": "Solution Analyst"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Science"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-quantum",
+          "position": "Research Assistant"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-018",
+      "track": "สหกิจศึกษา",
+      "department": "วิศวกรรมคอมพิวเตอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-greentech",
+          "position": "IoT"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-design",
+          "position": "Design System"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Platform"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-market",
+          "position": "Growth Analytics"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Software Engineering"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-019",
+      "track": "ฝึกงาน",
+      "department": "วิทยาการข้อมูล",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-nextcompass",
+          "position": "Solution Analyst"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Frontend"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-greentech",
+          "position": "Embedded Software"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-020",
+      "track": "สหกิจศึกษา",
+      "department": "ความมั่นคงไซเบอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Engineering"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Software Engineering"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Platform"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-021",
+      "track": "ฝึกงาน",
+      "department": "วิศวกรรมซอฟต์แวร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-fincore",
+          "position": "Core Banking"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-design",
+          "position": "Design System"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Software Engineering"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "AppSec"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-022",
+      "track": "สหกิจศึกษา",
+      "department": "วิศวกรรมคอมพิวเตอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-market",
+          "position": "Growth Analytics"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Frontend"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-product",
+          "position": "Product Analyst"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-quantum",
+          "position": "Research Assistant"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-023",
+      "track": "ฝึกงาน",
+      "department": "วิทยาการข้อมูล",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Frontend"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "Security Operations"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-healthlink",
+          "position": "Backend"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-market",
+          "position": "Growth Analytics"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-024",
+      "track": "สหกิจศึกษา",
+      "department": "ความมั่นคงไซเบอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Software Engineering"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-design",
+          "position": "Design System"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-nextcompass",
+          "position": "Solution Analyst"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-025",
+      "track": "ฝึกงาน",
+      "department": "วิศวกรรมซอฟต์แวร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-design",
+          "position": "Design System"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Site Reliability"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "AppSec"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-quantum",
+          "position": "Research Assistant"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-026",
+      "track": "สหกิจศึกษา",
+      "department": "วิศวกรรมคอมพิวเตอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-nextcompass",
+          "position": "Solution Analyst"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "AppSec"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-fincore",
+          "position": "Core Banking"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-market",
+          "position": "Growth Analytics"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-027",
+      "track": "ฝึกงาน",
+      "department": "วิทยาการข้อมูล",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-market",
+          "position": "Growth Analytics"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-quantum",
+          "position": "Research Assistant"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Software Engineering"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-028",
+      "track": "สหกิจศึกษา",
+      "department": "ความมั่นคงไซเบอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-design",
+          "position": "Design System"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-nextcompass",
+          "position": "Solution Analyst"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "Security Operations"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Site Reliability"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-029",
+      "track": "ฝึกงาน",
+      "department": "วิศวกรรมซอฟต์แวร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Science"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Site Reliability"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Platform"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "AppSec"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-product",
+          "position": "Product Analyst"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-030",
+      "track": "สหกิจศึกษา",
+      "department": "วิศวกรรมคอมพิวเตอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Engineering"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-quantum",
+          "position": "Research Assistant"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-greentech",
+          "position": "Embedded Software"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-product",
+          "position": "Product Analyst"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-031",
+      "track": "ฝึกงาน",
+      "department": "วิทยาการข้อมูล",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-design",
+          "position": "Design System"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "AppSec"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Platform"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-032",
+      "track": "สหกิจศึกษา",
+      "department": "ความมั่นคงไซเบอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-design",
+          "position": "Design System"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-product",
+          "position": "Product Analyst"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Frontend"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-033",
+      "track": "ฝึกงาน",
+      "department": "วิศวกรรมซอฟต์แวร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Science"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Frontend"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-edutech",
+          "position": "Fullstack"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "Security Operations"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-market",
+          "position": "Backend"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-034",
+      "track": "สหกิจศึกษา",
+      "department": "วิศวกรรมคอมพิวเตอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-greentech",
+          "position": "Embedded Software"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Platform"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Science"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-product",
+          "position": "Product Analyst"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-035",
+      "track": "ฝึกงาน",
+      "department": "วิทยาการข้อมูล",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-market",
+          "position": "Backend"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-healthlink",
+          "position": "Backend"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Software Engineering"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Platform"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-036",
+      "track": "สหกิจศึกษา",
+      "department": "ความมั่นคงไซเบอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Site Reliability"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Frontend"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-design",
+          "position": "Design System"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-037",
+      "track": "ฝึกงาน",
+      "department": "วิศวกรรมซอฟต์แวร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Engineering"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-fincore",
+          "position": "Core Banking"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-nextcompass",
+          "position": "Solution Analyst"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "AppSec"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-logistics",
+          "position": "Optimization"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-038",
+      "track": "สหกิจศึกษา",
+      "department": "วิศวกรรมคอมพิวเตอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-product",
+          "position": "UX Research"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Science"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-fincore",
+          "position": "Core Banking"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Site Reliability"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-quantum",
+          "position": "Research Assistant"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-039",
+      "track": "ฝึกงาน",
+      "department": "วิทยาการข้อมูล",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-market",
+          "position": "Growth Analytics"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-logistics",
+          "position": "Optimization"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Science"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Software Engineering"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-design",
+          "position": "Design System"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-040",
+      "track": "สหกิจศึกษา",
+      "department": "ความมั่นคงไซเบอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "AppSec"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-nextcompass",
+          "position": "Solution Analyst"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Science"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-041",
+      "track": "ฝึกงาน",
+      "department": "วิศวกรรมซอฟต์แวร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-product",
+          "position": "Product Analyst"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-greentech",
+          "position": "IoT"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Frontend"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-market",
+          "position": "Growth Analytics"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-nextcompass",
+          "position": "Solution Analyst"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-042",
+      "track": "สหกิจศึกษา",
+      "department": "วิศวกรรมคอมพิวเตอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Site Reliability"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-market",
+          "position": "Growth Analytics"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-product",
+          "position": "Product Analyst"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-043",
+      "track": "ฝึกงาน",
+      "department": "วิทยาการข้อมูล",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-healthlink",
+          "position": "Backend"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-logistics",
+          "position": "Mobile"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-greentech",
+          "position": "Embedded Software"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-quantum",
+          "position": "Research Assistant"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-044",
+      "track": "สหกิจศึกษา",
+      "department": "ความมั่นคงไซเบอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-design",
+          "position": "Design System"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-logistics",
+          "position": "Optimization"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Science"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "AppSec"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-045",
+      "track": "ฝึกงาน",
+      "department": "วิศวกรรมซอฟต์แวร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Software Engineering"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-logistics",
+          "position": "Optimization"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-nextcompass",
+          "position": "Solution Analyst"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Engineering"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-046",
+      "track": "สหกิจศึกษา",
+      "department": "วิศวกรรมคอมพิวเตอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Frontend"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Science"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Site Reliability"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-logistics",
+          "position": "Mobile"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "Security Operations"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-047",
+      "track": "ฝึกงาน",
+      "department": "วิทยาการข้อมูล",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-product",
+          "position": "UX Research"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Frontend"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-quantum",
+          "position": "Research Assistant"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Science"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Site Reliability"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-048",
+      "track": "สหกิจศึกษา",
+      "department": "ความมั่นคงไซเบอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-fincore",
+          "position": "Core Banking"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-market",
+          "position": "Backend"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-design",
+          "position": "Design System"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-healthlink",
+          "position": "Backend"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Science"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-049",
+      "track": "ฝึกงาน",
+      "department": "วิศวกรรมซอฟต์แวร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "Security Operations"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-product",
+          "position": "UX Research"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Frontend"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Software Engineering"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-050",
+      "track": "สหกิจศึกษา",
+      "department": "วิศวกรรมคอมพิวเตอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Science"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Platform"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Site Reliability"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-greentech",
+          "position": "Embedded Software"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-product",
+          "position": "Product Analyst"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-051",
+      "track": "ฝึกงาน",
+      "department": "วิทยาการข้อมูล",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Platform"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-quantum",
+          "position": "Research Assistant"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Engineering"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-052",
+      "track": "สหกิจศึกษา",
+      "department": "ความมั่นคงไซเบอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Site Reliability"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Frontend"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "Security Operations"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Science"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-053",
+      "track": "ฝึกงาน",
+      "department": "วิศวกรรมซอฟต์แวร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Platform"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-quantum",
+          "position": "Research Assistant"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Software Engineering"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-product",
+          "position": "UX Research"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-054",
+      "track": "สหกิจศึกษา",
+      "department": "วิศวกรรมคอมพิวเตอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Site Reliability"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Platform"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "Security Operations"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Engineering"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-055",
+      "track": "ฝึกงาน",
+      "department": "วิทยาการข้อมูล",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Platform"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-greentech",
+          "position": "Embedded Software"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-fincore",
+          "position": "Core Banking"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Engineering"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-quantum",
+          "position": "Research Assistant"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-056",
+      "track": "สหกิจศึกษา",
+      "department": "ความมั่นคงไซเบอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "AppSec"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Site Reliability"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Frontend"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-greentech",
+          "position": "IoT"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-market",
+          "position": "Backend"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-057",
+      "track": "ฝึกงาน",
+      "department": "วิศวกรรมซอฟต์แวร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Software Engineering"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-market",
+          "position": "Growth Analytics"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-greentech",
+          "position": "IoT"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-product",
+          "position": "Product Analyst"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-design",
+          "position": "Design System"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-058",
+      "track": "สหกิจศึกษา",
+      "department": "วิศวกรรมคอมพิวเตอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Frontend"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Science"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Site Reliability"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-059",
+      "track": "ฝึกงาน",
+      "department": "วิทยาการข้อมูล",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Frontend"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-cloud",
+          "position": "Software Engineering"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-market",
+          "position": "Growth Analytics"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-ai-path",
+          "position": "ML Engineering"
+        }
+      ]
+    },
+    {
+      "id": "internship-application-060",
+      "track": "สหกิจศึกษา",
+      "department": "ความมั่นคงไซเบอร์",
+      "choices": [
+        {
+          "rank": 1,
+          "companyId": "internship-company-mock-design",
+          "position": "Design System"
+        },
+        {
+          "rank": 2,
+          "companyId": "internship-company-mock-dataforge",
+          "position": "Data Engineering"
+        },
+        {
+          "rank": 3,
+          "companyId": "internship-company-mock-platform",
+          "position": "DevOps"
+        },
+        {
+          "rank": 4,
+          "companyId": "internship-company-mock-cyberflow",
+          "position": "AppSec"
+        },
+        {
+          "rank": 5,
+          "companyId": "internship-company-mock-softmatrix",
+          "position": "Frontend"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6008 @@
+{
+  "schemaVersion": 1,
+  "lastUpdated": "2026-09-07T10:00:00.000Z",
+  "companies": [
+    {
+      "id": "co1",
+      "name": "บริษัทตัวอย่าง 01",
+      "englishName": "Mock Cloud 01",
+      "domain": "Cloud & Infrastructure",
+      "address": "ที่อยู่จำลอง กรุงเทพมหานคร"
+    },
+    {
+      "id": "co2",
+      "name": "บริษัทตัวอย่าง 02",
+      "englishName": "Mock Data 02",
+      "domain": "Data & AI",
+      "address": "ที่อยู่จำลอง กรุงเทพมหานคร"
+    },
+    {
+      "id": "co3",
+      "name": "บริษัทตัวอย่าง 03",
+      "englishName": "Mock HealthTech 03",
+      "domain": "HealthTech",
+      "address": "ที่อยู่จำลอง กรุงเทพมหานคร"
+    },
+    {
+      "id": "co4",
+      "name": "บริษัทตัวอย่าง 04",
+      "englishName": "Mock Logistics 04",
+      "domain": "Logistics",
+      "address": "ที่อยู่จำลอง กรุงเทพมหานคร"
+    },
+    {
+      "id": "co5",
+      "name": "บริษัทตัวอย่าง 05",
+      "englishName": "Mock Education 05",
+      "domain": "Education",
+      "address": "ที่อยู่จำลอง กรุงเทพมหานคร"
+    },
+    {
+      "id": "co6",
+      "name": "บริษัทตัวอย่าง 06",
+      "englishName": "Mock Energy 06",
+      "domain": "Energy",
+      "address": "ที่อยู่จำลอง กรุงเทพมหานคร"
+    },
+    {
+      "id": "co7",
+      "name": "บริษัทตัวอย่าง 07",
+      "englishName": "Mock FinTech 07",
+      "domain": "FinTech",
+      "address": "ที่อยู่จำลอง กรุงเทพมหานคร"
+    },
+    {
+      "id": "co8",
+      "name": "บริษัทตัวอย่าง 08",
+      "englishName": "Mock Retail 08",
+      "domain": "Retail",
+      "address": "ที่อยู่จำลอง กรุงเทพมหานคร"
+    }
+  ],
+  "professors": [
+    {
+      "id": "p1",
+      "name": "อาจารย์จำลอง 01"
+    },
+    {
+      "id": "p2",
+      "name": "อาจารย์จำลอง 02"
+    },
+    {
+      "id": "p3",
+      "name": "อาจารย์จำลอง 03"
+    },
+    {
+      "id": "p4",
+      "name": "อาจารย์จำลอง 04"
+    },
+    {
+      "id": "p5",
+      "name": "อาจารย์จำลอง 05"
+    },
+    {
+      "id": "p6",
+      "name": "อาจารย์จำลอง 06"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rel-0-0",
+      "companyId": "co1",
+      "professorId": "p1",
+      "role": "ผู้ประสานงาน",
+      "source": "บันทึกความร่วมมือจำลอง ปี 2569"
+    },
+    {
+      "id": "rel-0-1",
+      "companyId": "co1",
+      "professorId": "p2",
+      "role": "ผู้แนะนำโครงการ",
+      "source": "บันทึกความร่วมมือจำลอง ปี 2569"
+    },
+    {
+      "id": "rel-1-0",
+      "companyId": "co2",
+      "professorId": "p2",
+      "role": "ผู้ประสานงาน",
+      "source": "บันทึกความร่วมมือจำลอง ปี 2569"
+    },
+    {
+      "id": "rel-2-0",
+      "companyId": "co3",
+      "professorId": "p3",
+      "role": "ผู้ประสานงาน",
+      "source": "บันทึกความร่วมมือจำลอง ปี 2569"
+    },
+    {
+      "id": "rel-2-1",
+      "companyId": "co3",
+      "professorId": "p4",
+      "role": "ผู้แนะนำโครงการ",
+      "source": "บันทึกความร่วมมือจำลอง ปี 2569"
+    },
+    {
+      "id": "rel-3-0",
+      "companyId": "co4",
+      "professorId": "p4",
+      "role": "ผู้ประสานงาน",
+      "source": "บันทึกความร่วมมือจำลอง ปี 2569"
+    },
+    {
+      "id": "rel-4-0",
+      "companyId": "co5",
+      "professorId": "p5",
+      "role": "ผู้ประสานงาน",
+      "source": "บันทึกความร่วมมือจำลอง ปี 2569"
+    },
+    {
+      "id": "rel-4-1",
+      "companyId": "co5",
+      "professorId": "p6",
+      "role": "ผู้แนะนำโครงการ",
+      "source": "บันทึกความร่วมมือจำลอง ปี 2569"
+    },
+    {
+      "id": "rel-5-0",
+      "companyId": "co6",
+      "professorId": "p6",
+      "role": "ผู้ประสานงาน",
+      "source": "บันทึกความร่วมมือจำลอง ปี 2569"
+    },
+    {
+      "id": "rel-6-0",
+      "companyId": "co7",
+      "professorId": "p1",
+      "role": "ผู้ประสานงาน",
+      "source": "บันทึกความร่วมมือจำลอง ปี 2569"
+    },
+    {
+      "id": "rel-6-1",
+      "companyId": "co7",
+      "professorId": "p2",
+      "role": "ผู้แนะนำโครงการ",
+      "source": "บันทึกความร่วมมือจำลอง ปี 2569"
+    },
+    {
+      "id": "rel-7-0",
+      "companyId": "co8",
+      "professorId": "p2",
+      "role": "ผู้ประสานงาน",
+      "source": "บันทึกความร่วมมือจำลอง ปี 2569"
+    }
+  ],
+  "students": [
+    {
+      "id": "S001",
+      "name": "นิสิตจำลอง 001"
+    },
+    {
+      "id": "S002",
+      "name": "นิสิตจำลอง 002"
+    },
+    {
+      "id": "S003",
+      "name": "นิสิตจำลอง 003"
+    },
+    {
+      "id": "S004",
+      "name": "นิสิตจำลอง 004"
+    },
+    {
+      "id": "S005",
+      "name": "นิสิตจำลอง 005"
+    },
+    {
+      "id": "S006",
+      "name": "นิสิตจำลอง 006"
+    },
+    {
+      "id": "S007",
+      "name": "นิสิตจำลอง 007"
+    },
+    {
+      "id": "S008",
+      "name": "นิสิตจำลอง 008"
+    },
+    {
+      "id": "S009",
+      "name": "นิสิตจำลอง 009"
+    },
+    {
+      "id": "S010",
+      "name": "นิสิตจำลอง 010"
+    },
+    {
+      "id": "S011",
+      "name": "นิสิตจำลอง 011"
+    },
+    {
+      "id": "S012",
+      "name": "นิสิตจำลอง 012"
+    },
+    {
+      "id": "S013",
+      "name": "นิสิตจำลอง 013"
+    },
+    {
+      "id": "S014",
+      "name": "นิสิตจำลอง 014"
+    },
+    {
+      "id": "S015",
+      "name": "นิสิตจำลอง 015"
+    },
+    {
+      "id": "S016",
+      "name": "นิสิตจำลอง 016"
+    },
+    {
+      "id": "S017",
+      "name": "นิสิตจำลอง 017"
+    },
+    {
+      "id": "S018",
+      "name": "นิสิตจำลอง 018"
+    },
+    {
+      "id": "S019",
+      "name": "นิสิตจำลอง 019"
+    },
+    {
+      "id": "S020",
+      "name": "นิสิตจำลอง 020"
+    },
+    {
+      "id": "S021",
+      "name": "นิสิตจำลอง 021"
+    },
+    {
+      "id": "S022",
+      "name": "นิสิตจำลอง 022"
+    },
+    {
+      "id": "S023",
+      "name": "นิสิตจำลอง 023"
+    },
+    {
+      "id": "S024",
+      "name": "นิสิตจำลอง 024"
+    },
+    {
+      "id": "S025",
+      "name": "นิสิตจำลอง 025"
+    },
+    {
+      "id": "S026",
+      "name": "นิสิตจำลอง 026"
+    },
+    {
+      "id": "S027",
+      "name": "นิสิตจำลอง 027"
+    },
+    {
+      "id": "S028",
+      "name": "นิสิตจำลอง 028"
+    },
+    {
+      "id": "S029",
+      "name": "นิสิตจำลอง 029"
+    },
+    {
+      "id": "S030",
+      "name": "นิสิตจำลอง 030"
+    },
+    {
+      "id": "S031",
+      "name": "นิสิตจำลอง 031"
+    },
+    {
+      "id": "S032",
+      "name": "นิสิตจำลอง 032"
+    },
+    {
+      "id": "S033",
+      "name": "นิสิตจำลอง 033"
+    },
+    {
+      "id": "S034",
+      "name": "นิสิตจำลอง 034"
+    },
+    {
+      "id": "S035",
+      "name": "นิสิตจำลอง 035"
+    },
+    {
+      "id": "S036",
+      "name": "นิสิตจำลอง 036"
+    },
+    {
+      "id": "S037",
+      "name": "นิสิตจำลอง 037"
+    },
+    {
+      "id": "S038",
+      "name": "นิสิตจำลอง 038"
+    },
+    {
+      "id": "S039",
+      "name": "นิสิตจำลอง 039"
+    },
+    {
+      "id": "S040",
+      "name": "นิสิตจำลอง 040"
+    },
+    {
+      "id": "S041",
+      "name": "นิสิตจำลอง 041"
+    },
+    {
+      "id": "S042",
+      "name": "นิสิตจำลอง 042"
+    },
+    {
+      "id": "S043",
+      "name": "นิสิตจำลอง 043"
+    },
+    {
+      "id": "S044",
+      "name": "นิสิตจำลอง 044"
+    },
+    {
+      "id": "S045",
+      "name": "นิสิตจำลอง 045"
+    },
+    {
+      "id": "S046",
+      "name": "นิสิตจำลอง 046"
+    },
+    {
+      "id": "S047",
+      "name": "นิสิตจำลอง 047"
+    },
+    {
+      "id": "S048",
+      "name": "นิสิตจำลอง 048"
+    },
+    {
+      "id": "S049",
+      "name": "นิสิตจำลอง 049"
+    },
+    {
+      "id": "S050",
+      "name": "นิสิตจำลอง 050"
+    },
+    {
+      "id": "S051",
+      "name": "นิสิตจำลอง 051"
+    },
+    {
+      "id": "S052",
+      "name": "นิสิตจำลอง 052"
+    },
+    {
+      "id": "S053",
+      "name": "นิสิตจำลอง 053"
+    },
+    {
+      "id": "S054",
+      "name": "นิสิตจำลอง 054"
+    },
+    {
+      "id": "S055",
+      "name": "นิสิตจำลอง 055"
+    },
+    {
+      "id": "S056",
+      "name": "นิสิตจำลอง 056"
+    },
+    {
+      "id": "S057",
+      "name": "นิสิตจำลอง 057"
+    },
+    {
+      "id": "S058",
+      "name": "นิสิตจำลอง 058"
+    },
+    {
+      "id": "S059",
+      "name": "นิสิตจำลอง 059"
+    },
+    {
+      "id": "S060",
+      "name": "นิสิตจำลอง 060"
+    },
+    {
+      "id": "S061",
+      "name": "นิสิตจำลอง 061"
+    },
+    {
+      "id": "S062",
+      "name": "นิสิตจำลอง 062"
+    },
+    {
+      "id": "S063",
+      "name": "นิสิตจำลอง 063"
+    },
+    {
+      "id": "S064",
+      "name": "นิสิตจำลอง 064"
+    },
+    {
+      "id": "S065",
+      "name": "นิสิตจำลอง 065"
+    },
+    {
+      "id": "S066",
+      "name": "นิสิตจำลอง 066"
+    },
+    {
+      "id": "S067",
+      "name": "นิสิตจำลอง 067"
+    },
+    {
+      "id": "S068",
+      "name": "นิสิตจำลอง 068"
+    },
+    {
+      "id": "S069",
+      "name": "นิสิตจำลอง 069"
+    },
+    {
+      "id": "S070",
+      "name": "นิสิตจำลอง 070"
+    },
+    {
+      "id": "S071",
+      "name": "นิสิตจำลอง 071"
+    },
+    {
+      "id": "S072",
+      "name": "นิสิตจำลอง 072"
+    },
+    {
+      "id": "S073",
+      "name": "นิสิตจำลอง 073"
+    },
+    {
+      "id": "S074",
+      "name": "นิสิตจำลอง 074"
+    },
+    {
+      "id": "S075",
+      "name": "นิสิตจำลอง 075"
+    },
+    {
+      "id": "S076",
+      "name": "นิสิตจำลอง 076"
+    },
+    {
+      "id": "S077",
+      "name": "นิสิตจำลอง 077"
+    },
+    {
+      "id": "S078",
+      "name": "นิสิตจำลอง 078"
+    },
+    {
+      "id": "S079",
+      "name": "นิสิตจำลอง 079"
+    },
+    {
+      "id": "S080",
+      "name": "นิสิตจำลอง 080"
+    },
+    {
+      "id": "S081",
+      "name": "นิสิตจำลอง 081"
+    },
+    {
+      "id": "S082",
+      "name": "นิสิตจำลอง 082"
+    },
+    {
+      "id": "S083",
+      "name": "นิสิตจำลอง 083"
+    },
+    {
+      "id": "S084",
+      "name": "นิสิตจำลอง 084"
+    },
+    {
+      "id": "S085",
+      "name": "นิสิตจำลอง 085"
+    },
+    {
+      "id": "S086",
+      "name": "นิสิตจำลอง 086"
+    },
+    {
+      "id": "S087",
+      "name": "นิสิตจำลอง 087"
+    },
+    {
+      "id": "S088",
+      "name": "นิสิตจำลอง 088"
+    },
+    {
+      "id": "S089",
+      "name": "นิสิตจำลอง 089"
+    },
+    {
+      "id": "S090",
+      "name": "นิสิตจำลอง 090"
+    },
+    {
+      "id": "S091",
+      "name": "นิสิตจำลอง 091"
+    },
+    {
+      "id": "S092",
+      "name": "นิสิตจำลอง 092"
+    },
+    {
+      "id": "S093",
+      "name": "นิสิตจำลอง 093"
+    },
+    {
+      "id": "S094",
+      "name": "นิสิตจำลอง 094"
+    },
+    {
+      "id": "S095",
+      "name": "นิสิตจำลอง 095"
+    },
+    {
+      "id": "S096",
+      "name": "นิสิตจำลอง 096"
+    }
+  ],
+  "teams": [
+    {
+      "id": "t1",
+      "name": "กลุ่ม 01",
+      "studentIds": [
+        "S001",
+        "S002",
+        "S003"
+      ]
+    },
+    {
+      "id": "t2",
+      "name": "กลุ่ม 02",
+      "studentIds": [
+        "S004",
+        "S005",
+        "S006"
+      ]
+    },
+    {
+      "id": "t3",
+      "name": "กลุ่ม 03",
+      "studentIds": [
+        "S007",
+        "S008",
+        "S009"
+      ]
+    },
+    {
+      "id": "t4",
+      "name": "กลุ่ม 04",
+      "studentIds": [
+        "S010",
+        "S011",
+        "S012"
+      ]
+    },
+    {
+      "id": "t5",
+      "name": "กลุ่ม 05",
+      "studentIds": [
+        "S013",
+        "S014",
+        "S015"
+      ]
+    },
+    {
+      "id": "t6",
+      "name": "กลุ่ม 06",
+      "studentIds": [
+        "S016",
+        "S017",
+        "S018"
+      ]
+    },
+    {
+      "id": "t7",
+      "name": "กลุ่ม 07",
+      "studentIds": [
+        "S019",
+        "S020",
+        "S021"
+      ]
+    },
+    {
+      "id": "t8",
+      "name": "กลุ่ม 08",
+      "studentIds": [
+        "S022",
+        "S023",
+        "S024"
+      ]
+    },
+    {
+      "id": "t9",
+      "name": "กลุ่ม 09",
+      "studentIds": [
+        "S025",
+        "S026",
+        "S027"
+      ]
+    },
+    {
+      "id": "t10",
+      "name": "กลุ่ม 10",
+      "studentIds": [
+        "S028",
+        "S029",
+        "S030"
+      ]
+    },
+    {
+      "id": "t11",
+      "name": "กลุ่ม 11",
+      "studentIds": [
+        "S031",
+        "S032",
+        "S033"
+      ]
+    },
+    {
+      "id": "t12",
+      "name": "กลุ่ม 12",
+      "studentIds": [
+        "S034",
+        "S035",
+        "S036"
+      ]
+    },
+    {
+      "id": "t13",
+      "name": "กลุ่ม 13",
+      "studentIds": [
+        "S037",
+        "S038",
+        "S039"
+      ]
+    },
+    {
+      "id": "t14",
+      "name": "กลุ่ม 14",
+      "studentIds": [
+        "S040",
+        "S041",
+        "S042"
+      ]
+    },
+    {
+      "id": "t15",
+      "name": "กลุ่ม 15",
+      "studentIds": [
+        "S043",
+        "S044",
+        "S045"
+      ]
+    },
+    {
+      "id": "t16",
+      "name": "กลุ่ม 16",
+      "studentIds": [
+        "S046",
+        "S047",
+        "S048"
+      ]
+    },
+    {
+      "id": "t17",
+      "name": "กลุ่ม 17",
+      "studentIds": [
+        "S049",
+        "S050",
+        "S051"
+      ]
+    },
+    {
+      "id": "t18",
+      "name": "กลุ่ม 18",
+      "studentIds": [
+        "S052",
+        "S053",
+        "S054"
+      ]
+    },
+    {
+      "id": "t19",
+      "name": "กลุ่ม 19",
+      "studentIds": [
+        "S055",
+        "S056",
+        "S057"
+      ]
+    },
+    {
+      "id": "t20",
+      "name": "กลุ่ม 20",
+      "studentIds": [
+        "S058",
+        "S059",
+        "S060"
+      ]
+    },
+    {
+      "id": "t21",
+      "name": "กลุ่ม 21",
+      "studentIds": [
+        "S061",
+        "S062",
+        "S063"
+      ]
+    },
+    {
+      "id": "t22",
+      "name": "กลุ่ม 22",
+      "studentIds": [
+        "S064",
+        "S065",
+        "S066"
+      ]
+    },
+    {
+      "id": "t23",
+      "name": "กลุ่ม 23",
+      "studentIds": [
+        "S067",
+        "S068",
+        "S069"
+      ]
+    },
+    {
+      "id": "t24",
+      "name": "กลุ่ม 24",
+      "studentIds": [
+        "S070",
+        "S071",
+        "S072"
+      ]
+    },
+    {
+      "id": "t25",
+      "name": "กลุ่ม 25",
+      "studentIds": [
+        "S073",
+        "S074",
+        "S075"
+      ]
+    },
+    {
+      "id": "t26",
+      "name": "กลุ่ม 26",
+      "studentIds": [
+        "S076",
+        "S077",
+        "S078"
+      ]
+    },
+    {
+      "id": "t27",
+      "name": "กลุ่ม 27",
+      "studentIds": [
+        "S079",
+        "S080",
+        "S081"
+      ]
+    },
+    {
+      "id": "t28",
+      "name": "กลุ่ม 28",
+      "studentIds": [
+        "S082",
+        "S083",
+        "S084"
+      ]
+    },
+    {
+      "id": "t29",
+      "name": "กลุ่ม 29",
+      "studentIds": [
+        "S085",
+        "S086",
+        "S087"
+      ]
+    },
+    {
+      "id": "t30",
+      "name": "กลุ่ม 30",
+      "studentIds": [
+        "S088",
+        "S089",
+        "S090"
+      ]
+    },
+    {
+      "id": "t31",
+      "name": "กลุ่ม 31",
+      "studentIds": [
+        "S091",
+        "S092",
+        "S093"
+      ]
+    },
+    {
+      "id": "t32",
+      "name": "กลุ่ม 32",
+      "studentIds": [
+        "S094",
+        "S095",
+        "S096"
+      ]
+    }
+  ],
+  "topics": [
+    {
+      "id": "CAP-001",
+      "year": "2569",
+      "companyId": "co1",
+      "title": "ระบบติดตามความร่วมมือองค์กร",
+      "category": "Software",
+      "rounds": [
+        "1",
+        "2",
+        "3"
+      ],
+      "capacity": 2,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 01",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ระบบติดตามความร่วมมือองค์กร เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S001",
+          "round": "1"
+        },
+        {
+          "studentId": "S002",
+          "round": "1"
+        },
+        {
+          "studentId": "S003",
+          "round": "1"
+        },
+        {
+          "studentId": "S004",
+          "round": "1"
+        },
+        {
+          "studentId": "S005",
+          "round": "1"
+        },
+        {
+          "studentId": "S006",
+          "round": "1"
+        },
+        {
+          "studentId": "S007",
+          "round": "1"
+        },
+        {
+          "studentId": "S008",
+          "round": "1"
+        },
+        {
+          "studentId": "S009",
+          "round": "1"
+        },
+        {
+          "studentId": "S001",
+          "round": "2"
+        },
+        {
+          "studentId": "S002",
+          "round": "2"
+        },
+        {
+          "studentId": "S003",
+          "round": "2"
+        },
+        {
+          "studentId": "S004",
+          "round": "2"
+        },
+        {
+          "studentId": "S005",
+          "round": "2"
+        },
+        {
+          "studentId": "S006",
+          "round": "2"
+        },
+        {
+          "studentId": "S007",
+          "round": "2"
+        },
+        {
+          "studentId": "S008",
+          "round": "2"
+        },
+        {
+          "studentId": "S009",
+          "round": "2"
+        },
+        {
+          "studentId": "S001",
+          "round": "3"
+        },
+        {
+          "studentId": "S002",
+          "round": "3"
+        },
+        {
+          "studentId": "S003",
+          "round": "3"
+        },
+        {
+          "studentId": "S004",
+          "round": "3"
+        },
+        {
+          "studentId": "S005",
+          "round": "3"
+        },
+        {
+          "studentId": "S006",
+          "round": "3"
+        },
+        {
+          "studentId": "S007",
+          "round": "3"
+        },
+        {
+          "studentId": "S008",
+          "round": "3"
+        },
+        {
+          "studentId": "S009",
+          "round": "3"
+        },
+        {
+          "studentId": "S001",
+          "round": "1"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-001-R1-t1",
+          "teamId": "t1",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-001-R1-t2",
+          "teamId": "t2",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-001-R1-t3",
+          "teamId": "t3",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-001-R2-t1",
+          "teamId": "t1",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-001-R2-t2",
+          "teamId": "t2",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-001-R2-t3",
+          "teamId": "t3",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-001-R3-t1",
+          "teamId": "t1",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-001-R3-t2",
+          "teamId": "t2",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-001-R3-t3",
+          "teamId": "t3",
+          "round": "3",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "1",
+          "applicationIds": [
+            "CAP-001-R1-t3",
+            "CAP-001-R1-t2",
+            "CAP-001-R1-t1"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        },
+        {
+          "round": "2",
+          "applicationIds": [
+            "CAP-001-R2-t3",
+            "CAP-001-R2-t2",
+            "CAP-001-R2-t1"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        },
+        {
+          "round": "3",
+          "applicationIds": [
+            "CAP-001-R3-t3",
+            "CAP-001-R3-t2",
+            "CAP-001-R3-t1"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-001-assignment",
+          "teamId": "t1",
+          "professorIds": [
+            "p1"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 01",
+          "phase": "proposal"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-0",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [
+        {
+          "id": "h-0",
+          "field": "ขอบเขต",
+          "before": "ศึกษาความเป็นไปได้",
+          "after": "พัฒนาต้นแบบ",
+          "reason": "ตัวอย่างการทบทวนขอบเขตร่วมกัน",
+          "at": "2026-09-01T10:00:00.000Z"
+        }
+      ],
+      "milestones": [
+        {
+          "id": "m-0",
+          "teamId": "t1",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-002",
+      "year": "2569",
+      "companyId": "co2",
+      "title": "ผู้ช่วยค้นเอกสารด้วย AI",
+      "category": "AI / Data",
+      "rounds": [
+        "2"
+      ],
+      "capacity": 1,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 02",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ผู้ช่วยค้นเอกสารด้วย AI เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S004",
+          "round": "2"
+        },
+        {
+          "studentId": "S005",
+          "round": "2"
+        },
+        {
+          "studentId": "S006",
+          "round": "2"
+        },
+        {
+          "studentId": "S007",
+          "round": "2"
+        },
+        {
+          "studentId": "S008",
+          "round": "2"
+        },
+        {
+          "studentId": "S009",
+          "round": "2"
+        },
+        {
+          "studentId": "S010",
+          "round": "2"
+        },
+        {
+          "studentId": "S011",
+          "round": "2"
+        },
+        {
+          "studentId": "S012",
+          "round": "2"
+        },
+        {
+          "studentId": "S013",
+          "round": "2"
+        },
+        {
+          "studentId": "S014",
+          "round": "2"
+        },
+        {
+          "studentId": "S015",
+          "round": "2"
+        },
+        {
+          "studentId": "S004",
+          "round": "2"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-002-R2-t2",
+          "teamId": "t2",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-002-R2-t3",
+          "teamId": "t3",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-002-R2-t4",
+          "teamId": "t4",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-002-R2-t5",
+          "teamId": "t5",
+          "round": "2",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "2",
+          "applicationIds": [
+            "CAP-002-R2-t2",
+            "CAP-002-R2-t3"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-002-assignment",
+          "teamId": "t2",
+          "professorIds": [
+            "p2"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 02",
+          "phase": "development"
+        },
+        {
+          "id": "CAP-002-assignment-2",
+          "teamId": "t3",
+          "professorIds": [
+            "p3"
+          ],
+          "mentor": "พี่เลี้ยงจำลองร่วม",
+          "phase": "testing"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-1",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-1",
+          "teamId": "t2",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-003",
+      "year": "2569",
+      "companyId": "co3",
+      "title": "ระบบติดตามการส่งเวชภัณฑ์",
+      "category": "IoT",
+      "rounds": [
+        "3"
+      ],
+      "capacity": 2,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 03",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ระบบติดตามการส่งเวชภัณฑ์ เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S007",
+          "round": "3"
+        },
+        {
+          "studentId": "S008",
+          "round": "3"
+        },
+        {
+          "studentId": "S009",
+          "round": "3"
+        },
+        {
+          "studentId": "S010",
+          "round": "3"
+        },
+        {
+          "studentId": "S011",
+          "round": "3"
+        },
+        {
+          "studentId": "S012",
+          "round": "3"
+        },
+        {
+          "studentId": "S013",
+          "round": "3"
+        },
+        {
+          "studentId": "S014",
+          "round": "3"
+        },
+        {
+          "studentId": "S015",
+          "round": "3"
+        },
+        {
+          "studentId": "S007",
+          "round": "3"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-003-R3-t3",
+          "teamId": "t3",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-003-R3-t4",
+          "teamId": "t4",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-003-R3-t5",
+          "teamId": "t5",
+          "round": "3",
+          "status": "withdrawn"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "3",
+          "applicationIds": [
+            "CAP-003-R3-t3",
+            "CAP-003-R3-t4"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [],
+      "notes": [
+        {
+          "id": "n-2",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-004",
+      "year": "2569",
+      "companyId": "co4",
+      "title": "วางแผนเส้นทางขนส่ง",
+      "category": "Platform",
+      "rounds": [
+        "1",
+        "2",
+        "3"
+      ],
+      "capacity": 3,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 04",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: วางแผนเส้นทางขนส่ง เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S010",
+          "round": "1"
+        },
+        {
+          "studentId": "S011",
+          "round": "1"
+        },
+        {
+          "studentId": "S012",
+          "round": "1"
+        },
+        {
+          "studentId": "S013",
+          "round": "1"
+        },
+        {
+          "studentId": "S014",
+          "round": "1"
+        },
+        {
+          "studentId": "S015",
+          "round": "1"
+        },
+        {
+          "studentId": "S016",
+          "round": "1"
+        },
+        {
+          "studentId": "S017",
+          "round": "1"
+        },
+        {
+          "studentId": "S018",
+          "round": "1"
+        },
+        {
+          "studentId": "S019",
+          "round": "1"
+        },
+        {
+          "studentId": "S020",
+          "round": "1"
+        },
+        {
+          "studentId": "S021",
+          "round": "1"
+        },
+        {
+          "studentId": "S010",
+          "round": "2"
+        },
+        {
+          "studentId": "S011",
+          "round": "2"
+        },
+        {
+          "studentId": "S012",
+          "round": "2"
+        },
+        {
+          "studentId": "S013",
+          "round": "2"
+        },
+        {
+          "studentId": "S014",
+          "round": "2"
+        },
+        {
+          "studentId": "S015",
+          "round": "2"
+        },
+        {
+          "studentId": "S016",
+          "round": "2"
+        },
+        {
+          "studentId": "S017",
+          "round": "2"
+        },
+        {
+          "studentId": "S018",
+          "round": "2"
+        },
+        {
+          "studentId": "S019",
+          "round": "2"
+        },
+        {
+          "studentId": "S020",
+          "round": "2"
+        },
+        {
+          "studentId": "S021",
+          "round": "2"
+        },
+        {
+          "studentId": "S010",
+          "round": "3"
+        },
+        {
+          "studentId": "S011",
+          "round": "3"
+        },
+        {
+          "studentId": "S012",
+          "round": "3"
+        },
+        {
+          "studentId": "S013",
+          "round": "3"
+        },
+        {
+          "studentId": "S014",
+          "round": "3"
+        },
+        {
+          "studentId": "S015",
+          "round": "3"
+        },
+        {
+          "studentId": "S016",
+          "round": "3"
+        },
+        {
+          "studentId": "S017",
+          "round": "3"
+        },
+        {
+          "studentId": "S018",
+          "round": "3"
+        },
+        {
+          "studentId": "S019",
+          "round": "3"
+        },
+        {
+          "studentId": "S020",
+          "round": "3"
+        },
+        {
+          "studentId": "S021",
+          "round": "3"
+        },
+        {
+          "studentId": "S010",
+          "round": "1"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-004-R1-t4",
+          "teamId": "t4",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-004-R1-t5",
+          "teamId": "t5",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-004-R1-t6",
+          "teamId": "t6",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-004-R1-t7",
+          "teamId": "t7",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-004-R2-t4",
+          "teamId": "t4",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-004-R2-t5",
+          "teamId": "t5",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-004-R2-t6",
+          "teamId": "t6",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-004-R2-t7",
+          "teamId": "t7",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-004-R3-t4",
+          "teamId": "t4",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-004-R3-t5",
+          "teamId": "t5",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-004-R3-t6",
+          "teamId": "t6",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-004-R3-t7",
+          "teamId": "t7",
+          "round": "3",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "1",
+          "applicationIds": [
+            "CAP-004-R1-t4",
+            "CAP-004-R1-t5"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        },
+        {
+          "round": "2",
+          "applicationIds": [
+            "CAP-004-R2-t4",
+            "CAP-004-R2-t5"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        },
+        {
+          "round": "3",
+          "applicationIds": [
+            "CAP-004-R3-t4",
+            "CAP-004-R3-t5"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-004-assignment",
+          "teamId": "t4",
+          "professorIds": [
+            "p4"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 04",
+          "phase": "proposal"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-3",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-3",
+          "teamId": "t4",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-005",
+      "year": "2569",
+      "companyId": "co5",
+      "title": "แพลตฟอร์มจับคู่ผู้เรียนกับโครงการ",
+      "category": "Software",
+      "rounds": [
+        "2"
+      ],
+      "capacity": 2,
+      "status": "open",
+      "coordinator": "",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: แพลตฟอร์มจับคู่ผู้เรียนกับโครงการ เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S013",
+          "round": "2"
+        },
+        {
+          "studentId": "S014",
+          "round": "2"
+        },
+        {
+          "studentId": "S015",
+          "round": "2"
+        },
+        {
+          "studentId": "S016",
+          "round": "2"
+        },
+        {
+          "studentId": "S017",
+          "round": "2"
+        },
+        {
+          "studentId": "S018",
+          "round": "2"
+        },
+        {
+          "studentId": "S019",
+          "round": "2"
+        },
+        {
+          "studentId": "S020",
+          "round": "2"
+        },
+        {
+          "studentId": "S021",
+          "round": "2"
+        },
+        {
+          "studentId": "S013",
+          "round": "2"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-005-R2-t5",
+          "teamId": "t5",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-005-R2-t6",
+          "teamId": "t6",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-005-R2-t7",
+          "teamId": "t7",
+          "round": "2",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "2",
+          "applicationIds": [
+            "CAP-005-R2-t7",
+            "CAP-005-R2-t6",
+            "CAP-005-R2-t5"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-005-assignment",
+          "teamId": "t5",
+          "professorIds": [
+            "p5"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 05",
+          "phase": "development"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-4",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-4",
+          "teamId": "t5",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-006",
+      "year": "2569",
+      "companyId": "co6",
+      "title": "ติดตามการใช้พลังงานในอาคาร",
+      "category": "AI / Data",
+      "rounds": [
+        "3"
+      ],
+      "capacity": null,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 06",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ติดตามการใช้พลังงานในอาคาร เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S016",
+          "round": "3"
+        },
+        {
+          "studentId": "S017",
+          "round": "3"
+        },
+        {
+          "studentId": "S018",
+          "round": "3"
+        },
+        {
+          "studentId": "S019",
+          "round": "3"
+        },
+        {
+          "studentId": "S020",
+          "round": "3"
+        },
+        {
+          "studentId": "S021",
+          "round": "3"
+        },
+        {
+          "studentId": "S022",
+          "round": "3"
+        },
+        {
+          "studentId": "S023",
+          "round": "3"
+        },
+        {
+          "studentId": "S024",
+          "round": "3"
+        },
+        {
+          "studentId": "S025",
+          "round": "3"
+        },
+        {
+          "studentId": "S026",
+          "round": "3"
+        },
+        {
+          "studentId": "S027",
+          "round": "3"
+        },
+        {
+          "studentId": "S016",
+          "round": "3"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-006-R3-t6",
+          "teamId": "t6",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-006-R3-t7",
+          "teamId": "t7",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-006-R3-t8",
+          "teamId": "t8",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-006-R3-t9",
+          "teamId": "t9",
+          "round": "3",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "3",
+          "applicationIds": [
+            "CAP-006-R3-t6",
+            "CAP-006-R3-t7"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-006-assignment",
+          "teamId": "t6",
+          "professorIds": [
+            "p6"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 06",
+          "phase": "testing"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-5",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-5",
+          "teamId": "t6",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-007",
+      "year": "2569",
+      "companyId": "co7",
+      "title": "ระบบตรวจสอบเอกสารการเงิน",
+      "category": "IoT",
+      "rounds": [
+        "1",
+        "2",
+        "3"
+      ],
+      "capacity": 2,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 07",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ระบบตรวจสอบเอกสารการเงิน เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": false,
+      "applicationsKnown": false,
+      "selections": [],
+      "applications": [],
+      "rankings": [],
+      "assignments": [],
+      "notes": [
+        {
+          "id": "n-6",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-008",
+      "year": "2569",
+      "companyId": "co8",
+      "title": "วิเคราะห์ความต้องการสินค้า",
+      "category": "Platform",
+      "rounds": [
+        "2"
+      ],
+      "capacity": 3,
+      "status": "draft",
+      "coordinator": "ผู้ประสานงานจำลอง 08",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: วิเคราะห์ความต้องการสินค้า เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S022",
+          "round": "2"
+        },
+        {
+          "studentId": "S023",
+          "round": "2"
+        },
+        {
+          "studentId": "S024",
+          "round": "2"
+        },
+        {
+          "studentId": "S025",
+          "round": "2"
+        },
+        {
+          "studentId": "S026",
+          "round": "2"
+        },
+        {
+          "studentId": "S027",
+          "round": "2"
+        },
+        {
+          "studentId": "S028",
+          "round": "2"
+        },
+        {
+          "studentId": "S029",
+          "round": "2"
+        },
+        {
+          "studentId": "S030",
+          "round": "2"
+        },
+        {
+          "studentId": "S031",
+          "round": "2"
+        },
+        {
+          "studentId": "S032",
+          "round": "2"
+        },
+        {
+          "studentId": "S033",
+          "round": "2"
+        },
+        {
+          "studentId": "S022",
+          "round": "2"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-008-R2-t8",
+          "teamId": "t8",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-008-R2-t9",
+          "teamId": "t9",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-008-R2-t10",
+          "teamId": "t10",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-008-R2-t11",
+          "teamId": "t11",
+          "round": "2",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "2",
+          "applicationIds": [
+            "CAP-008-R2-t8",
+            "CAP-008-R2-t9"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-008-assignment",
+          "teamId": "t8",
+          "professorIds": [
+            "p2"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 08",
+          "phase": "development"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-7",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-7",
+          "teamId": "t8",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-009",
+      "year": "2569",
+      "companyId": "co1",
+      "title": "ระบบจัดการ Cloud แบบบริการตนเอง",
+      "category": "Software",
+      "rounds": [
+        "3"
+      ],
+      "capacity": 2,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 01",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ระบบจัดการ Cloud แบบบริการตนเอง เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "รอยืนยันขอบเขตข้อมูลที่บริษัทแบ่งปันได้",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S025",
+          "round": "3"
+        },
+        {
+          "studentId": "S026",
+          "round": "3"
+        },
+        {
+          "studentId": "S027",
+          "round": "3"
+        },
+        {
+          "studentId": "S028",
+          "round": "3"
+        },
+        {
+          "studentId": "S029",
+          "round": "3"
+        },
+        {
+          "studentId": "S030",
+          "round": "3"
+        },
+        {
+          "studentId": "S031",
+          "round": "3"
+        },
+        {
+          "studentId": "S032",
+          "round": "3"
+        },
+        {
+          "studentId": "S033",
+          "round": "3"
+        },
+        {
+          "studentId": "S025",
+          "round": "3"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-009-R3-t9",
+          "teamId": "t9",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-009-R3-t10",
+          "teamId": "t10",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-009-R3-t11",
+          "teamId": "t11",
+          "round": "3",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "3",
+          "applicationIds": [
+            "CAP-009-R3-t11",
+            "CAP-009-R3-t10",
+            "CAP-009-R3-t9"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-009-assignment",
+          "teamId": "t9",
+          "professorIds": [
+            "p3"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 09",
+          "phase": "testing"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-8",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-8",
+          "teamId": "t9",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-010",
+      "year": "2569",
+      "companyId": "co2",
+      "title": "ค้นหาความรู้จากรายงานวิจัย",
+      "category": "AI / Data",
+      "rounds": [
+        "1",
+        "2",
+        "3"
+      ],
+      "capacity": 3,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 02",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ค้นหาความรู้จากรายงานวิจัย เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S028",
+          "round": "1"
+        },
+        {
+          "studentId": "S029",
+          "round": "1"
+        },
+        {
+          "studentId": "S030",
+          "round": "1"
+        },
+        {
+          "studentId": "S031",
+          "round": "1"
+        },
+        {
+          "studentId": "S032",
+          "round": "1"
+        },
+        {
+          "studentId": "S033",
+          "round": "1"
+        },
+        {
+          "studentId": "S034",
+          "round": "1"
+        },
+        {
+          "studentId": "S035",
+          "round": "1"
+        },
+        {
+          "studentId": "S036",
+          "round": "1"
+        },
+        {
+          "studentId": "S037",
+          "round": "1"
+        },
+        {
+          "studentId": "S038",
+          "round": "1"
+        },
+        {
+          "studentId": "S039",
+          "round": "1"
+        },
+        {
+          "studentId": "S028",
+          "round": "2"
+        },
+        {
+          "studentId": "S029",
+          "round": "2"
+        },
+        {
+          "studentId": "S030",
+          "round": "2"
+        },
+        {
+          "studentId": "S031",
+          "round": "2"
+        },
+        {
+          "studentId": "S032",
+          "round": "2"
+        },
+        {
+          "studentId": "S033",
+          "round": "2"
+        },
+        {
+          "studentId": "S034",
+          "round": "2"
+        },
+        {
+          "studentId": "S035",
+          "round": "2"
+        },
+        {
+          "studentId": "S036",
+          "round": "2"
+        },
+        {
+          "studentId": "S037",
+          "round": "2"
+        },
+        {
+          "studentId": "S038",
+          "round": "2"
+        },
+        {
+          "studentId": "S039",
+          "round": "2"
+        },
+        {
+          "studentId": "S028",
+          "round": "3"
+        },
+        {
+          "studentId": "S029",
+          "round": "3"
+        },
+        {
+          "studentId": "S030",
+          "round": "3"
+        },
+        {
+          "studentId": "S031",
+          "round": "3"
+        },
+        {
+          "studentId": "S032",
+          "round": "3"
+        },
+        {
+          "studentId": "S033",
+          "round": "3"
+        },
+        {
+          "studentId": "S034",
+          "round": "3"
+        },
+        {
+          "studentId": "S035",
+          "round": "3"
+        },
+        {
+          "studentId": "S036",
+          "round": "3"
+        },
+        {
+          "studentId": "S037",
+          "round": "3"
+        },
+        {
+          "studentId": "S038",
+          "round": "3"
+        },
+        {
+          "studentId": "S039",
+          "round": "3"
+        },
+        {
+          "studentId": "S028",
+          "round": "1"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-010-R1-t10",
+          "teamId": "t10",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-010-R1-t11",
+          "teamId": "t11",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-010-R1-t12",
+          "teamId": "t12",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-010-R1-t13",
+          "teamId": "t13",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-010-R2-t10",
+          "teamId": "t10",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-010-R2-t11",
+          "teamId": "t11",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-010-R2-t12",
+          "teamId": "t12",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-010-R2-t13",
+          "teamId": "t13",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-010-R3-t10",
+          "teamId": "t10",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-010-R3-t11",
+          "teamId": "t11",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-010-R3-t12",
+          "teamId": "t12",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-010-R3-t13",
+          "teamId": "t13",
+          "round": "3",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "1",
+          "applicationIds": [
+            "CAP-010-R1-t10",
+            "CAP-010-R1-t11"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        },
+        {
+          "round": "2",
+          "applicationIds": [
+            "CAP-010-R2-t10",
+            "CAP-010-R2-t11"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        },
+        {
+          "round": "3",
+          "applicationIds": [
+            "CAP-010-R3-t10",
+            "CAP-010-R3-t11"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-010-assignment",
+          "teamId": "t10",
+          "professorIds": [
+            "p4"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 10",
+          "phase": "proposal"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-9",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-9",
+          "teamId": "t10",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-011",
+      "year": "2569",
+      "companyId": null,
+      "title": "ติดตามนัดหมายสุขภาพ",
+      "category": "IoT",
+      "rounds": [
+        "2"
+      ],
+      "capacity": 2,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 03",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ติดตามนัดหมายสุขภาพ เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S031",
+          "round": "2"
+        },
+        {
+          "studentId": "S032",
+          "round": "2"
+        },
+        {
+          "studentId": "S033",
+          "round": "2"
+        },
+        {
+          "studentId": "S034",
+          "round": "2"
+        },
+        {
+          "studentId": "S035",
+          "round": "2"
+        },
+        {
+          "studentId": "S036",
+          "round": "2"
+        },
+        {
+          "studentId": "S037",
+          "round": "2"
+        },
+        {
+          "studentId": "S038",
+          "round": "2"
+        },
+        {
+          "studentId": "S039",
+          "round": "2"
+        },
+        {
+          "studentId": "S031",
+          "round": "2"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-011-R2-t11",
+          "teamId": "t11",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-011-R2-t12",
+          "teamId": "t12",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-011-R2-t13",
+          "teamId": "t13",
+          "round": "2",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "2",
+          "applicationIds": [],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [],
+      "notes": [
+        {
+          "id": "n-10",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-012",
+      "year": "2569",
+      "companyId": "co4",
+      "title": "ติดตามสถานะคลังสินค้า",
+      "category": "Platform",
+      "rounds": [
+        "3"
+      ],
+      "capacity": 3,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 04",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ติดตามสถานะคลังสินค้า เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S034",
+          "round": "3"
+        },
+        {
+          "studentId": "S035",
+          "round": "3"
+        },
+        {
+          "studentId": "S036",
+          "round": "3"
+        },
+        {
+          "studentId": "S037",
+          "round": "3"
+        },
+        {
+          "studentId": "S038",
+          "round": "3"
+        },
+        {
+          "studentId": "S039",
+          "round": "3"
+        },
+        {
+          "studentId": "S040",
+          "round": "3"
+        },
+        {
+          "studentId": "S041",
+          "round": "3"
+        },
+        {
+          "studentId": "S042",
+          "round": "3"
+        },
+        {
+          "studentId": "S043",
+          "round": "3"
+        },
+        {
+          "studentId": "S044",
+          "round": "3"
+        },
+        {
+          "studentId": "S045",
+          "round": "3"
+        },
+        {
+          "studentId": "S034",
+          "round": "3"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-012-R3-t12",
+          "teamId": "t12",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-012-R3-t13",
+          "teamId": "t13",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-012-R3-t14",
+          "teamId": "t14",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-012-R3-t15",
+          "teamId": "t15",
+          "round": "3",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "3",
+          "applicationIds": [
+            "CAP-012-R3-t12",
+            "CAP-012-R3-t13"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-012-assignment",
+          "teamId": "t12",
+          "professorIds": [
+            "p6"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 12",
+          "phase": "testing"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-11",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-11",
+          "teamId": "t12",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-013",
+      "year": "2569",
+      "companyId": "co5",
+      "title": "ระบบรวบรวมผลงานนิสิต",
+      "category": "Software",
+      "rounds": [
+        "1",
+        "2",
+        "3"
+      ],
+      "capacity": 2,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 05",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ระบบรวบรวมผลงานนิสิต เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S037",
+          "round": "1"
+        },
+        {
+          "studentId": "S038",
+          "round": "1"
+        },
+        {
+          "studentId": "S039",
+          "round": "1"
+        },
+        {
+          "studentId": "S040",
+          "round": "1"
+        },
+        {
+          "studentId": "S041",
+          "round": "1"
+        },
+        {
+          "studentId": "S042",
+          "round": "1"
+        },
+        {
+          "studentId": "S043",
+          "round": "1"
+        },
+        {
+          "studentId": "S044",
+          "round": "1"
+        },
+        {
+          "studentId": "S045",
+          "round": "1"
+        },
+        {
+          "studentId": "S037",
+          "round": "2"
+        },
+        {
+          "studentId": "S038",
+          "round": "2"
+        },
+        {
+          "studentId": "S039",
+          "round": "2"
+        },
+        {
+          "studentId": "S040",
+          "round": "2"
+        },
+        {
+          "studentId": "S041",
+          "round": "2"
+        },
+        {
+          "studentId": "S042",
+          "round": "2"
+        },
+        {
+          "studentId": "S043",
+          "round": "2"
+        },
+        {
+          "studentId": "S044",
+          "round": "2"
+        },
+        {
+          "studentId": "S045",
+          "round": "2"
+        },
+        {
+          "studentId": "S037",
+          "round": "3"
+        },
+        {
+          "studentId": "S038",
+          "round": "3"
+        },
+        {
+          "studentId": "S039",
+          "round": "3"
+        },
+        {
+          "studentId": "S040",
+          "round": "3"
+        },
+        {
+          "studentId": "S041",
+          "round": "3"
+        },
+        {
+          "studentId": "S042",
+          "round": "3"
+        },
+        {
+          "studentId": "S043",
+          "round": "3"
+        },
+        {
+          "studentId": "S044",
+          "round": "3"
+        },
+        {
+          "studentId": "S045",
+          "round": "3"
+        },
+        {
+          "studentId": "S037",
+          "round": "1"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-013-R1-t13",
+          "teamId": "t13",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-013-R1-t14",
+          "teamId": "t14",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-013-R1-t15",
+          "teamId": "t15",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-013-R2-t13",
+          "teamId": "t13",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-013-R2-t14",
+          "teamId": "t14",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-013-R2-t15",
+          "teamId": "t15",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-013-R3-t13",
+          "teamId": "t13",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-013-R3-t14",
+          "teamId": "t14",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-013-R3-t15",
+          "teamId": "t15",
+          "round": "3",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "1",
+          "applicationIds": [
+            "CAP-013-R1-t15",
+            "CAP-013-R1-t14",
+            "CAP-013-R1-t13"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        },
+        {
+          "round": "2",
+          "applicationIds": [
+            "CAP-013-R2-t15",
+            "CAP-013-R2-t14",
+            "CAP-013-R2-t13"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        },
+        {
+          "round": "3",
+          "applicationIds": [
+            "CAP-013-R3-t15",
+            "CAP-013-R3-t14",
+            "CAP-013-R3-t13"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-013-assignment",
+          "teamId": "t13",
+          "professorIds": [
+            "p1"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 13",
+          "phase": "proposal"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-12",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-12",
+          "teamId": "t13",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-014",
+      "year": "2569",
+      "companyId": "co6",
+      "title": "คาดการณ์ความต้องการพลังงาน",
+      "category": "AI / Data",
+      "rounds": [
+        "2"
+      ],
+      "capacity": 3,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 06",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: คาดการณ์ความต้องการพลังงาน เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S040",
+          "round": "2"
+        },
+        {
+          "studentId": "S041",
+          "round": "2"
+        },
+        {
+          "studentId": "S042",
+          "round": "2"
+        },
+        {
+          "studentId": "S043",
+          "round": "2"
+        },
+        {
+          "studentId": "S044",
+          "round": "2"
+        },
+        {
+          "studentId": "S045",
+          "round": "2"
+        },
+        {
+          "studentId": "S046",
+          "round": "2"
+        },
+        {
+          "studentId": "S047",
+          "round": "2"
+        },
+        {
+          "studentId": "S048",
+          "round": "2"
+        },
+        {
+          "studentId": "S049",
+          "round": "2"
+        },
+        {
+          "studentId": "S050",
+          "round": "2"
+        },
+        {
+          "studentId": "S051",
+          "round": "2"
+        },
+        {
+          "studentId": "S040",
+          "round": "2"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-014-R2-t14",
+          "teamId": "t14",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-014-R2-t15",
+          "teamId": "t15",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-014-R2-t16",
+          "teamId": "t16",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-014-R2-t17",
+          "teamId": "t17",
+          "round": "2",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "2",
+          "applicationIds": [
+            "CAP-014-R2-t14",
+            "CAP-014-R2-t15"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-014-assignment",
+          "teamId": "t14",
+          "professorIds": [
+            "p2"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 14",
+          "phase": "development"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-13",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-13",
+          "teamId": "t14",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-015",
+      "year": "2569",
+      "companyId": "co7",
+      "title": "ระบบช่วยจัดการค่าใช้จ่าย",
+      "category": "IoT",
+      "rounds": [
+        "3"
+      ],
+      "capacity": 2,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 07",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ระบบช่วยจัดการค่าใช้จ่าย เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S043",
+          "round": "3"
+        },
+        {
+          "studentId": "S044",
+          "round": "3"
+        },
+        {
+          "studentId": "S045",
+          "round": "3"
+        },
+        {
+          "studentId": "S046",
+          "round": "3"
+        },
+        {
+          "studentId": "S047",
+          "round": "3"
+        },
+        {
+          "studentId": "S048",
+          "round": "3"
+        },
+        {
+          "studentId": "S049",
+          "round": "3"
+        },
+        {
+          "studentId": "S050",
+          "round": "3"
+        },
+        {
+          "studentId": "S051",
+          "round": "3"
+        },
+        {
+          "studentId": "S043",
+          "round": "3"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-015-R3-t15",
+          "teamId": "t15",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-015-R3-t16",
+          "teamId": "t16",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-015-R3-t17",
+          "teamId": "t17",
+          "round": "3",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "3",
+          "applicationIds": [
+            "CAP-015-R3-t15",
+            "CAP-015-R3-t16"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [],
+      "notes": [
+        {
+          "id": "n-14",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-016",
+      "year": "2569",
+      "companyId": "co8",
+      "title": "ระบบสมาชิกสำหรับร้านค้า",
+      "category": "Platform",
+      "rounds": [
+        "1",
+        "2",
+        "3"
+      ],
+      "capacity": 3,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 08",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ระบบสมาชิกสำหรับร้านค้า เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S046",
+          "round": "1"
+        },
+        {
+          "studentId": "S047",
+          "round": "1"
+        },
+        {
+          "studentId": "S048",
+          "round": "1"
+        },
+        {
+          "studentId": "S049",
+          "round": "1"
+        },
+        {
+          "studentId": "S050",
+          "round": "1"
+        },
+        {
+          "studentId": "S051",
+          "round": "1"
+        },
+        {
+          "studentId": "S052",
+          "round": "1"
+        },
+        {
+          "studentId": "S053",
+          "round": "1"
+        },
+        {
+          "studentId": "S054",
+          "round": "1"
+        },
+        {
+          "studentId": "S055",
+          "round": "1"
+        },
+        {
+          "studentId": "S056",
+          "round": "1"
+        },
+        {
+          "studentId": "S057",
+          "round": "1"
+        },
+        {
+          "studentId": "S046",
+          "round": "2"
+        },
+        {
+          "studentId": "S047",
+          "round": "2"
+        },
+        {
+          "studentId": "S048",
+          "round": "2"
+        },
+        {
+          "studentId": "S049",
+          "round": "2"
+        },
+        {
+          "studentId": "S050",
+          "round": "2"
+        },
+        {
+          "studentId": "S051",
+          "round": "2"
+        },
+        {
+          "studentId": "S052",
+          "round": "2"
+        },
+        {
+          "studentId": "S053",
+          "round": "2"
+        },
+        {
+          "studentId": "S054",
+          "round": "2"
+        },
+        {
+          "studentId": "S055",
+          "round": "2"
+        },
+        {
+          "studentId": "S056",
+          "round": "2"
+        },
+        {
+          "studentId": "S057",
+          "round": "2"
+        },
+        {
+          "studentId": "S046",
+          "round": "3"
+        },
+        {
+          "studentId": "S047",
+          "round": "3"
+        },
+        {
+          "studentId": "S048",
+          "round": "3"
+        },
+        {
+          "studentId": "S049",
+          "round": "3"
+        },
+        {
+          "studentId": "S050",
+          "round": "3"
+        },
+        {
+          "studentId": "S051",
+          "round": "3"
+        },
+        {
+          "studentId": "S052",
+          "round": "3"
+        },
+        {
+          "studentId": "S053",
+          "round": "3"
+        },
+        {
+          "studentId": "S054",
+          "round": "3"
+        },
+        {
+          "studentId": "S055",
+          "round": "3"
+        },
+        {
+          "studentId": "S056",
+          "round": "3"
+        },
+        {
+          "studentId": "S057",
+          "round": "3"
+        },
+        {
+          "studentId": "S046",
+          "round": "1"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-016-R1-t16",
+          "teamId": "t16",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-016-R1-t17",
+          "teamId": "t17",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-016-R1-t18",
+          "teamId": "t18",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-016-R1-t19",
+          "teamId": "t19",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-016-R2-t16",
+          "teamId": "t16",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-016-R2-t17",
+          "teamId": "t17",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-016-R2-t18",
+          "teamId": "t18",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-016-R2-t19",
+          "teamId": "t19",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-016-R3-t16",
+          "teamId": "t16",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-016-R3-t17",
+          "teamId": "t17",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-016-R3-t18",
+          "teamId": "t18",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-016-R3-t19",
+          "teamId": "t19",
+          "round": "3",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "1",
+          "applicationIds": [
+            "CAP-016-R1-t16",
+            "CAP-016-R1-t17"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        },
+        {
+          "round": "2",
+          "applicationIds": [
+            "CAP-016-R2-t16",
+            "CAP-016-R2-t17"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        },
+        {
+          "round": "3",
+          "applicationIds": [
+            "CAP-016-R3-t16",
+            "CAP-016-R3-t17"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-016-assignment",
+          "teamId": "t16",
+          "professorIds": [
+            "p4"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 16",
+          "phase": "proposal"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-15",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-15",
+          "teamId": "t16",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-017",
+      "year": "2569",
+      "companyId": "co1",
+      "title": "รายงานคุณภาพบริการ Cloud",
+      "category": "Software",
+      "rounds": [
+        "2"
+      ],
+      "capacity": 2,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 01",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: รายงานคุณภาพบริการ Cloud เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S049",
+          "round": "2"
+        },
+        {
+          "studentId": "S050",
+          "round": "2"
+        },
+        {
+          "studentId": "S051",
+          "round": "2"
+        },
+        {
+          "studentId": "S052",
+          "round": "2"
+        },
+        {
+          "studentId": "S053",
+          "round": "2"
+        },
+        {
+          "studentId": "S054",
+          "round": "2"
+        },
+        {
+          "studentId": "S055",
+          "round": "2"
+        },
+        {
+          "studentId": "S056",
+          "round": "2"
+        },
+        {
+          "studentId": "S057",
+          "round": "2"
+        },
+        {
+          "studentId": "S049",
+          "round": "2"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-017-R2-t17",
+          "teamId": "t17",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-017-R2-t18",
+          "teamId": "t18",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-017-R2-t19",
+          "teamId": "t19",
+          "round": "2",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "2",
+          "applicationIds": [
+            "CAP-017-R2-t19",
+            "CAP-017-R2-t18",
+            "CAP-017-R2-t17"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-017-assignment",
+          "teamId": "t17",
+          "professorIds": [
+            "p5"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 17",
+          "phase": "development"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-16",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-16",
+          "teamId": "t17",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-018",
+      "year": "2569",
+      "companyId": "co2",
+      "title": "สรุปข้อมูลข้อเสนอแนะลูกค้า",
+      "category": "AI / Data",
+      "rounds": [
+        "3"
+      ],
+      "capacity": 3,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 02",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: สรุปข้อมูลข้อเสนอแนะลูกค้า เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S052",
+          "round": "3"
+        },
+        {
+          "studentId": "S053",
+          "round": "3"
+        },
+        {
+          "studentId": "S054",
+          "round": "3"
+        },
+        {
+          "studentId": "S055",
+          "round": "3"
+        },
+        {
+          "studentId": "S056",
+          "round": "3"
+        },
+        {
+          "studentId": "S057",
+          "round": "3"
+        },
+        {
+          "studentId": "S058",
+          "round": "3"
+        },
+        {
+          "studentId": "S059",
+          "round": "3"
+        },
+        {
+          "studentId": "S060",
+          "round": "3"
+        },
+        {
+          "studentId": "S061",
+          "round": "3"
+        },
+        {
+          "studentId": "S062",
+          "round": "3"
+        },
+        {
+          "studentId": "S063",
+          "round": "3"
+        },
+        {
+          "studentId": "S052",
+          "round": "3"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-018-R3-t18",
+          "teamId": "t18",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-018-R3-t19",
+          "teamId": "t19",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-018-R3-t20",
+          "teamId": "t20",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-018-R3-t21",
+          "teamId": "t21",
+          "round": "3",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "3",
+          "applicationIds": [
+            "CAP-018-R3-t18",
+            "CAP-018-R3-t19"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-018-assignment",
+          "teamId": "t18",
+          "professorIds": [
+            "p6"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 18",
+          "phase": "testing"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-17",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-17",
+          "teamId": "t18",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-019",
+      "year": "2569",
+      "companyId": "co3",
+      "title": "ระบบจัดการข้อมูลคลินิก",
+      "category": "IoT",
+      "rounds": [
+        "1",
+        "2",
+        "3"
+      ],
+      "capacity": 2,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 03",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ระบบจัดการข้อมูลคลินิก เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S055",
+          "round": "1"
+        },
+        {
+          "studentId": "S056",
+          "round": "1"
+        },
+        {
+          "studentId": "S057",
+          "round": "1"
+        },
+        {
+          "studentId": "S058",
+          "round": "1"
+        },
+        {
+          "studentId": "S059",
+          "round": "1"
+        },
+        {
+          "studentId": "S060",
+          "round": "1"
+        },
+        {
+          "studentId": "S061",
+          "round": "1"
+        },
+        {
+          "studentId": "S062",
+          "round": "1"
+        },
+        {
+          "studentId": "S063",
+          "round": "1"
+        },
+        {
+          "studentId": "S055",
+          "round": "2"
+        },
+        {
+          "studentId": "S056",
+          "round": "2"
+        },
+        {
+          "studentId": "S057",
+          "round": "2"
+        },
+        {
+          "studentId": "S058",
+          "round": "2"
+        },
+        {
+          "studentId": "S059",
+          "round": "2"
+        },
+        {
+          "studentId": "S060",
+          "round": "2"
+        },
+        {
+          "studentId": "S061",
+          "round": "2"
+        },
+        {
+          "studentId": "S062",
+          "round": "2"
+        },
+        {
+          "studentId": "S063",
+          "round": "2"
+        },
+        {
+          "studentId": "S055",
+          "round": "3"
+        },
+        {
+          "studentId": "S056",
+          "round": "3"
+        },
+        {
+          "studentId": "S057",
+          "round": "3"
+        },
+        {
+          "studentId": "S058",
+          "round": "3"
+        },
+        {
+          "studentId": "S059",
+          "round": "3"
+        },
+        {
+          "studentId": "S060",
+          "round": "3"
+        },
+        {
+          "studentId": "S061",
+          "round": "3"
+        },
+        {
+          "studentId": "S062",
+          "round": "3"
+        },
+        {
+          "studentId": "S063",
+          "round": "3"
+        },
+        {
+          "studentId": "S055",
+          "round": "1"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-019-R1-t19",
+          "teamId": "t19",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-019-R1-t20",
+          "teamId": "t20",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-019-R1-t21",
+          "teamId": "t21",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-019-R2-t19",
+          "teamId": "t19",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-019-R2-t20",
+          "teamId": "t20",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-019-R2-t21",
+          "teamId": "t21",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-019-R3-t19",
+          "teamId": "t19",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-019-R3-t20",
+          "teamId": "t20",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-019-R3-t21",
+          "teamId": "t21",
+          "round": "3",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "1",
+          "applicationIds": [
+            "CAP-019-R1-t19",
+            "CAP-019-R1-t20"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        },
+        {
+          "round": "2",
+          "applicationIds": [
+            "CAP-019-R2-t19",
+            "CAP-019-R2-t20"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        },
+        {
+          "round": "3",
+          "applicationIds": [
+            "CAP-019-R3-t19",
+            "CAP-019-R3-t20"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [],
+      "notes": [
+        {
+          "id": "n-18",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-020",
+      "year": "2569",
+      "companyId": "co4",
+      "title": "วิเคราะห์คุณภาพการส่งสินค้า",
+      "category": "Platform",
+      "rounds": [
+        "2"
+      ],
+      "capacity": 3,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 04",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: วิเคราะห์คุณภาพการส่งสินค้า เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S058",
+          "round": "2"
+        },
+        {
+          "studentId": "S059",
+          "round": "2"
+        },
+        {
+          "studentId": "S060",
+          "round": "2"
+        },
+        {
+          "studentId": "S061",
+          "round": "2"
+        },
+        {
+          "studentId": "S062",
+          "round": "2"
+        },
+        {
+          "studentId": "S063",
+          "round": "2"
+        },
+        {
+          "studentId": "S064",
+          "round": "2"
+        },
+        {
+          "studentId": "S065",
+          "round": "2"
+        },
+        {
+          "studentId": "S066",
+          "round": "2"
+        },
+        {
+          "studentId": "S067",
+          "round": "2"
+        },
+        {
+          "studentId": "S068",
+          "round": "2"
+        },
+        {
+          "studentId": "S069",
+          "round": "2"
+        },
+        {
+          "studentId": "S058",
+          "round": "2"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-020-R2-t20",
+          "teamId": "t20",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-020-R2-t21",
+          "teamId": "t21",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-020-R2-t22",
+          "teamId": "t22",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-020-R2-t23",
+          "teamId": "t23",
+          "round": "2",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "2",
+          "applicationIds": [
+            "CAP-020-R2-t20",
+            "CAP-020-R2-t21"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-020-assignment",
+          "teamId": "t20",
+          "professorIds": [
+            "p2"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 20",
+          "phase": "development"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-19",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-19",
+          "teamId": "t20",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-021",
+      "year": "2569",
+      "companyId": "co5",
+      "title": "ระบบจัดการตารางที่ปรึกษา",
+      "category": "Software",
+      "rounds": [
+        "3"
+      ],
+      "capacity": 2,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 05",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ระบบจัดการตารางที่ปรึกษา เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S061",
+          "round": "3"
+        },
+        {
+          "studentId": "S062",
+          "round": "3"
+        },
+        {
+          "studentId": "S063",
+          "round": "3"
+        },
+        {
+          "studentId": "S064",
+          "round": "3"
+        },
+        {
+          "studentId": "S065",
+          "round": "3"
+        },
+        {
+          "studentId": "S066",
+          "round": "3"
+        },
+        {
+          "studentId": "S067",
+          "round": "3"
+        },
+        {
+          "studentId": "S068",
+          "round": "3"
+        },
+        {
+          "studentId": "S069",
+          "round": "3"
+        },
+        {
+          "studentId": "S061",
+          "round": "3"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-021-R3-t21",
+          "teamId": "t21",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-021-R3-t22",
+          "teamId": "t22",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-021-R3-t23",
+          "teamId": "t23",
+          "round": "3",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "3",
+          "applicationIds": [
+            "CAP-021-R3-t23",
+            "CAP-021-R3-t22",
+            "CAP-021-R3-t21"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-021-assignment",
+          "teamId": "t21",
+          "professorIds": [
+            "p3"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 21",
+          "phase": "testing"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-20",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-20",
+          "teamId": "t21",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-022",
+      "year": "2569",
+      "companyId": "co6",
+      "title": "ประเมินประสิทธิภาพพลังงาน",
+      "category": "AI / Data",
+      "rounds": [
+        "1",
+        "2",
+        "3"
+      ],
+      "capacity": 3,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 06",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ประเมินประสิทธิภาพพลังงาน เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S064",
+          "round": "1"
+        },
+        {
+          "studentId": "S065",
+          "round": "1"
+        },
+        {
+          "studentId": "S066",
+          "round": "1"
+        },
+        {
+          "studentId": "S067",
+          "round": "1"
+        },
+        {
+          "studentId": "S068",
+          "round": "1"
+        },
+        {
+          "studentId": "S069",
+          "round": "1"
+        },
+        {
+          "studentId": "S070",
+          "round": "1"
+        },
+        {
+          "studentId": "S071",
+          "round": "1"
+        },
+        {
+          "studentId": "S072",
+          "round": "1"
+        },
+        {
+          "studentId": "S073",
+          "round": "1"
+        },
+        {
+          "studentId": "S074",
+          "round": "1"
+        },
+        {
+          "studentId": "S075",
+          "round": "1"
+        },
+        {
+          "studentId": "S064",
+          "round": "2"
+        },
+        {
+          "studentId": "S065",
+          "round": "2"
+        },
+        {
+          "studentId": "S066",
+          "round": "2"
+        },
+        {
+          "studentId": "S067",
+          "round": "2"
+        },
+        {
+          "studentId": "S068",
+          "round": "2"
+        },
+        {
+          "studentId": "S069",
+          "round": "2"
+        },
+        {
+          "studentId": "S070",
+          "round": "2"
+        },
+        {
+          "studentId": "S071",
+          "round": "2"
+        },
+        {
+          "studentId": "S072",
+          "round": "2"
+        },
+        {
+          "studentId": "S073",
+          "round": "2"
+        },
+        {
+          "studentId": "S074",
+          "round": "2"
+        },
+        {
+          "studentId": "S075",
+          "round": "2"
+        },
+        {
+          "studentId": "S064",
+          "round": "3"
+        },
+        {
+          "studentId": "S065",
+          "round": "3"
+        },
+        {
+          "studentId": "S066",
+          "round": "3"
+        },
+        {
+          "studentId": "S067",
+          "round": "3"
+        },
+        {
+          "studentId": "S068",
+          "round": "3"
+        },
+        {
+          "studentId": "S069",
+          "round": "3"
+        },
+        {
+          "studentId": "S070",
+          "round": "3"
+        },
+        {
+          "studentId": "S071",
+          "round": "3"
+        },
+        {
+          "studentId": "S072",
+          "round": "3"
+        },
+        {
+          "studentId": "S073",
+          "round": "3"
+        },
+        {
+          "studentId": "S074",
+          "round": "3"
+        },
+        {
+          "studentId": "S075",
+          "round": "3"
+        },
+        {
+          "studentId": "S064",
+          "round": "1"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-022-R1-t22",
+          "teamId": "t22",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-022-R1-t23",
+          "teamId": "t23",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-022-R1-t24",
+          "teamId": "t24",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-022-R1-t25",
+          "teamId": "t25",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-022-R2-t22",
+          "teamId": "t22",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-022-R2-t23",
+          "teamId": "t23",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-022-R2-t24",
+          "teamId": "t24",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-022-R2-t25",
+          "teamId": "t25",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-022-R3-t22",
+          "teamId": "t22",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-022-R3-t23",
+          "teamId": "t23",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-022-R3-t24",
+          "teamId": "t24",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-022-R3-t25",
+          "teamId": "t25",
+          "round": "3",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "1",
+          "applicationIds": [
+            "CAP-022-R1-t22",
+            "CAP-022-R1-t23"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        },
+        {
+          "round": "2",
+          "applicationIds": [
+            "CAP-022-R2-t22",
+            "CAP-022-R2-t23"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        },
+        {
+          "round": "3",
+          "applicationIds": [
+            "CAP-022-R3-t22",
+            "CAP-022-R3-t23"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-022-assignment",
+          "teamId": "t22",
+          "professorIds": [
+            "p4"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 22",
+          "phase": "proposal"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-21",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-21",
+          "teamId": "t22",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-023",
+      "year": "2569",
+      "companyId": null,
+      "title": "ระบบติดตามความเสี่ยงงานเอกสาร",
+      "category": "IoT",
+      "rounds": [
+        "2"
+      ],
+      "capacity": 2,
+      "status": "open",
+      "coordinator": "ผู้ประสานงานจำลอง 07",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ระบบติดตามความเสี่ยงงานเอกสาร เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S067",
+          "round": "2"
+        },
+        {
+          "studentId": "S068",
+          "round": "2"
+        },
+        {
+          "studentId": "S069",
+          "round": "2"
+        },
+        {
+          "studentId": "S070",
+          "round": "2"
+        },
+        {
+          "studentId": "S071",
+          "round": "2"
+        },
+        {
+          "studentId": "S072",
+          "round": "2"
+        },
+        {
+          "studentId": "S073",
+          "round": "2"
+        },
+        {
+          "studentId": "S074",
+          "round": "2"
+        },
+        {
+          "studentId": "S075",
+          "round": "2"
+        },
+        {
+          "studentId": "S067",
+          "round": "2"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-023-R2-t23",
+          "teamId": "t23",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-023-R2-t24",
+          "teamId": "t24",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-023-R2-t25",
+          "teamId": "t25",
+          "round": "2",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "2",
+          "applicationIds": [],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [],
+      "notes": [
+        {
+          "id": "n-22",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-024",
+      "year": "2569",
+      "companyId": "co8",
+      "title": "จัดการคำสั่งซื้อหลายช่องทาง",
+      "category": "Platform",
+      "rounds": [
+        "3"
+      ],
+      "capacity": 3,
+      "status": "withdrawn",
+      "coordinator": "ผู้ประสานงานจำลอง 08",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: จัดการคำสั่งซื้อหลายช่องทาง เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S070",
+          "round": "3"
+        },
+        {
+          "studentId": "S071",
+          "round": "3"
+        },
+        {
+          "studentId": "S072",
+          "round": "3"
+        },
+        {
+          "studentId": "S073",
+          "round": "3"
+        },
+        {
+          "studentId": "S074",
+          "round": "3"
+        },
+        {
+          "studentId": "S075",
+          "round": "3"
+        },
+        {
+          "studentId": "S076",
+          "round": "3"
+        },
+        {
+          "studentId": "S077",
+          "round": "3"
+        },
+        {
+          "studentId": "S078",
+          "round": "3"
+        },
+        {
+          "studentId": "S079",
+          "round": "3"
+        },
+        {
+          "studentId": "S080",
+          "round": "3"
+        },
+        {
+          "studentId": "S081",
+          "round": "3"
+        },
+        {
+          "studentId": "S070",
+          "round": "3"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-024-R3-t24",
+          "teamId": "t24",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-024-R3-t25",
+          "teamId": "t25",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-024-R3-t26",
+          "teamId": "t26",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-024-R3-t27",
+          "teamId": "t27",
+          "round": "3",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "3",
+          "applicationIds": [
+            "CAP-024-R3-t24",
+            "CAP-024-R3-t25"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-024-assignment",
+          "teamId": "t24",
+          "professorIds": [
+            "p6"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 24",
+          "phase": "testing"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-23",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-23",
+          "teamId": "t24",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "1"
+    },
+    {
+      "id": "CAP-025",
+      "year": "2568",
+      "companyId": "co1",
+      "title": "ระบบจองอุปกรณ์วิจัย",
+      "category": "Software",
+      "rounds": [
+        "1",
+        "2",
+        "3"
+      ],
+      "capacity": 2,
+      "status": "closed",
+      "coordinator": "ผู้ประสานงานจำลอง 01",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ระบบจองอุปกรณ์วิจัย เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S073",
+          "round": "1"
+        },
+        {
+          "studentId": "S074",
+          "round": "1"
+        },
+        {
+          "studentId": "S075",
+          "round": "1"
+        },
+        {
+          "studentId": "S076",
+          "round": "1"
+        },
+        {
+          "studentId": "S077",
+          "round": "1"
+        },
+        {
+          "studentId": "S078",
+          "round": "1"
+        },
+        {
+          "studentId": "S079",
+          "round": "1"
+        },
+        {
+          "studentId": "S080",
+          "round": "1"
+        },
+        {
+          "studentId": "S081",
+          "round": "1"
+        },
+        {
+          "studentId": "S073",
+          "round": "2"
+        },
+        {
+          "studentId": "S074",
+          "round": "2"
+        },
+        {
+          "studentId": "S075",
+          "round": "2"
+        },
+        {
+          "studentId": "S076",
+          "round": "2"
+        },
+        {
+          "studentId": "S077",
+          "round": "2"
+        },
+        {
+          "studentId": "S078",
+          "round": "2"
+        },
+        {
+          "studentId": "S079",
+          "round": "2"
+        },
+        {
+          "studentId": "S080",
+          "round": "2"
+        },
+        {
+          "studentId": "S081",
+          "round": "2"
+        },
+        {
+          "studentId": "S073",
+          "round": "3"
+        },
+        {
+          "studentId": "S074",
+          "round": "3"
+        },
+        {
+          "studentId": "S075",
+          "round": "3"
+        },
+        {
+          "studentId": "S076",
+          "round": "3"
+        },
+        {
+          "studentId": "S077",
+          "round": "3"
+        },
+        {
+          "studentId": "S078",
+          "round": "3"
+        },
+        {
+          "studentId": "S079",
+          "round": "3"
+        },
+        {
+          "studentId": "S080",
+          "round": "3"
+        },
+        {
+          "studentId": "S081",
+          "round": "3"
+        },
+        {
+          "studentId": "S073",
+          "round": "1"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-025-R1-t25",
+          "teamId": "t25",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-025-R1-t26",
+          "teamId": "t26",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-025-R1-t27",
+          "teamId": "t27",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-025-R2-t25",
+          "teamId": "t25",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-025-R2-t26",
+          "teamId": "t26",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-025-R2-t27",
+          "teamId": "t27",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-025-R3-t25",
+          "teamId": "t25",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-025-R3-t26",
+          "teamId": "t26",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-025-R3-t27",
+          "teamId": "t27",
+          "round": "3",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "1",
+          "applicationIds": [
+            "CAP-025-R1-t27",
+            "CAP-025-R1-t26",
+            "CAP-025-R1-t25"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        },
+        {
+          "round": "2",
+          "applicationIds": [
+            "CAP-025-R2-t27",
+            "CAP-025-R2-t26",
+            "CAP-025-R2-t25"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        },
+        {
+          "round": "3",
+          "applicationIds": [
+            "CAP-025-R3-t27",
+            "CAP-025-R3-t26",
+            "CAP-025-R3-t25"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-025-assignment",
+          "teamId": "t25",
+          "professorIds": [
+            "p1"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 25",
+          "phase": "completed"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-24",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-24",
+          "teamId": "t25",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "2"
+    },
+    {
+      "id": "CAP-026",
+      "year": "2568",
+      "companyId": "co2",
+      "title": "ระบบค้นคืนเอกสารย้อนหลัง",
+      "category": "AI / Data",
+      "rounds": [
+        "2"
+      ],
+      "capacity": 3,
+      "status": "closed",
+      "coordinator": "ผู้ประสานงานจำลอง 02",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ระบบค้นคืนเอกสารย้อนหลัง เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S076",
+          "round": "2"
+        },
+        {
+          "studentId": "S077",
+          "round": "2"
+        },
+        {
+          "studentId": "S078",
+          "round": "2"
+        },
+        {
+          "studentId": "S079",
+          "round": "2"
+        },
+        {
+          "studentId": "S080",
+          "round": "2"
+        },
+        {
+          "studentId": "S081",
+          "round": "2"
+        },
+        {
+          "studentId": "S082",
+          "round": "2"
+        },
+        {
+          "studentId": "S083",
+          "round": "2"
+        },
+        {
+          "studentId": "S084",
+          "round": "2"
+        },
+        {
+          "studentId": "S085",
+          "round": "2"
+        },
+        {
+          "studentId": "S086",
+          "round": "2"
+        },
+        {
+          "studentId": "S087",
+          "round": "2"
+        },
+        {
+          "studentId": "S076",
+          "round": "2"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-026-R2-t26",
+          "teamId": "t26",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-026-R2-t27",
+          "teamId": "t27",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-026-R2-t28",
+          "teamId": "t28",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-026-R2-t29",
+          "teamId": "t29",
+          "round": "2",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "2",
+          "applicationIds": [
+            "CAP-026-R2-t26",
+            "CAP-026-R2-t27"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-026-assignment",
+          "teamId": "t26",
+          "professorIds": [
+            "p2"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 26",
+          "phase": "completed"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-25",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-25",
+          "teamId": "t26",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "2"
+    },
+    {
+      "id": "CAP-027",
+      "year": "2568",
+      "companyId": "co3",
+      "title": "ติดตามการจัดส่งตัวอย่าง",
+      "category": "IoT",
+      "rounds": [
+        "3"
+      ],
+      "capacity": 2,
+      "status": "closed",
+      "coordinator": "ผู้ประสานงานจำลอง 03",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: ติดตามการจัดส่งตัวอย่าง เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S079",
+          "round": "3"
+        },
+        {
+          "studentId": "S080",
+          "round": "3"
+        },
+        {
+          "studentId": "S081",
+          "round": "3"
+        },
+        {
+          "studentId": "S082",
+          "round": "3"
+        },
+        {
+          "studentId": "S083",
+          "round": "3"
+        },
+        {
+          "studentId": "S084",
+          "round": "3"
+        },
+        {
+          "studentId": "S085",
+          "round": "3"
+        },
+        {
+          "studentId": "S086",
+          "round": "3"
+        },
+        {
+          "studentId": "S087",
+          "round": "3"
+        },
+        {
+          "studentId": "S079",
+          "round": "3"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-027-R3-t27",
+          "teamId": "t27",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-027-R3-t28",
+          "teamId": "t28",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-027-R3-t29",
+          "teamId": "t29",
+          "round": "3",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "3",
+          "applicationIds": [
+            "CAP-027-R3-t27",
+            "CAP-027-R3-t28"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [],
+      "notes": [
+        {
+          "id": "n-26",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "2"
+    },
+    {
+      "id": "CAP-028",
+      "year": "2568",
+      "companyId": "co4",
+      "title": "วิเคราะห์กิจกรรมการเรียน",
+      "category": "Platform",
+      "rounds": [
+        "1",
+        "2",
+        "3"
+      ],
+      "capacity": 3,
+      "status": "closed",
+      "coordinator": "ผู้ประสานงานจำลอง 04",
+      "contactRole": "ผู้ประสานงาน Capstone",
+      "description": "โครงการตัวอย่าง: วิเคราะห์กิจกรรมการเรียน เพื่อทดลองการติดตามผู้สมัคร ความร่วมมือ และความคืบหน้าของทีม",
+      "scope": "เก็บความต้องการ ออกแบบระบบ และพัฒนาต้นแบบสำหรับทดลองกับผู้ใช้งาน",
+      "deliverables": "ต้นแบบที่ใช้งานได้ รายงานผลทดสอบ และคู่มือ",
+      "support": "ข้อมูลตัวอย่างและการให้คำปรึกษาจากพี่เลี้ยง",
+      "issue": "",
+      "interestKnown": true,
+      "applicationsKnown": true,
+      "selections": [
+        {
+          "studentId": "S082",
+          "round": "1"
+        },
+        {
+          "studentId": "S083",
+          "round": "1"
+        },
+        {
+          "studentId": "S084",
+          "round": "1"
+        },
+        {
+          "studentId": "S085",
+          "round": "1"
+        },
+        {
+          "studentId": "S086",
+          "round": "1"
+        },
+        {
+          "studentId": "S087",
+          "round": "1"
+        },
+        {
+          "studentId": "S088",
+          "round": "1"
+        },
+        {
+          "studentId": "S089",
+          "round": "1"
+        },
+        {
+          "studentId": "S090",
+          "round": "1"
+        },
+        {
+          "studentId": "S091",
+          "round": "1"
+        },
+        {
+          "studentId": "S092",
+          "round": "1"
+        },
+        {
+          "studentId": "S093",
+          "round": "1"
+        },
+        {
+          "studentId": "S082",
+          "round": "2"
+        },
+        {
+          "studentId": "S083",
+          "round": "2"
+        },
+        {
+          "studentId": "S084",
+          "round": "2"
+        },
+        {
+          "studentId": "S085",
+          "round": "2"
+        },
+        {
+          "studentId": "S086",
+          "round": "2"
+        },
+        {
+          "studentId": "S087",
+          "round": "2"
+        },
+        {
+          "studentId": "S088",
+          "round": "2"
+        },
+        {
+          "studentId": "S089",
+          "round": "2"
+        },
+        {
+          "studentId": "S090",
+          "round": "2"
+        },
+        {
+          "studentId": "S091",
+          "round": "2"
+        },
+        {
+          "studentId": "S092",
+          "round": "2"
+        },
+        {
+          "studentId": "S093",
+          "round": "2"
+        },
+        {
+          "studentId": "S082",
+          "round": "3"
+        },
+        {
+          "studentId": "S083",
+          "round": "3"
+        },
+        {
+          "studentId": "S084",
+          "round": "3"
+        },
+        {
+          "studentId": "S085",
+          "round": "3"
+        },
+        {
+          "studentId": "S086",
+          "round": "3"
+        },
+        {
+          "studentId": "S087",
+          "round": "3"
+        },
+        {
+          "studentId": "S088",
+          "round": "3"
+        },
+        {
+          "studentId": "S089",
+          "round": "3"
+        },
+        {
+          "studentId": "S090",
+          "round": "3"
+        },
+        {
+          "studentId": "S091",
+          "round": "3"
+        },
+        {
+          "studentId": "S092",
+          "round": "3"
+        },
+        {
+          "studentId": "S093",
+          "round": "3"
+        },
+        {
+          "studentId": "S082",
+          "round": "1"
+        }
+      ],
+      "applications": [
+        {
+          "id": "CAP-028-R1-t28",
+          "teamId": "t28",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-028-R1-t29",
+          "teamId": "t29",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-028-R1-t30",
+          "teamId": "t30",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-028-R1-t31",
+          "teamId": "t31",
+          "round": "1",
+          "status": "active"
+        },
+        {
+          "id": "CAP-028-R2-t28",
+          "teamId": "t28",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-028-R2-t29",
+          "teamId": "t29",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-028-R2-t30",
+          "teamId": "t30",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-028-R2-t31",
+          "teamId": "t31",
+          "round": "2",
+          "status": "active"
+        },
+        {
+          "id": "CAP-028-R3-t28",
+          "teamId": "t28",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-028-R3-t29",
+          "teamId": "t29",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-028-R3-t30",
+          "teamId": "t30",
+          "round": "3",
+          "status": "active"
+        },
+        {
+          "id": "CAP-028-R3-t31",
+          "teamId": "t31",
+          "round": "3",
+          "status": "active"
+        }
+      ],
+      "rankings": [
+        {
+          "round": "1",
+          "applicationIds": [
+            "CAP-028-R1-t28",
+            "CAP-028-R1-t29"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        },
+        {
+          "round": "2",
+          "applicationIds": [
+            "CAP-028-R2-t28",
+            "CAP-028-R2-t29"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        },
+        {
+          "round": "3",
+          "applicationIds": [
+            "CAP-028-R3-t28",
+            "CAP-028-R3-t29"
+          ],
+          "note": "ลำดับที่บริษัทจัดไว้ในข้อมูลตัวอย่าง",
+          "updatedAt": "2026-09-07T10:00:00.000Z",
+          "recordedBy": "ผู้ประสานงานจำลอง"
+        }
+      ],
+      "assignments": [
+        {
+          "id": "CAP-028-assignment",
+          "teamId": "t28",
+          "professorIds": [
+            "p4"
+          ],
+          "mentor": "พี่เลี้ยงจำลอง 28",
+          "phase": "completed"
+        }
+      ],
+      "notes": [
+        {
+          "id": "n-27",
+          "type": "บันทึก",
+          "basis": "ข้อเท็จจริง",
+          "text": "ข้อมูลจำลองสำหรับทดลองหน้าจอ ไม่ใช่ข้อมูลบริษัทหรือนิสิตจริง",
+          "author": "ผู้จัดทำข้อมูลตัวอย่าง",
+          "at": "2026-09-07T10:00:00.000Z"
+        }
+      ],
+      "history": [],
+      "milestones": [
+        {
+          "id": "m-27",
+          "teamId": "t28",
+          "title": "ทบทวน Proposal กับที่ปรึกษา",
+          "due": "2026-09-14",
+          "status": "นัดหมายแล้ว"
+        }
+      ],
+      "links": [
+        {
+          "label": "คำอธิบายข้อมูล Demo",
+          "url": "/capstone"
+        }
+      ],
+      "term": "2"
+    }
+  ]
+}
