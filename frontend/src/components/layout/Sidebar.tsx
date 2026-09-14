@@ -137,12 +137,24 @@ export function Sidebar({
         })}
         <Link href="/dashboard" aria-current={active === "dashboard" ? "page" : undefined}
           className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition", active === "dashboard" ? "bg-accent-soft text-text shadow-[inset_0_0_0_1px_var(--color-accent-line)]" : "text-text-2 hover:bg-surface-2 hover:text-text")}>
-          <Icon name="layers" className="size-[18px] text-accent" />
+          <Icon
+            name="layers"
+            className={cn(
+              "size-[18px] shrink-0",
+              active === "dashboard" ? "text-accent" : "text-text-3",
+            )}
+          />
           Dashboard
         </Link>
         <Link href="/elective-plan" aria-current={active === "planner" ? "page" : undefined}
           className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition", active === "planner" ? "bg-accent-soft text-text shadow-[inset_0_0_0_1px_var(--color-accent-line)]" : "text-text-2 hover:bg-surface-2 hover:text-text")}>
-          <Icon name="layers" className="size-[18px] text-accent" />
+          <Icon
+            name="layers"
+            className={cn(
+              "size-[18px] shrink-0",
+              active === "planner" ? "text-accent" : "text-text-3",
+            )}
+          />
           จัดตารางวิชาเลือก
         </Link>
       </nav>
