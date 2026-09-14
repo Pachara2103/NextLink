@@ -68,6 +68,19 @@ export const DELIVERY_LABELS: Record<DeliveryMode, string> = {
   ONLINE: "ออนไลน์ (ไม่ใช้ห้อง)",
 };
 
+export const COURSE_CATEGORIES = [
+  "วิศวกรรมซอฟต์แวร์",
+  "ปัญญาประดิษฐ์และข้อมูล",
+  "ความมั่นคงปลอดภัยไซเบอร์",
+  "การวิเคราะห์ข้อมูล",
+  "คลาวด์และ DevOps",
+  "ผลิตภัณฑ์และ UX",
+  "ธุรกิจและการจัดการ",
+  "ระบบฝังตัวและ IoT",
+] as const;
+
+export type CourseCategory = (typeof COURSE_CATEGORIES)[number];
+
 /** The week has 18 periods, so nothing can meet more often than that. */
 const MAX_SESSIONS = 18;
 const MAX_SECTION = 99;

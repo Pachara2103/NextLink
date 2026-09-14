@@ -14,8 +14,12 @@ import { BLOCKER_LABELS } from "@/features/elective-plan/lib/blocker-labels.ts";
 import { formatNumber } from "@/features/elective-plan/lib/format";
 import { planMetrics } from "@/features/elective-plan/lib/plan-metrics.ts";
 import { slotLabel } from "@/features/elective-plan/lib/slots.ts";
-import type { PlanCourse, PlanPayload, Suggestion } from "@/features/elective-plan/lib/plan-types.ts";
+import type { PlanCourse, Suggestion } from "@/features/elective-plan/lib/plan-types.ts";
 import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
+
+import { TermDialog } from "@/features/elective-plan/components/term-dialog";
+import { electiveService } from "@/lib/services/elective";
+import type { ElectiveTermCreate } from "@/types";
 
 /** Short enough that the board is still on screen under the list. */
 const FOLLOW_UP_PAGE_SIZE = 5;
@@ -31,6 +35,7 @@ export function PlanOverview() {
   /** The room form and the booking form, both opened from the board below. */
   const [roomForm, setRoomForm] = useState<RoomFormTarget | null>(null);
   const [booking, setBooking] = useState<BookingTarget | null>(null);
+  const [isTermDialogOpen, setIsTermDialogOpen] = useState(false);
   const boardRef = useRef<HTMLElement>(null);
   /** Where the board sat when a replan started, so it can be put back. */
   const anchorRef = useRef<number | null>(null);
@@ -112,6 +117,16 @@ export function PlanOverview() {
         : `จัดตารางครบทั้ง ${formatNumber(result.assignments.length)} คาบแล้ว`,
       plan.undo,
     );
+  };
+
+  const handleCreateTerm = async (newTermPayload: ElectiveTermCreate) => {
+    if (plan.mode === "api") {
+      await electiveService.createTerm(newTermPayload);
+      show(`เปิดเทอม ${newTermPayload.semester}/${newTermPayload.year} เรียบร้อยแล้ว`);
+      plan.reload();
+    } else {
+      show("การจัดการเทอมพร้อมใช้งานเมื่อเชื่อมต่อฐานข้อมูล");
+    }
   };
 
   return (
@@ -275,6 +290,28 @@ export function PlanOverview() {
         />
       </section>
 
+      <section className="panel term-lifecycle-panel">
+        <div className="term-lifecycle-content">
+          <div className="term-lifecycle-info">
+            <p className="section-kicker">สิ้นสุดภาคการศึกษา</p>
+            <h3>จบเทอมปัจจุบันและเปิดเทอมใหม่</h3>
+            <p>
+              เมื่อวางแผนและดำเนินการสอนของ <strong>{payload.term.label}</strong> เสร็จสิ้นแล้ว
+              สามารถปิดเทอมนี้เพื่อจัดเก็บเป็นประวัติ (Archived) และเริ่มต้นรอบการวางแผนสำหรับเทอมถัดไป
+            </p>
+          </div>
+          <div className="term-lifecycle-actions">
+            <button
+              className="danger-button"
+              type="button"
+              onClick={() => setIsTermDialogOpen(true)}
+            >
+              จบเทอมปัจจุบันและเปิดเทอมใหม่…
+            </button>
+          </div>
+        </div>
+      </section>
+
       <RoomDialog
         target={roomForm}
         rooms={plan.rooms}
@@ -320,6 +357,13 @@ export function PlanOverview() {
           setBooking(null);
         }}
         onClose={() => setBooking(null)}
+      />
+
+      <TermDialog
+        isOpen={isTermDialogOpen}
+        currentTermLabel={payload.term.label}
+        onConfirm={handleCreateTerm}
+        onClose={() => setIsTermDialogOpen(false)}
       />
 
       <StatusToast toast={toast} onDismiss={dismiss} onHold={holdTimer} onResume={resumeTimer} />

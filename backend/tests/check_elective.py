@@ -522,6 +522,60 @@ def _archived_is_read_only():
 
 check("เทอมที่ปิดแล้วอ่านได้แต่เขียนไม่ได้ ทุกทางเข้า", _archived_is_read_only)
 
+print("ทางเข้าฝั่ง HTTP")
+
+
+def _client():
+    """เรียกผ่าน router จริง ไม่ใช่เรียก service ตรง ๆ
+
+    ชั้นนี้มีของที่ service มองไม่เห็น: ชื่อ query parameter ที่วิ่งบนสาย
+    """
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from api.deps import current_user
+    from api.v1 import elective
+    from schemas.user import AuthUser
+
+    app = FastAPI()
+    app.include_router(elective.router, prefix="/api/v1")
+    app.dependency_overrides[current_user] = lambda: AuthUser(id=str(USER_ID), username="tester")
+    return TestClient(app)
+
+
+def _term_id_query_reaches_the_right_term():
+    reset()
+    first = svc.create_term(ElectiveTermCreate(year=2569, semester=1))
+    second = svc.create_term(ElectiveTermCreate(year=2569, semester=2))
+    assert svc.get_current_term().id == second.id
+
+    client = _client()
+
+    # ไม่ส่ง = เทอมที่กำลังจัด
+    assert client.get("/api/v1/electives/plan").json()["term"]["id"] == second.id
+
+    # ส่งมาเป็น camelCase อย่างที่หน้าเว็บส่ง - ชื่อเดียวกับทุกฟิลด์ใน body
+    #
+    # FastAPI ไม่ฟ้อง query ที่ไม่รู้จัก ถ้า alias หลุด term_id จะเป็น None
+    # เงียบ ๆ แล้ว /plan ตอบ "เทอมที่กำลังจัด" ทุกครั้งที่ถูกถามถึงเทอมเก่า
+    # หน้ารายวิชาจึงเอาวิชาของเทอมปัจจุบันไปแสดงใต้ชื่อเทอมที่ปิดไปแล้ว
+    body = client.get(f"/api/v1/electives/plan?termId={first.id}").json()
+    assert body["term"]["id"] == first.id, body["term"]
+    assert body["term"]["status"] == "archived"
+
+    assert client.get(f"/api/v1/electives?termId={first.id}").status_code == 200
+
+    # ห้องที่ปิดใช้งานต้องขอเห็นได้ด้วยชื่อแบบเดียวกัน
+    room = svc.create_room(ElectiveRoomWrite(
+        name="ปิดไว้", building="ทดสอบ", floor="1", seats=10, is_active=False,
+    ))
+    assert not any(item.id == room.id for item in svc.list_rooms().items)
+    seen = client.get("/api/v1/electives/rooms?includeInactive=true").json()["items"]
+    assert any(item["id"] == room.id for item in seen), "includeInactive ไม่ถูกอ่าน"
+
+
+check("query parameter เป็น camelCase เหมือนทุกฟิลด์ที่วิ่งบนสาย", _term_id_query_reaches_the_right_term)
+
+
 print("สคริปต์ตั้งค่าเริ่มต้น")
 
 SEED_SQL = pathlib.Path(__file__).resolve().parent.parent / "migrations" / "elective_seed.sql"

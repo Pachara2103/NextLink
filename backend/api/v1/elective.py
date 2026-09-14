@@ -52,6 +52,20 @@ from services.elective import (
 
 router = APIRouter(prefix="/electives", tags=["elective"])
 
+# --------------------------------------------------------------------------- #
+# ชื่อ query parameter เป็น camelCase เหมือนทุกฟิลด์ใน body และ response
+#
+# ตัวอื่นในไฟล์นี้แปลงให้เองด้วย ApiBaseModel (alias_generator=to_camel) แต่
+# query parameter เป็นอาร์กิวเมนต์ของฟังก์ชัน FastAPI จึงใช้ชื่อ python ตรง ๆ
+# ถ้าไม่ตั้ง alias
+#
+# ต้องตั้ง เพราะ FastAPI **ไม่ฟ้อง** query ที่ไม่รู้จัก: หน้าเว็บส่ง ?termId=1
+# มา แล้ว term_id เป็น None เงียบ ๆ /plan จึงตอบ "เทอมที่กำลังจัด" กลับไปทุก
+# ครั้งที่ถูกถามถึงเทอมที่ปิดไปแล้ว - หน้ารายวิชาเอาข้อมูลเทอมปัจจุบันไปแสดง
+# ใต้ชื่อเทอมเก่าโดยไม่มีอะไรพัง
+# --------------------------------------------------------------------------- #
+TermIdQuery = Query(None, alias="termId", description="ไม่ส่ง = เทอมที่กำลังจัดอยู่")
+
 
 # --------------------------------------------------------------------------- #
 # ทั้งหน้าในครั้งเดียว
@@ -59,7 +73,7 @@ router = APIRouter(prefix="/electives", tags=["elective"])
 
 @router.get("/plan", response_model=ElectivePlan)
 def get_plan_api(
-    term_id: int | None = Query(None, description="ไม่ส่ง = เทอมที่กำลังจัดอยู่"),
+    term_id: int | None = TermIdQuery,
     user: AuthUser = Depends(current_user),
 ):
     return get_plan(term_id)
@@ -96,7 +110,7 @@ def archive_term_api(id: int, user: AuthUser = Depends(current_user)):
 
 @router.get("/rooms", response_model=ListResponse[ElectiveRoom])
 def list_rooms_api(
-    include_inactive: bool = Query(False),
+    include_inactive: bool = Query(False, alias="includeInactive"),
     user: AuthUser = Depends(current_user),
 ):
     return list_rooms(include_inactive)
@@ -153,7 +167,7 @@ def delete_session_api(id: int, user: AuthUser = Depends(current_user)):
 @router.put("/sessions", response_model=ListResponse[ElectiveSession])
 def replace_sessions_api(
     payload: list[ElectiveSessionWrite],
-    term_id: int | None = Query(None),
+    term_id: int | None = TermIdQuery,
     user: AuthUser = Depends(current_user),
 ):
     """ผลของปุ่ม "จัดตารางใหม่" - คาบที่ล็อกไว้ไม่ถูกแตะ"""
@@ -166,7 +180,7 @@ def replace_sessions_api(
 
 @router.get("", response_model=ListResponse[Elective])
 def list_electives_api(
-    term_id: int | None = Query(None),
+    term_id: int | None = TermIdQuery,
     user: AuthUser = Depends(current_user),
 ):
     return list_electives(term_id)

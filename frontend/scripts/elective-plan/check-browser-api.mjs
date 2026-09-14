@@ -41,6 +41,8 @@ const check = async (name, fn) => { await fn(); results.push(name); console.log(
 /* ---- the fixture plan ------------------------------------------------ */
 
 const TERM = { id: 7, year: 2569, semester: 1, status: 'current', createdAt: '2026-05-01T03:00:00Z', updatedAt: '2026-05-01T03:00:00Z' };
+/** The term that was closed to open the one above — 1/2569 in the report. */
+const PAST_TERM = { id: 6, year: 2568, semester: 2, status: 'archived', createdAt: null, updatedAt: '2026-01-01T03:00:00Z' };
 const ROOMS = [
   { id: 4, name: '301', building: 'จุฬาพัฒน์ 14', floor: '3', seats: 40, seatsIsEstimated: false, tier: 'ready', isActive: true, blockedSlots: [], createdAt: null, updatedAt: null },
   { id: 5, name: '302', building: 'จุฬาพัฒน์ 14', floor: '3', seats: 60, seatsIsEstimated: false, tier: 'ready', isActive: true, blockedSlots: [], createdAt: null, updatedAt: null },
@@ -71,6 +73,19 @@ const resetPlan = () => {
 };
 resetPlan();
 
+/** What 2/2568 ran, read only when somebody switches to it. */
+const pastPlan = {
+  term: PAST_TERM,
+  rooms: JSON.parse(JSON.stringify(ROOMS)),
+  electives: [{ ...course(30, '2110001', 'วิชาที่เคยเปิด'), termId: PAST_TERM.id }],
+  sessions: [{
+    id: 700, electiveId: 30, termId: PAST_TERM.id, slot: 'MON_AM', roomId: 4,
+    startTime: '09:00:00', endTime: '12:00:00', isLocked: false, source: 'manual',
+    createdAt: null, updatedAt: null,
+  }],
+  checklists: [checklist(30)],
+};
+
 /** Requests the planner made, newest last — what the assertions read. */
 let calls = [];
 /** `{ method, path, status, detail }` — the next matching write is refused. */
@@ -99,7 +114,7 @@ try {
     const path = url.pathname;
     const method = route.request().method();
     const body = method === 'GET' || method === 'DELETE' ? null : route.request().postDataJSON();
-    calls.push({ method, path, body });
+    calls.push({ method, path: path + url.search, body });
 
     if (refuse && refuse.method === method && path.startsWith(refuse.path)) {
       const answer = refuse;
@@ -111,8 +126,15 @@ try {
     if (path === '/api/v1/auth/login') return route.fulfill({ json: { accessToken: 'local-test-only', tokenType: 'bearer', user } });
     if (path === '/api/v1/health') return route.fulfill({ json: { status: 'ok', models: true, ready: true, bootId: 'fixture', startedAt: '2026-09-12T00:00:00Z' } });
     if (path === '/api/v1/companies') return route.fulfill({ json: { items: [{ id: 3, groupId: null, companyTh: 'บริษัททดสอบ', companyEn: null, aliases: [], isLinked: true, createdAt: null, updatedAt: null }] } });
-    if (path === '/api/v1/electives/plan') return route.fulfill({ json: plan });
-    if (path === '/api/v1/electives/terms') return route.fulfill({ json: { items: [TERM] } });
+    if (path === '/api/v1/electives/plan') {
+      // The fixture reads the query the way the backend does — by its
+      // camelCase name. A planner that asks for a closed term and is handed
+      // the current one is exactly the bug this file exists to catch.
+      const asked = url.searchParams.get('termId');
+      if (asked === String(PAST_TERM.id)) return route.fulfill({ json: pastPlan });
+      return route.fulfill({ json: plan });
+    }
+    if (path === '/api/v1/electives/terms') return route.fulfill({ json: { items: [TERM, PAST_TERM] } });
 
     if (path === '/api/v1/electives/sessions' && method === 'POST') {
       const created = {
@@ -122,6 +144,23 @@ try {
       };
       plan.sessions.push(created);
       return route.fulfill({ json: created });
+    }
+    if (path === '/api/v1/electives/sessions' && method === 'PUT') {
+      // "จัดตารางใหม่": the unlocked half is replaced and the whole term's
+      // periods come back with their real ids. Answering `{status: success}`
+      // here — as an earlier version of this fixture did — makes the planner
+      // reconcile to an empty timetable, which is worth getting right because
+      // that is exactly what the real route does not do.
+      plan.sessions = [
+        ...plan.sessions.filter((item) => item.isLocked),
+        ...body.map((item, index) => ({
+          id: (nextSessionId += 1), electiveId: item.electiveId, termId: 7, slot: item.slot,
+          roomId: item.roomId ?? null, startTime: item.startTime ?? '09:00:00',
+          endTime: item.endTime ?? '12:00:00', isLocked: item.isLocked ?? false,
+          source: item.source ?? 'auto', createdAt: null, updatedAt: null,
+        })),
+      ];
+      return route.fulfill({ json: { items: plan.sessions, total: plan.sessions.length } });
     }
     if (path.startsWith('/api/v1/electives/sessions/') && method === 'DELETE') {
       const id = Number(path.split('/').pop());
@@ -175,7 +214,10 @@ try {
   await check('the plan on screen is the one the API answered with, not a bundled file', async () => {
     await go('/courses/list');
     await page.getByText('2110123', { exact: false }).first().waitFor();
-    assert.equal(sent('GET', '/api/v1/electives/plan').length, 1, 'one read, not one per section of the page');
+    // One read for the plan itself — not one per section of the page. The
+    // closed terms behind the switcher are read separately, in the background.
+    const reads = sent('GET', '/api/v1/electives/plan');
+    assert.equal(reads.filter((call) => !call.path.includes('termId')).length, 1, 'one read of the plan');
     // The bundled seed's courses must be nowhere near this page.
     assert.equal(await page.getByText('21105801', { exact: false }).count(), 0);
     assert.ok(await page.getByText('ภาคต้น ปีการศึกษา 2569').count() >= 0);
@@ -190,7 +232,12 @@ try {
     assert.equal(writes.length, 1, 'one transaction for the whole timetable');
     assert.ok(Array.isArray(writes[0].body) && writes[0].body.length > 0);
     assert.ok(writes[0].body.every((item) => typeof item.electiveId === 'number' && typeof item.slot === 'string'));
-    assert.equal(plan.sessions.length, 0, 'the fixture only records what it is told to record');
+    // And what stays on screen is what the server wrote back, ids included —
+    // not the optimistic drawing that was there a moment earlier.
+    await page.waitForFunction(
+      (ids) => [...document.querySelectorAll('.matrix-chip')].length === ids.length,
+      plan.sessions.map((item) => item.id),
+    );
   });
 
   await check('a refused write puts the screen back and says why in the backend\'s words', async () => {
@@ -259,7 +306,7 @@ try {
     await dialog.getByLabel('รหัสวิชา').fill('2110999');
     await dialog.getByLabel('ชื่อวิชา').fill('วิชาที่เพิ่งเพิ่ม');
     await dialog.getByLabel('ผู้สอน', { exact: true }).fill('อาจารย์ใหม่');
-    await dialog.getByLabel('หมวด').fill('เทคโนโลยี');
+    await dialog.getByLabel(/หมวด/).selectOption({ index: 1 });
     await dialog.getByRole('button', { name: 'จันทร์เช้า — ไม่สะดวก', exact: true }).click();
     since();
     await dialog.getByRole('button', { name: 'เพิ่มรายวิชา', exact: true }).click();
@@ -273,6 +320,45 @@ try {
     // The row the server actually wrote replaces the one drawn on spec: its id
     // is the server's, which is what every later request about it will use.
     await page.getByText('2110999', { exact: false }).first().waitFor();
+  });
+
+  await check('a closed term shows its own courses, and offers nothing to add to it', async () => {
+    resetPlan();
+    // 2/2569 is the term being planned and has two courses; 2/2568 is closed
+    // and ran one. Reading either must not show the other's.
+    await go('/courses/list');
+    await page.getByText('2110123', { exact: false }).first().waitFor();
+    await page.getByRole('button', { name: /เพิ่มรายวิชา/ }).waitFor();
+
+    await page.locator('select').first().selectOption('2568-2');
+
+    await page.getByText('2110001', { exact: false }).first().waitFor();
+    assert.equal(await page.getByText('2110123', { exact: false }).count(), 0,
+      'the term being planned must not appear under a closed term\'s name');
+    assert.equal(await page.getByRole('button', { name: /เพิ่มรายวิชา/ }).count(), 0,
+      'there is nothing to add to a term that ended');
+    // ...and the only reason it could show them is that it asked for that term
+    // by name. A request without `termId` is answered with the plan, which is
+    // how a closed term used to end up displaying the current term's courses.
+    assert.ok(
+      sent('GET', '/api/v1/electives/plan').some((call) => call.path.includes(`termId=${PAST_TERM.id}`)),
+      'the closed term is read by id',
+    );
+  });
+
+  await check('switching back to the term being planned brings the add button back', async () => {
+    await page.locator('select').first().selectOption('2569-1');
+    await page.getByText('2110123', { exact: false }).first().waitFor();
+    await page.getByRole('button', { name: /เพิ่มรายวิชา/ }).waitFor();
+    assert.equal(await page.getByText('2110001', { exact: false }).count(), 0);
+  });
+
+  await check('a link straight to a closed term opens on that term, not on the plan', async () => {
+    await page.goto(base + '/elective-plan/courses/list?term=2568-2');
+    await page.getByRole('region', { name: 'การบันทึกแผน', exact: true }).waitFor();
+    await page.getByText('2110001', { exact: false }).first().waitFor();
+    assert.equal(await page.getByRole('button', { name: /เพิ่มรายวิชา/ }).count(), 0);
+    assert.equal(await page.getByText('2110123', { exact: false }).count(), 0);
   });
 
   assert.deepEqual(errors, [], 'no uncaught page errors');

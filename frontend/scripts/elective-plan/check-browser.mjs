@@ -229,7 +229,7 @@ try {
     await dialog.waitFor();
     await dialog.getByLabel('รหัสวิชา', { exact: true }).fill('21105899');
     await dialog.getByLabel('ชื่อวิชา', { exact: true }).fill('Prompt Engineering for Teams');
-    await dialog.getByLabel('หมวดของวิชา', { exact: true }).fill('ปัญญาประดิษฐ์');
+    await dialog.getByLabel(/หมวดของวิชา/).selectOption('ปัญญาประดิษฐ์และข้อมูล');
     await dialog.getByLabel('บริษัทผู้สอน', { exact: true }).fill('บริษัททดสอบ');
     await dialog.getByLabel('ผู้สอน', { exact: true }).fill('อาจารย์ทดสอบ');
     await dialog.getByLabel('รูปแบบการสอน').selectOption('ONLINE');
@@ -329,7 +329,7 @@ try {
     await dialog.waitFor();
     await dialog.getByLabel('รหัสวิชา', { exact: true }).fill('21105801');
     await dialog.getByLabel('ชื่อวิชา', { exact: true }).fill('SW Dev for CMMI Standard (ตอนที่สอง)');
-    await dialog.getByLabel('หมวดของวิชา', { exact: true }).fill('วิศวกรรมซอฟต์แวร์');
+    await dialog.getByLabel(/หมวดของวิชา/).selectOption('วิศวกรรมซอฟต์แวร์');
     await dialog.getByLabel('บริษัทผู้สอน', { exact: true }).fill('Soft Square');
     await dialog.getByLabel('ผู้สอน', { exact: true }).fill('อาจารย์กานต์ ศรีสุวรรณ');
     await dialog.getByRole('button', { name: 'พุธเช้า — ไม่สะดวก', exact: true }).click();

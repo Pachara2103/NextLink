@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatNumber } from "@/features/elective-plan/lib/format";
 import {
+  COURSE_CATEGORIES,
   DELIVERY_LABELS,
   DELIVERY_MODES,
   courseDraftFrom,
@@ -134,9 +135,20 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
   /** What other courses already say, so the second one in a company is a pick. */
   const suggestions = useMemo(() => ({
     providers: [...new Set(courses.map((course) => course.provider.trim()).filter(Boolean))].sort(),
-    categories: [...new Set(courses.map((course) => course.category.trim()).filter(Boolean))].sort(),
     instructors: [...new Set(courses.map((course) => course.instructor.trim()).filter(Boolean))].sort(),
   }), [courses]);
+
+  const categoryOptions = useMemo(() => {
+    const set = new Set<string>(COURSE_CATEGORIES);
+    for (const course of courses) {
+      const cat = course.category?.trim();
+      if (cat) set.add(cat);
+    }
+    if (draft.category?.trim()) {
+      set.add(draft.category.trim());
+    }
+    return Array.from(set);
+  }, [courses, draft.category]);
 
   const withContact = (): CourseDraft => ({
     ...draft,
@@ -281,16 +293,15 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
 
           <label>
             หมวดของวิชา
-            <input
-              type="text"
-              list="course-categories"
+            <select
               value={draft.category}
-              placeholder="เช่น วิศวกรรมซอฟต์แวร์"
               onChange={(event) => setDraft({ ...draft, category: event.target.value })}
-            />
-            <datalist id="course-categories">
-              {suggestions.categories.map((item) => <option key={item} value={item} />)}
-            </datalist>
+            >
+              <option value="">— เลือกหมวดของวิชา —</option>
+              {categoryOptions.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
           </label>
 
           <label>
