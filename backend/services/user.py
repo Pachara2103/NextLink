@@ -2,7 +2,7 @@ import logging
 
 import bcrypt
 
-from core.db import pg_db
+from core.db import nl_db
 from core.exceptions import (
     BadRequestError,
     InvalidCredentialsError,
@@ -34,7 +34,7 @@ def login(username: str, password: str, client_ip: str = "unknown") -> tuple[Use
         # get_connection, not the get_cursor helper that used to live in
         # core/db.py — that name is gone, and calling it here raised
         # AttributeError inside the try, which surfaced as a 500 on every login.
-        with pg_db.get_connection() as conn:
+        with nl_db.get_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(GET_USER_BY_USERNAME, (username,))
                 result = cursor.fetchone()
@@ -69,7 +69,7 @@ def get_profile(user_id: str) -> UserProfile:
     The token is signed once at login and never reissued, so a display name the
     user changed afterwards only shows up if it is read from the database.
     """
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(GET_PROFILE_BY_ID, (user_id,))
             row = cursor.fetchone()
@@ -94,7 +94,7 @@ def update_display_name(user_id: str, display_name: str | None) -> UserProfile:
         RETURNING id, username, display_name;
     """
 
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(query, {"id": user_id, "display_name": cleaned})
             row = cursor.fetchone()
@@ -123,7 +123,7 @@ RETURNING id, username, display_name;
 
     # 2. บันทึกลงฐานข้อมูล
     try:
-        with pg_db.get_connection() as conn:
+        with nl_db.get_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(CREATE_USER, (username, hashed_password))
                 result = cursor.fetchone()
@@ -145,7 +145,7 @@ def update_password(user_id: int, new_password: str, current_password: str | Non
     if len(new_password) < 8:
         raise BadRequestError("รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 8 ตัวอักษร")
 
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute("SELECT password FROM users WHERE id = %s;", (user_id,))
             row = cursor.fetchone()

@@ -4,7 +4,7 @@ from ipaddress import ip_address, ip_network
 
 from fastapi import Request
 from core import config
-from core.db import pg_db
+from core.db import nl_db
 from core.exceptions import TooManyAttemptsError
 
 
@@ -44,7 +44,7 @@ def enforce_login_budget(username: str, address: str) -> None:
         (key("account", username.strip().casefold()), config.LOGIN_ACCOUNT_LIMIT, config.LOGIN_WINDOW_SECONDS),
     ]
     retry_after = 0
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             # Global first bounds both hashing work and creation of account keys.
             for bucket, limit, window in budgets:

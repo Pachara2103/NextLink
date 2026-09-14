@@ -438,6 +438,19 @@ export interface components {
         };
         /** LineGroup */
         LineGroup: {
+            /** Createdat */
+            createdAt: string | null;
+            /** Updatedat */
+            updatedAt: string | null;
+            /** Groupid */
+            groupId: string;
+            /** Displayname */
+            displayName: string | null;
+            /** Pictureurl */
+            pictureUrl: string | null;
+        };
+        /** GroupInfo */
+        GroupInfo: {
             /**
              * Companyth
              * @description ชื่อบริษัทภาษาไทย
@@ -467,6 +480,16 @@ export interface components {
             companyId: number | null;
             /** Pictureurl */
             pictureUrl: string | null;
+        };
+        /** UpdateInformationRequest */
+        UpdateInformationRequest: {
+            /**
+             * Groupdata
+             * @description ข้อมูลกลุ่มไลน์ที่ merge กับบริษัทแล้ว key = groupId
+             */
+            groupData?: {
+                [key: string]: components["schemas"]["GroupInfo"];
+            };
         };
         /** ListResponse[Company] */
         ListResponse_Company_: {
@@ -1287,7 +1310,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateInformationRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

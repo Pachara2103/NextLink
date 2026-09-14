@@ -1,15 +1,17 @@
+import logging
 from collections import defaultdict
 from ai.chains.contact import get_extract_contact_chain
 
-from core.db import pg_db
+from core.db import nl_db, line_db
 from core.exceptions import DatabaseError, NotFoundError, BadRequestError
 from core.callbacks import TokenTrackerHandler
 
-from schemas.line import LineGroup, UpdateLog
-from schemas.company import CompanyName
+from schemas.line import GroupInfo, LineGroup, UpdateLog
+from schemas.company import CompanyName, Company
 from schemas.employee import EmployeeBase
 from schemas.enums import ContactStatus
 from schemas.base import ListResponse
+
 
 from services.company import create_company_pg
 from services.employee import create_employee_pg
@@ -18,68 +20,98 @@ from typing import Any
 from utils.mapping import columns_of, rows_to_models
 
 
-import datetime
+from datetime import datetime
 
-def get_group_messages(conn: Any = None):
+logger = logging.getLogger(__name__)
+
+
+def get_groups_messages(group_reads: dict[str, datetime | None], conn: Any = None) :
     if not conn:
-        raise BadRequestError()
+        raise BadRequestError("Database connection is required")
     
-    group_messages = defaultdict(list)
+    if not group_reads:
+        return {}
+
+    group_messages = defaultdict(lambda: {"messages": [], "last_read_at": None})
+    group_ids = list(group_reads.keys())
+    last_reads = [group_reads[gid] for gid in group_ids]
 
     query = """
-      SELECT group_id, message_type, text_content, created_at, is_read
-      FROM line_messages 
-      WHERE group_id IS NOT NULL and is_read = false
-      ORDER BY group_id, created_at ASC
-      FOR UPDATE SKIP LOCKED;
+        WITH target_groups (group_id, last_read_at) AS (
+            SELECT * FROM UNNEST(%(group_ids)s::text[], %(last_reads)s::timestamptz[])
+        )
+        SELECT m.group_id, m.text_content, m.created_at
+        FROM line_messages m
+        JOIN target_groups tg ON m.group_id = tg.group_id
+        WHERE m.message_type = 'text'
+          AND m.text_content IS NOT NULL
+          AND (tg.last_read_at IS NULL OR m.created_at > tg.last_read_at)
+        ORDER BY m.group_id, m.created_at ASC;
     """
 
     with conn.cursor() as cursor:
-        cursor.execute(query)
+        cursor.execute(query, {
+            "group_ids": group_ids,
+            "last_reads": last_reads
+        })
+        rows = cursor.fetchall()
+        
+        for g_id, text_content, created_at in rows:
+            group_messages[g_id]["messages"].append(text_content)
+            group_messages[g_id]["last_read_at"] = created_at
+
+    return dict(group_messages)
+
+def get_groups_last_read(group_ids: list[str], conn: Any = None) -> dict[str, datetime | None]:
+    if not conn:
+        raise BadRequestError("Database connection is required")
+    
+    if not group_ids:
+        return {}
+
+    insert_missing = """
+        INSERT INTO line_group_reads (group_id)
+        SELECT unnest(%(group_ids)s::text[])
+        ON CONFLICT (group_id) DO NOTHING;
+    """
+
+    select_reads = """
+        SELECT group_id, last_read_at
+        FROM line_group_reads
+        WHERE group_id = ANY(%(group_ids)s);
+    """
+
+    with conn.cursor() as cursor:
+        cursor.execute(insert_missing, {"group_ids": group_ids})
+        cursor.execute(select_reads, {"group_ids": group_ids})
         rows = cursor.fetchall()
 
-    for row in rows:
-        group_id, message_type, text_content, _ , _ = row
-
-        if message_type and message_type.strip() == "text" and text_content:
-            group_messages[group_id].append(text_content)
-
-    return group_messages
-
-
-def update_read_group_messages(group_id: str = None, conn: Any = None):
-    if not group_id:
-        raise BadRequestError(message="group_id is required")
+    return {group_id: last_read_at for group_id, last_read_at in rows}
+        
+def _read_group_messages(group_id: str = None, last_read_at: datetime = None, conn: Any = None):
+    if not group_id or not last_read_at:
+        raise BadRequestError(message="no group_id or last_read_at provided")
     if not conn:
-        raise BadRequestError()
+        raise BadRequestError(message="no connection provided on pg")
     
     query = """
-      UPDATE line_messages 
-      SET is_read = true 
-      WHERE group_id = %(group_id)s AND is_read = false;
+      UPDATE line_group_reads 
+      SET last_read_at = %(last_read_at)s
+      WHERE group_id = %(group_id)s;
     """
-
     with conn.cursor() as cursor:
-        cursor.execute(query, {"group_id": group_id})
+        cursor.execute(query, {"group_id": group_id, "last_read_at": last_read_at})
+            
             
 def get_line_groups() -> ListResponse[LineGroup]:
-    query = """
-    SELECT 
-      c.company_th,
-      c.company_en,
-      COALESCE(c.aliases, '{}'::text[]) AS aliases,
-      lg.created_at,
-      lg.updated_at,
-      lg.group_id,
-      lg.display_name,
-      COALESCE(c.is_linked, false) AS is_linked,
-      c.id as company_id,
-      lg.picture_url
-    FROM line_groups lg
-    LEFT JOIN companies c ON lg.group_id = c.group_id;
+    """แถวของ line_groups ล้วน ๆ จาก line_db
+
+    companies อยู่ใน nl_db คนละ connection กัน JOIN ตรงนี้ไม่ได้ - ฝั่ง console
+    เอาผลนี้ไป merge กับ GET /companies ด้วย group_id เอง
     """
-    with pg_db.get_connection() as conn:
-      with conn.cursor() as cursor:
+    query = f"""SELECT {columns_of(LineGroup)} FROM line_groups;"""
+    with line_db.get_connection() as lconn:
+      with lconn.cursor() as cursor:
         cursor.execute(query)
         rows = rows_to_models(cursor, LineGroup)
         return ListResponse(items=rows, total=len(rows))
@@ -111,7 +143,7 @@ def get_update_logs() -> ListResponse[UpdateLog]:
     LEFT JOIN users u ON u.id = l.user_id
     ORDER BY l.created_at DESC, l.id DESC;
     """
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
       with conn.cursor() as cursor:
         cursor.execute(query)
         rows = rows_to_models(cursor, UpdateLog)
@@ -131,41 +163,59 @@ def create_update_logs(user_id: int, error_groups: list[str], conn: Any = None):
            raise BadRequestError(message="ไม่สามารถสร้างเพิ่มประวัติการอัปเดตข้อมูลได้")
 
 
-def update_information(user_id: int) ->  ListResponse[str]:
+def update_information(user_id: int, group_data: dict[str, GroupInfo]) ->  ListResponse[str]:
+    """สรุปข้อความที่ยังไม่ได้อ่านของแต่ละกลุ่ม แล้วเขียนคนที่เจอลง postgres
+
+    group_data มาจาก console: key = group_id, value = GroupInfo (กลุ่มไลน์ที่
+    merge กับบริษัทแล้ว) จอถือข้อมูลชุดนี้อยู่แล้วตั้งแต่ GET /line/groups +
+    GET /companies จึงส่งกลับมาแทนที่จะให้ที่นี่ query ซ้ำ
+
+    เขียนเฉพาะ postgres เท่านั้น (create_company_pg / create_employee_pg) ไม่
+    แตะกราฟ - แถวที่ได้จากรอบนี้ยังเป็น pending รอคนยืนยัน จะ sync ขึ้นกราฟ
+    ตอนที่มีคนกดยืนยันผ่าน sync_* ตามทางเดินปกติ
+    """
     if not user_id:
         raise BadRequestError()
-    
-    line_groups = get_line_groups()
 
-    if not line_groups.items:
-        raise NotFoundError(message="ไม่พบข้อมูลกลุ่ม Line")
+    if not group_data:
+        return ListResponse(items=[], total=0)
+    print(group_data['C46f16841ad21ef734794f7390ab91dd3'])
+    # return ListResponse(items=[], total=0)
 
-    line_groups_map = {group.group_id: group for group in line_groups.items}
     error_groups = []
+    group_ids = list(group_data.keys())
     
-    with pg_db.get_connection() as conn:
-        group_messages = get_group_messages(conn)
-        if not group_messages:
-            return ListResponse(items=[], total=0)
-          
-        for group_id, messages in group_messages.items():
-          try: 
-            group_info = line_groups_map.get(group_id)
-            if not group_info or not messages:
-               continue
+    with nl_db.get_connection() as conn:
+      group_reads = get_groups_last_read(group_ids=group_ids, conn=conn)
+      conn.commit()
 
-            group_name = group_info.display_name or "<ไม่มีชื่อกลุ่ม>"
-            company_id = group_info.company_id
-            
+    with line_db.get_connection() as lconn:
+      group_messages = get_groups_messages(group_reads=group_reads, conn=lconn)
+
+    logger.info(
+        "update_information: กลุ่มที่ส่งมา %d, เครื่องหมายอ่านแล้ว %d, กลุ่มที่มีข้อความใหม่ %d",
+        len(group_data), len(group_reads), len(group_messages),
+    )
+    with nl_db.get_connection() as conn:
+        for group_id, msg_data in group_messages.items():
+          group_info = group_data.get(group_id)
+          last_read_at = msg_data.get("last_read_at")
+          messages = msg_data.get("messages", [])
+          if not group_info or not last_read_at or not messages:
+            continue
+
+          group_name = group_info.display_name or "<ไม่มีชื่อกลุ่ม>"
+          company_id = group_info.company_id
+          try: 
             summary = summarize_line_group_messages(
-                "\n".join(messages), 
+                "\n".join(group_messages[group_id]["messages"]), 
                 group_id=group_id, 
                 user_id=user_id
             )
             contacts = summary.get("contacts")
             
             if not contacts:
-                update_read_group_messages(group_id=group_id, conn=conn)
+                _read_group_messages(group_id=group_id, last_read_at=group_messages[group_id]["last_read_at"], conn=conn)
                 continue
             
             print(f"\nSummary group {group_name}\n")
@@ -202,14 +252,13 @@ def update_information(user_id: int) ->  ListResponse[str]:
                     conn=conn,
                 )
 
-
-            update_read_group_messages(group_id=group_id, conn=conn)
+            _read_group_messages(group_id=group_id, last_read_at=group_messages[group_id]["last_read_at"], conn=conn)
             conn.commit()
             print(f"Ectract Information for group: {group_name} successfully\n")
 
           except Exception as e:
             conn.rollback()
-            group_row = line_groups_map.get(group_id)
+            group_row = group_data.get(group_id)
             error_group_name = (
                 group_row.display_name if group_row else None
             ) or "<ไม่มีชื่อกลุ่ม>"
@@ -219,7 +268,7 @@ def update_information(user_id: int) ->  ListResponse[str]:
             if error_group_name not in error_groups:
                error_groups.append(error_group_name)
     try:
-        with pg_db.get_connection() as conn:
+        with nl_db.get_connection() as conn:
           create_update_logs(user_id=user_id, error_groups=error_groups, conn=conn)
           conn.commit()
     except Exception as e:   

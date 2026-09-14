@@ -35,7 +35,7 @@ import { companyService } from "@/lib/services/company";
 import { healthService, type HealthInfo } from "@/lib/services/health";
 import { contactService } from "@/lib/services/contact";
 import { employeeService } from "@/lib/services/employee";
-import { lineService } from "@/lib/services/line";
+import { lineService, mergeGroupLines } from "@/lib/services/line";
 import { noteService } from "@/lib/services/note";
 import { isNetworkError, serverDetail } from "@/lib/services/errors";
 import { ApiError, setUnreachableHandler } from "@/lib/services/http";
@@ -650,11 +650,21 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       let updateNotConfirmed: unknown = null;
 
       if (scope === "all") {
+        // The pass only looks at the groups it is handed, so the list it is
+        // handed is read fresh here rather than taken off the screen: a group
+        // added on LINE since the last sync would otherwise be skipped.
+        const [before, companiesBefore] = await Promise.all([
+          lineService.getLineGroups(),
+          companyService.list(),
+        ]);
+
         // Has to come first, and the group read has to come after it: the
         // extraction pass writes an unconfirmed company row for every group it
         // could name, so groupLines.companyId is stale until it has run — and
         // companyId is what decides create-vs-rename in saveCompany.
-        const res = await lineService.updateInformation();
+        const res = await lineService.updateInformation(
+          mergeGroupLines(before, companiesBefore),
+        );
         employees = res.employees;
         errorGroups = res.errorGroups;
         updateNotConfirmed = res.postError;
@@ -671,12 +681,19 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
         void refreshUpdateLogs();
       }
 
-      // In parallel: none of the three depends on the others.
-      [groups, companies, companyContacts] = await Promise.all([
-        lineService.getGroupLines(),
+      // In parallel: none of the three depends on the others. The company read
+      // serves two purposes — the directory behind "ค้นหาบริษัทที่มีอยู่", and the
+      // company half of every group line — so it is read once here and merged,
+      // rather than going through `lineService.getGroupLines()`, which would
+      // fetch the same list a second time.
+      const [lineGroups, companyList, contactsByCompany] = await Promise.all([
+        lineService.getLineGroups(),
         companyService.list(),
         contactService.listByCompany(),
       ]);
+      groups = mergeGroupLines(lineGroups, companyList);
+      companies = companyList;
+      companyContacts = contactsByCompany;
 
       if (scope === "initial") {
         const [byCompany, notes] = await Promise.all([

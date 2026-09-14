@@ -14,14 +14,14 @@ outbox กันไม่ให้ **ของใหม่** หลุดออ�
 
 import logging
 
-from core.db import graph_db, pg_db
+from core.db import graph_db, nl_db
 from services import outbox
 
 logger = logging.getLogger(__name__)
 
 
 def _pg_ids(table: str) -> set[int]:
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(f"SELECT id FROM {table};")
             ids = {row[0] for row in cursor.fetchall()}
@@ -39,7 +39,7 @@ def _employee_payload(id: int) -> dict | None:
     from schemas.employee import Employee
     from utils.mapping import columns_of, rows_to_models
 
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(
                 f"SELECT {columns_of(Employee)} FROM employees WHERE id = %s;", (id,)
@@ -53,7 +53,7 @@ def _company_payload(id: int) -> dict | None:
     from schemas.company import Company
     from utils.mapping import columns_of, rows_to_models
 
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(
                 f"SELECT {columns_of(Company)} FROM companies WHERE id = %s;", (id,)
@@ -77,7 +77,7 @@ def _note_payload(id: int) -> dict | None:
     from schemas.note import NoteCreate
     from utils.mapping import rows_to_models
 
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(
                 """

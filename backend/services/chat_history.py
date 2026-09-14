@@ -1,4 +1,4 @@
-from core.db import pg_db
+from core.db import nl_db
 from core.exceptions import DatabaseError
 from schemas.chat_history import ChatHistory
 from schemas.base import ListResponse
@@ -12,7 +12,7 @@ def save_chat_history(user_id: int, role: ChatRole, message: str) -> ChatHistory
         RETURNING user_id, role, message, id, created_at;      
     """
 
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(query, (user_id, role, message))
             rows = rows_to_models(cursor, ChatHistory)
@@ -36,7 +36,7 @@ def get_chat_histories(user_id: int) -> ListResponse[ChatHistory]:
     ORDER BY created_at ASC
 """
 
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(query, (user_id, HISTORY_LIMIT))
             rows = rows_to_models(cursor, ChatHistory)

@@ -11,3 +11,5 @@ test
 design
 
 .env.example
+run.py
+test.ipynb

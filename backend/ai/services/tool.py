@@ -1,4 +1,4 @@
-from core.db import pg_db, graph_db
+from core.db import nl_db, graph_db
 from ai.services.search import search_person, search_company
 from utils.datetime import format_to_thai_time
 import json
@@ -41,7 +41,7 @@ def get_mou_status(company_name: str) -> list:
     """
     
     db_map = {}
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(query, (company_ids,))
                 rows = cursor.fetchall()
@@ -151,7 +151,7 @@ def get_company_contacts(company_name: str):
         where company_id = %s;
     """
 
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             for company_id, company_key in valid_companies:
                 cursor.execute(query, (company_id,))

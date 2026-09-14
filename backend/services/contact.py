@@ -1,6 +1,6 @@
 from typing import Any
 
-from core.db import pg_db
+from core.db import nl_db
 from core.exceptions import BadRequestError, NotFoundError
 from schemas.base import ListResponse
 from schemas.contact import Contact, ContactCreate, ContactUpdate
@@ -24,14 +24,14 @@ def _require_name(name: str | None) -> str:
     return cleaned
 
 def get_contacts(company_id: int | None = None) -> ListResponse[Contact]:
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(SELECT_CONTACTS)
             rows = rows_to_models(cursor, Contact)
             return ListResponse(items=rows, total=len(rows))
 
 def get_contact(id: int) -> Contact:
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(f"{SELECT_CONTACTS} WHERE id = %s;", (id,))
             rows = rows_to_models(cursor, Contact)
@@ -67,7 +67,7 @@ def create_contact(payload: ContactCreate) -> Contact:
         "email": _clean(payload.email),
     }
 
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         # contacts.company_id carries no foreign key, so a bad id would insert
         # a row nothing can ever reach. Checked here instead.
         if not _company_exists(payload.company_id, conn):
@@ -113,7 +113,7 @@ def update_contact(id: int, payload: ContactUpdate) -> Contact:
         "email": _clean(payload.email),
     }
 
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(query, params)
             rows = rows_to_models(cursor, Contact)
@@ -127,7 +127,7 @@ def delete_contact(id: int) -> None:
     if not id:
         raise BadRequestError(message="ไม่พบผู้ติดต่อที่ต้องการลบ")
 
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute("DELETE FROM contacts WHERE id = %s;", (id,))
             if cursor.rowcount == 0:

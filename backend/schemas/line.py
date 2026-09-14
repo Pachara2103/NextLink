@@ -5,13 +5,32 @@ from pydantic import Field
 from datetime import datetime
 
 
-class LineGroup(BaseTimestamp, CompanyName):
+class LineGroup(BaseTimestamp):
+    group_id: str
+    display_name: str | None
+    picture_url: str | None
+
+
+class GroupInfo(BaseTimestamp, CompanyName):
     group_id: str
     display_name: str | None
     is_linked: bool
     company_id: int | None
     picture_url: str | None
-    
+
+
+class UpdateInformationRequest(ApiBaseModel):
+    """body ของ POST /line/update-information
+
+    group_data: key = group_id, value = GroupInfo ของกลุ่มนั้น กลุ่มที่ไม่ได้
+    ส่งมาจะไม่ถูกสรุปในรอบนี้
+    """
+
+    group_data: dict[str, GroupInfo] = Field(
+        default_factory=dict, description="ข้อมูลกลุ่มไลน์ที่ merge กับบริษัทแล้ว key = groupId"
+    )
+
+
 class UpdateLog(ApiBaseModel):
     """One press of "อัปเดตข้อมูล", with the groups that pass could not finish.
 

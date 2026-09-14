@@ -1,2 +1,5 @@
 .vercel
 .env*
+design
+RENAME_REPORT.md
+docker-compose.yml

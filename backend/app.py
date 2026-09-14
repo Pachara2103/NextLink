@@ -13,7 +13,7 @@ from ai.graph import get_graph
 from api.v1.router import api_router
 from core import config
 from core.ai import warmup
-from core.db import graph_db, pg_db
+from core.db import graph_db, nl_db
 from core.exceptions import AppException
 from core.exception_handlers import app_exception_handler
 from services import outbox
@@ -88,7 +88,7 @@ async def lifespan(app: FastAPI):
             "a model will retry the load"
         )
 
-    for name, db in (("postgres", pg_db), ("neo4j", graph_db)):
+    for name, db in (("postgres", nl_db), ("neo4j", graph_db)):
         try:
             await asyncio.to_thread(db.check)
             logger.info("%s reachable", name)
@@ -121,7 +121,7 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
 
-    for name, db in (("postgres", pg_db), ("neo4j", graph_db)):
+    for name, db in (("postgres", nl_db), ("neo4j", graph_db)):
         try:
             db.close()
         except Exception:

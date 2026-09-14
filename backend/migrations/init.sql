@@ -5,23 +5,18 @@
 -- ==========================================================================
 -- ตารางของฝั่ง LINE webhook
 --
--- line_* ทั้ง 9 ตารางมีเจ้าของเป็นบริการฝั่ง LINE ไม่ใช่ backend ตัวนี้
--- ไฟล์นี้จึงไม่ประกาศมันไว้ ยกเว้น line_groups ตัวเดียว เพราะเป็นปลายทาง
--- ของ FK จาก 4 ตารางข้างล่าง - บล็อกนี้มีไว้ให้ DB เปล่า ๆ (dev/test) รันไฟล์
--- นี้ผ่านได้เท่านั้น กับ DB จริงที่มีตารางอยู่แล้ว บล็อกนี้จะถูกข้าม
+-- line_* ทั้ง 9 ตารางมีเจ้าของเป็นบริการฝั่ง LINE ไม่ใช่ backend ตัวนี้ และ
+-- ตอนนี้อยู่คนละฐานกันแล้ว (LINE_DATABASE_URL) ไฟล์นี้จึงไม่ประกาศมันไว้เลย
+--
+-- เมื่อก่อน line_groups ถูกประกาศไว้ตัวเดียวเพราะเป็นปลายทางของ FK จาก
+-- companies.group_id และ token_logs.group_id แต่ postgres ผูก FK ข้ามฐานไม่ได้
+-- ตารางนั้นในฐานนี้จึงเป็นตารางเปล่าที่ไม่มีใครเติม และ FK ก็ทำให้ทุก INSERT
+-- ที่มี group_id ของจริงล้มด้วย ForeignKeyViolation - ดู migrations/split_line_db.sql
+-- สำหรับฐานที่สร้างไปแล้วก่อนหน้านี้
+--
+-- ข้อยกเว้นเดียวที่ยังอยู่ฝั่งนี้คือ line_group_reads (ดู line_group_reads.sql)
+-- เพราะเป็นสถานะของ backend ตัวนี้เอง ไม่ใช่ข้อมูลของบริการฝั่ง LINE
 -- ==========================================================================
-
-CREATE TABLE IF NOT EXISTS line_groups (
-    group_id TEXT PRIMARY KEY,
-    display_name TEXT NULL,
-    picture_url TEXT NULL,
-    status TEXT NOT NULL DEFAULT 'active',
-    first_seen_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    joined_at TIMESTAMPTZ NULL,
-    left_at TIMESTAMPTZ NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
 
 
 CREATE TABLE IF NOT EXISTS users (
@@ -38,8 +33,8 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS companies (
     id BIGSERIAL PRIMARY KEY,
     -- UNIQUE: หนึ่งกลุ่ม LINE ต่อหนึ่งบริษัท
-    -- ON DELETE SET NULL: กลุ่มหายไปแต่บริษัทยังอยู่ แค่ไม่ผูกกับกลุ่มไหน
-    group_id TEXT NULL UNIQUE REFERENCES line_groups(group_id) ON DELETE SET NULL,
+    -- ไม่มี FK ไป line_groups: ตารางนั้นอยู่ line_db คนละฐาน (ดูหัวไฟล์)
+    group_id TEXT NULL UNIQUE,
     company_th TEXT NULL,
     company_en TEXT NULL,
     aliases TEXT[] NULL DEFAULT '{}'::text[],  -- NULL ได้ ไม่ใช่ '{}' บังคับ: UPDATE ใช้ COALESCE บนคอลัมน์นี้
@@ -178,7 +173,8 @@ CREATE TABLE IF NOT EXISTS token_logs (
     id BIGSERIAL PRIMARY KEY,
     log_type TEXT NOT NULL,
     step_name TEXT NOT NULL,
-    group_id TEXT NULL REFERENCES line_groups(group_id) ON DELETE SET NULL,
+    -- ไม่มี FK ไป line_groups: ตารางนั้นอยู่ line_db คนละฐาน (ดูหัวไฟล์)
+    group_id TEXT NULL,
     -- NULL ได้: TokenTrackerHandler มี default user_id=0 สำหรับงานที่ระบบ
     -- ทำเอง ไม่ได้มีคนสั่ง
     user_id BIGINT NULL REFERENCES users(id) ON DELETE SET NULL,

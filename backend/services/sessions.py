@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from core import config
 from core.auth import issue_token, verify_token
-from core.db import pg_db
+from core.db import nl_db
 from core.exceptions import InvalidTokenError
 
 
@@ -19,7 +19,7 @@ class SessionIdentity:
 def create_session(user_id: str, password_hash: str) -> str:
     session_id = str(uuid4())
     expires = int(time.time()) + config.TOKEN_TTL_SECONDS
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             # A concurrent password change must not turn an old password check
             # into a session bound to the new credential.
@@ -38,7 +38,7 @@ def create_session(user_id: str, password_hash: str) -> str:
 
 def authenticate_session(token: str) -> SessionIdentity:
     payload = verify_token(token)
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(
                 """SELECT u.id, u.username FROM auth_sessions s
@@ -55,7 +55,7 @@ def authenticate_session(token: str) -> SessionIdentity:
 
 
 def revoke_session(session_id: str) -> None:
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute("DELETE FROM auth_sessions WHERE session_id = %s;", (session_id,))
         conn.commit()

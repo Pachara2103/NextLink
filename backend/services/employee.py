@@ -1,6 +1,6 @@
 from typing import Any
 
-from core.db import graph_db, pg_db
+from core.db import graph_db, nl_db
 from core.exceptions import BadRequestError, NotFoundError
 from schemas.base import ListResponse
 from schemas.employee import Employee, EmployeeBase
@@ -10,7 +10,7 @@ from utils.mapping import columns_of, placeholders_of, assignments_of, rows_to_m
 # --------------------------------------------------------------------------- #
 # ทุก sync_* ในไฟล์นี้เดินตามแบบเดียวกัน (ดูเหตุผลเต็ม ๆ ที่ services/outbox.py)
 #
-#   with pg_db.get_connection() as conn:
+#   with nl_db.get_connection() as conn:
 #       ...เขียน postgres...
 #       outbox.enqueue(conn, ...)   <- transaction เดียวกับข้อมูลจริง
 #       conn.commit()
@@ -42,7 +42,7 @@ def get_employee(id: int, conn: Any = None) -> Employee:
 
 def get_employees() -> ListResponse[Employee]:
     query = f"select {columns_of(Employee)} from employees;"
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(query)
             rows = rows_to_models(cursor, Employee)
@@ -81,7 +81,7 @@ def delete_employee_pg(id: int, conn: Any = None):
     """
 
     if not conn:
-        with pg_db.get_connection() as own:
+        with nl_db.get_connection() as own:
           with own.cursor() as cursor:
             cursor.execute( query, {"id": id})
             if cursor.rowcount == 0:
@@ -118,7 +118,7 @@ def sync_delete_employee(id: int):
     if not id:
         raise BadRequestError()
 
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         # อ่านก่อนลบ: ไม่มีแถวก็ 404 ตั้งแต่ตรงนี้ ไม่ต้องไปจองงานลบกราฟเปล่า ๆ
         get_employee(id, conn=conn)
         delete_employee_pg(id, conn=conn)
@@ -136,7 +136,7 @@ def approve_employee(id: int, user_id: int):
     where id = %(id)s
     returning {columns_of(Employee)};
     """
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(query, {"id": id, "user_id": user_id})
             rows = rows_to_models(cursor, Employee)
@@ -171,7 +171,7 @@ def sync_create_employee(payload: EmployeeBase, user_id: int):
     if not user_id:
         raise BadRequestError()
 
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         employee = create_employee_pg(payload, user_id=user_id, conn=conn)
         outbox.enqueue(
             conn, outbox.EMPLOYEE, employee.id, outbox.UPSERT, _payload(employee)
@@ -195,7 +195,7 @@ def update_employee_pg(payload: EmployeeBase, id: int, user_id: int, conn: Any =
     }
 
     if not conn:
-        with pg_db.get_connection() as conn:
+        with nl_db.get_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute( query, params)
                 if cursor.rowcount == 0:
@@ -236,7 +236,7 @@ def sync_update_employee(payload: EmployeeBase, id: int, user_id: int):
     if not id or not user_id:
         raise BadRequestError()
 
-    with pg_db.get_connection() as conn:
+    with nl_db.get_connection() as conn:
         get_employee(id, conn=conn)
         update_employee_pg(payload, id=id, user_id=user_id, conn=conn)
         # อ่านกลับหลังอัปเดต: outbox ต้องเก็บ "แถวหลังแก้" ทั้งแถว ไม่ใช่แค่
