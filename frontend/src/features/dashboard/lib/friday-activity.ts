@@ -1,7 +1,7 @@
 import type { AcademicPeriod, AcademicTerm } from "./academic-period";
 
 export const FRIDAY_STATUS = { scheduled: "รอจัดกิจกรรม", completed: "จัดแล้ว", cancelled: "ยกเลิก" } as const;
-export const FRIDAY_FORMAT = { talk: "บรรยาย", workshop: "Workshop", visit: "ดูงานนอกสถานที่" } as const;
+export const FRIDAY_FORMAT = { talk: "บรรยาย", workshop: "Workshop", visit: "ดูงานนอกสถานที่", hackathon: "Hackathon", other: "อื่น ๆ", unknown: "ยังไม่ระบุ" } as const;
 export const STUDENT_DIMENSIONS = [
   { key: "content", label: "เนื้อหาและประโยชน์ที่ได้รับ" },
   { key: "speaker", label: "การถ่ายทอดของวิทยากร" },
@@ -15,7 +15,7 @@ export type StudentEvaluation = {
   suggestedTopic: string;
   suggestion: string;
 };
-export type CompanyEvaluation = { id: string; experience: string; suggestedTopic: string; improvement: string };
+export type CompanyEvaluation = { submittedAt?: string | null; id: string; experience: string; suggestedTopic: string; improvement: string };
 export type FridayActivity = {
   id: string;
   academicYear: number;
@@ -27,6 +27,8 @@ export type FridayActivity = {
   description: string;
   domain: string;
   format: keyof typeof FRIDAY_FORMAT;
+  rawFormat?: string;
+  contactIds?: string[];
   date: string | null;
   startTime: string;
   endTime: string;
@@ -115,6 +117,8 @@ export function isFridayActivity(value: unknown): value is FridayActivity {
     && ["1", "2", "summer"].includes(value.term as string)
     && count(value.sequence) && value.sequence > 0
     && Object.hasOwn(FRIDAY_STATUS, value.status as string) && Object.hasOwn(FRIDAY_FORMAT, value.format as string)
+    && (value.rawFormat === undefined || text(value.rawFormat))
+    && (value.contactIds === undefined || (Array.isArray(value.contactIds) && value.contactIds.every(nonempty) && new Set(value.contactIds).size === value.contactIds.length))
     && date(value.date) && time(value.startTime) && time(value.endTime)
     && (!(value.startTime && value.endTime) || String(value.endTime) > String(value.startTime))
     && ["capacity", "booked", "attended"].every(key => optionalCount(value[key]))
@@ -124,13 +128,13 @@ export function isFridayActivity(value: unknown): value is FridayActivity {
       && STUDENT_DIMENSIONS.every(({ key }) => score((response.ratings as Record<string, unknown>)[key]) && ((response.ratings as Record<string, unknown>)[key] === null || Number.isInteger((response.ratings as Record<string, unknown>)[key])))
       && text(response.suggestedTopic) && text(response.suggestion))
     && Array.isArray(value.companyEvaluations) && value.companyEvaluations.length <= 10000 && uniqueIds(value.companyEvaluations)
-    && value.companyEvaluations.every(response => record(response) && ["experience", "suggestedTopic", "improvement"].every(key => text(response[key])));
+    && value.companyEvaluations.every(response => record(response) && (response.submittedAt === undefined || response.submittedAt === null || (text(response.submittedAt) && Number.isFinite(Date.parse(response.submittedAt)))) && ["experience", "suggestedTopic", "improvement"].every(key => text(response[key])));
 }
 
-export type FridayDraft = Pick<FridayActivity, "title" | "description" | "domain" | "format" | "date" | "startTime" | "endTime" | "location" | "status" | "capacity" | "booked" | "attended" | "publicationUrl" | "notes">;
+export type FridayDraft = Pick<FridayActivity, "title" | "description" | "domain" | "format" | "contactIds" | "date" | "startTime" | "endTime" | "location" | "status" | "capacity" | "booked" | "attended" | "publicationUrl" | "notes">;
 export function toFridayDraft(item: FridayActivity): FridayDraft {
-  const { title, description, domain, format, date, startTime, endTime, location, status, capacity, booked, attended, publicationUrl, notes } = item;
-  return { title, description, domain, format, date, startTime, endTime, location, status, capacity, booked, attended, publicationUrl, notes };
+  const { title, description, domain, format, contactIds, date, startTime, endTime, location, status, capacity, booked, attended, publicationUrl, notes } = item;
+  return { title, description, domain, format, contactIds, date, startTime, endTime, location, status, capacity, booked, attended, publicationUrl, notes };
 }
 export function applyFridayDraft(item: FridayActivity, draft: FridayDraft): FridayActivity {
   // Whitelist editable fields; never replace company, period, source score or responses.
@@ -145,3 +149,10 @@ export function formatFridayDate(value: string | null) {
 }
 export const fridayCount = (value: number | null) => value === null ? "ยังไม่มีข้อมูล" : new Intl.NumberFormat("th-TH").format(value);
 export const fridayScore = (value: number | null) => value === null ? "ยังไม่มีข้อมูล" : value.toFixed(2);
+
+/** Normalize source labels without losing their original spelling. */
+export function normalizeFridayFormat(raw: string): { format: FridayActivity['format']; rawFormat: string } {
+  const label = raw.trim().toLowerCase();
+  const known: Record<string, FridayActivity['format']> = { workshop: 'workshop', 'talk seminar': 'talk', lecture: 'talk', 'company visit': 'visit', hackathon: 'hackathon', hackatron: 'hackathon' };
+  return { format: !label ? 'unknown' : known[label] ?? 'other', rawFormat: raw };
+}

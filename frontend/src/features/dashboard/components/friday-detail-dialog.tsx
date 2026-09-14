@@ -1,5 +1,8 @@
 "use client";
 
+import { CompanyContacts } from "./company-contacts";
+import { useCompanyDirectory } from "../lib/use-company-directory";
+import { companyKey } from "../lib/company-directory";
 import type { Ref } from "react";
 import { DialogEditFooter } from "./dialog-edit-footer";
 import { FridayCompanyFeedback, FridayStudentRatings } from "./friday-evaluations";
@@ -12,6 +15,8 @@ export function FridayDetailDialog({ activity, dialogRef, onClose, onSave }: {
 }) {
   const editor = useRecordEditor({ record: activity, toDraft: toFridayDraft, onSave, onClose });
   const { draft, updateDraft } = editor;
+  const directory = useCompanyDirectory();
+  const contacts = directory.items.find(c => c.id === companyKey("friday", activity.companyId))?.contacts ?? [];
   const comments = activity.studentEvaluations.filter(response => response.suggestedTopic || response.suggestion);
   return <dialog ref={dialogRef} className="course-dialog friday-dialog" tabIndex={-1} aria-labelledby="friday-dialog-title" onCancel={editor.handleCancel} onClick={editor.handleBackdropClick}>
     <div>
@@ -24,8 +29,10 @@ export function FridayDetailDialog({ activity, dialogRef, onClose, onSave }: {
       </div>
       <div className="dialog-statusbar"><div><span>{FRIDAY_STATUS[activity.status]}</span><strong>{fridayFollowUps(activity).join(" · ") || "ไม่มีรายการต้องติดตาม"}</strong></div></div>
       <div className="dialog-content" tabIndex={0}>
+        <CompanyContacts module="friday" sourceId={activity.companyId} selectedIds={activity.contactIds} />
         {editor.isEditing && draft ? <form id="friday-edit-form" className="course-edit-form" onSubmit={editor.saveEditing}>
           <p className="edit-mode-note">ข้อมูลทดลอง · บันทึกไว้ในเบราว์เซอร์นี้</p>
+          <fieldset className="cap-checkboxes"><legend>ผู้ประสานงานประจำกิจกรรม (เลือกได้หลายคน)</legend><p className="panel-caption">ไม่เลือก = ยังไม่กำหนดผู้รับผิดชอบประจำกิจกรรม โดยจะแสดงผู้ติดต่อระดับบริษัท</p>{contacts.map(c => <label key={c.id}><input type="checkbox" checked={draft.contactIds?.includes(c.id) ?? false} onChange={e => updateDraft("contactIds", e.target.checked ? [...(draft.contactIds ?? []), c.id] : (draft.contactIds ?? []).filter(id => id !== c.id))} />{c.name} · {c.role} · {c.status}</label>)}{draft.contactIds?.filter(id => !contacts.some(c => c.id === id)).map(id => <label key={id}><input type="checkbox" checked onChange={() => updateDraft("contactIds", draft.contactIds?.filter(value => value !== id))} />ผู้ติดต่อที่ถูกลบ: {id} (เอาเครื่องหมายออกเพื่อยกเลิกการอ้างอิง)</label>)}</fieldset>
           <div className="course-edit-grid">
             <label className="edit-field-full"><span>ชื่อกิจกรรม</span><input required value={draft.title} onChange={event => updateDraft("title", event.target.value)} /></label>
             <label><span>ศาสตร์</span><input required value={draft.domain} onChange={event => updateDraft("domain", event.target.value)} /></label>
@@ -44,7 +51,7 @@ export function FridayDetailDialog({ activity, dialogRef, onClose, onSave }: {
         </form> : <>
           <div className="dialog-grid">
             <div className="detail-block"><span>วันและเวลา</span><strong>{formatFridayDate(activity.date)}</strong><small>{activity.startTime || "ยังไม่ระบุเวลาเริ่ม"} – {activity.endTime || "ยังไม่ระบุเวลาสิ้นสุด"}</small></div>
-            <div className="detail-block"><span>รูปแบบและสถานที่</span><strong>{FRIDAY_FORMAT[activity.format]}</strong><small>{activity.location || "ยังไม่ระบุสถานที่"}</small></div>
+            <div className="detail-block"><span>รูปแบบและสถานที่</span><strong>{FRIDAY_FORMAT[activity.format]}</strong>{activity.rawFormat !== undefined && <small>ข้อความต้นทาง: {activity.rawFormat || "ไม่ได้ระบุ"}</small>}<small>{activity.location || "ยังไม่ระบุสถานที่"}</small></div>
             <div className="detail-block"><span>ศาสตร์</span><strong>{activity.domain}</strong></div>
             {([ ["capacity", "จำนวนรับ"], ["booked", "จำนวนจอง"], ["attended", "จำนวนมาจริง"] ] as const).map(([key, label]) => <div className="detail-block" key={key}><span>{label}</span><strong>{fridayCount(activity[key])}{activity[key] !== null ? " คน" : ""}</strong></div>)}
           </div>

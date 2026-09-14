@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { fridayActivities } from "../../../src/features/dashboard/data/friday-activities";
-import { applyFridayDraft, fridayCompanySummary, fridayFollowUps, fridaySummary, isFridayActivity, selectFridayPeriod, studentRatingSummary, toFridayDraft, type FridayActivity } from "../../../src/features/dashboard/lib/friday-activity";
+import { normalizeFridayFormat, applyFridayDraft, fridayCompanySummary, fridayFollowUps, fridaySummary, isFridayActivity, selectFridayPeriod, studentRatingSummary, toFridayDraft, type FridayActivity } from "../../../src/features/dashboard/lib/friday-activity";
 
 const base = fridayActivities[0];
 test("Friday fixtures are valid, have unique session IDs and never substitute another term", () => {
@@ -79,4 +79,19 @@ test("editing operational fields preserves company/period and both sources of ev
   assert.deepEqual(saved.studentEvaluations, base.studentEvaluations);
   assert.deepEqual(saved.companyEvaluations, base.companyEvaluations);
   assert.throws(() => applyFridayDraft(base, { ...toFridayDraft(base), title: "  " }));
+});
+
+test('activity coordinators survive edits without replacing original response data', () => {
+  const updated = applyFridayDraft(base, { ...toFridayDraft(base), contactIds: ['contact-1', 'contact-2'] });
+  assert.deepEqual(updated.contactIds, ['contact-1', 'contact-2']);
+  assert.deepEqual(updated.studentEvaluations, base.studentEvaluations);
+  assert.throws(() => applyFridayDraft(base, { ...toFridayDraft(base), contactIds: ['contact-1', 'contact-1'] }));
+});
+
+test('source format labels preserve misspellings, blanks and unfamiliar formats', () => {
+  assert.deepEqual(normalizeFridayFormat('Hackatron'), { format: 'hackathon', rawFormat: 'Hackatron' });
+  assert.equal(normalizeFridayFormat('Lecture').format, 'talk');
+  assert.equal(normalizeFridayFormat('Company visit').format, 'visit');
+  assert.equal(normalizeFridayFormat(' ').format, 'unknown');
+  assert.equal(normalizeFridayFormat('Round table').format, 'other');
 });

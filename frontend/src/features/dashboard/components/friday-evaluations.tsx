@@ -12,7 +12,7 @@ export function FridayStudentRatings({ activities }: { activities: FridayActivit
 
 export function FridayCompanyFeedback({ activity }: { activity: FridayActivity }) {
   return <div className="friday-feedback-list">{activity.companyEvaluations.length ? activity.companyEvaluations.map((response, index) => <div className="friday-feedback" key={response.id}>
-    <strong>คำตอบบริษัทที่ {index + 1}</strong>
+    <strong>คำตอบบริษัทที่ {index + 1}</strong><small>วันที่ตอบ: {response.submittedAt ? new Date(response.submittedAt).toLocaleDateString("th-TH") : "ยังไม่มีข้อมูล"}</small>
     <dl>
       <dt>กิจกรรมวันนี้เป็นอย่างไร</dt><dd>{response.experience || "ไม่ได้ตอบ"}</dd>
       <dt>หัวข้อที่อยากมาแบ่งปันเพิ่มเติม</dt><dd>{response.suggestedTopic || "ไม่ได้ตอบ"}</dd>

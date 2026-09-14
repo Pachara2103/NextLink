@@ -1,5 +1,6 @@
 "use client";
 
+import { FridayMouFollowUps } from "./friday-mou-followups";
 import { lazy, useDeferredValue, useState } from "react";
 import { AppNav, DashboardModuleNav } from "./app-nav";
 import { AcademicPeriodEmptyState, AcademicPeriodSelector } from "./academic-period-selector";
@@ -144,6 +145,7 @@ export function FridayDashboard({ activities }: { activities: FridayActivity[] }
         <Pager page={activePage} pageCount={pageCount} total={ordered.length} unit="กิจกรรม" onChange={setPage} />
       </section>
 
+      <FridayMouFollowUps />
       <section id="friday-companies" tabIndex={-1} className="panel friday-section" aria-labelledby="friday-companies-title">
         <div className="panel-heading"><div><p className="section-kicker">ความร่วมมือในแต่ละเทอม</p><h3 id="friday-companies-title">บริษัทในเทอมนี้</h3></div><span className="panel-caption">ตามตัวกรอง · กดชื่อบริษัทเพื่อดูรายการ</span></div>
         <div className="friday-company-list">{companyRows.length ? companyRows.map(item => <button className="friday-company-row" type="button" key={item.id} aria-pressed={company === item.id} onClick={() => { setCompany(company === item.id ? "all" : item.id); focusDashboardSection("dashboard-directory"); }}><strong>{item.name}</strong><span><b>{item.completed}</b> จัดแล้ว · {item.scheduled} รอจัด · {item.cancelled} ยกเลิก</span><span aria-hidden="true">→</span></button>) : empty}</div>
