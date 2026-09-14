@@ -33,3 +33,7 @@
 .nextlink-dashboard .outcome-editor { margin-top: 20px; border-color: var(--blue); }
 .nextlink-dashboard .outcome-editor form > label { margin-top: 16px; }
 .nextlink-dashboard .outcome-editor textarea { width: 100%; min-height: 90px; }
+.nextlink-dashboard .company-case-preview { border-left: 3px solid var(--line); padding: 8px 12px; margin-top: 12px; display: grid; gap: 6px; white-space: normal; overflow-wrap: anywhere; }
+.nextlink-dashboard .company-case-preview[data-status="open"] { border-left-color: var(--orange); }
+.nextlink-dashboard .company-case-preview small { display: block; color: var(--muted); }
+.nextlink-dashboard .company-case-preview .text-button { min-height: 44px; display: inline-flex; align-items: center; white-space: normal; }

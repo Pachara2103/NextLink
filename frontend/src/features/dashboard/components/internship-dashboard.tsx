@@ -31,6 +31,9 @@ import { useAcademicPeriod } from '../lib/use-academic-period';
 import { filterApplications, scopeCompanies, positionPopularity } from '../lib/internship-history';
 import { InternshipEvaluations } from './internship-evaluations';
 import { InternshipOutcomes } from './internship-outcomes';
+import { LatestCompanyCase } from './latest-company-case';
+import { companyKey } from '../lib/company-directory';
+import { useCompanyDirectory } from '../lib/use-company-directory';
 import { applicantSummary, countOpenings } from '../lib/internship-outcomes';
 import { useLocalDataset } from "@/features/dashboard/lib/use-local-dataset";
 import { useRecordDialog } from "@/features/dashboard/lib/use-record-dialog";
@@ -39,6 +42,9 @@ const CompanyDetailDialog = lazy(() => import("./internship-detail-dialog").then
 
 export function InternshipDashboard({ payload }: Props) {
   const track = payload.track;
+  const directory = useCompanyDirectory();
+  const directoryById = useMemo(() => new Map(directory.items.map(c => [c.id, c])), [directory.items]);
+  const sharedId = (id: string) => companyKey(track === 'ฝึกงาน' ? 'internship' : 'cooperative', id);
   const { items: allCompanies, update: updateCompanies, reset: resetCompanies, editedAt, ready, warning, hasOverrides, undo, recovery, recover } = useLocalDataset(INTERNSHIP_TRACKS[track].storageKey, payload.companies, isInternshipCompany);
   const { toast, show: showToast, dismiss: dismissToast, holdTimer, resumeTimer } = useStatusToast();
 
@@ -360,6 +366,7 @@ export function InternshipDashboard({ payload }: Props) {
                         <strong>{stats.company.name}</strong>
                         <small>{stats.company.industry}</small>
                       </button>
+                      <LatestCompanyCase company={directoryById.get(sharedId(stats.company.id))} companyId={sharedId(stats.company.id)} ready={directory.ready} warning={directory.warning} />
                     </td>
                     <td>
                       <select className={`status-select status-pill ${mouTone(stats.company.mouStatus)}`} value={stats.company.mouStatus} onChange={(event) => updateMouStatus(stats.company.id, event.target.value as InternshipMouStatus)} aria-label={`อัปเดตสถานะ MOU ของ ${stats.company.shortName}`}>
@@ -399,6 +406,7 @@ export function InternshipDashboard({ payload }: Props) {
                     </select>
                   </label>
                 </div>
+                <LatestCompanyCase company={directoryById.get(sharedId(stats.company.id))} companyId={sharedId(stats.company.id)} ready={directory.ready} warning={directory.warning} />
                 <div className="mobile-course-meta"><span>นิสิตเลือก {formatNumber(stats.totalPicks)} ครั้ง</span><span>อันดับ 1: {formatNumber(stats.firstPicks)} ใบสมัคร</span></div>
                 <span className="bar-track rank-stack" role="img" aria-label={RANKS.map((rank) => `${RANK_LABELS[rank] ?? `อันดับ ${rank}`} ${stats.picksByRank[rank]} ใบสมัคร`).join(", ")}>
                   {RANKS.map((rank) => (stats.picksByRank[rank] ? <span className={`rank-segment rank-${rank}`} key={rank} style={{ width: `${(stats.picksByRank[rank] / Math.max(stats.totalPicks, 1)) * 100}%` }} /> : null))}
