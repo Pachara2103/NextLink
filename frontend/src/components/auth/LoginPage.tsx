@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 
-import { ThemeSwitcher } from "@/components/theme/ThemeSwitcher";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
 import { MESSAGES } from "@/lib/constants";
@@ -71,8 +70,6 @@ export function LoginPage({ returnTo = "/" }: { returnTo?: string }) {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center px-5 py-10">
-      <div className="absolute right-5 top-5 z-10"><ThemeSwitcher /></div>
-      {/* same ambient glow the console uses, so the two pages read as one system */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-x-0 top-0 h-[420px] bg-[radial-gradient(70%_100%_at_50%_0%,var(--color-glow),transparent_70%)]"

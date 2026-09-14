@@ -235,6 +235,7 @@ def update_information(user_id: int, group_data: dict[str, GroupInfo]) ->  ListR
                     group_id=group_id, 
                     is_linked=False, 
                     conn=conn,
+                    ignore_name=True
                 )
                 print("Create new unlinked company successfully\n")
             

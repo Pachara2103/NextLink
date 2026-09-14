@@ -46,9 +46,11 @@ def get_companies() -> ListResponse[Company]:
             return ListResponse(items=items, total=len(items))
 
 
-def create_company_pg(payload: CompanyName, group_id: str, is_linked: bool = False, conn: Any = None):
+def create_company_pg(payload: CompanyName, group_id: str, is_linked: bool = False, conn: Any = None, ignore_name: bool = False):
+    if not ignore_name and not payload.company_th and not payload.company_en:
+        raise BadRequestError(message="ไม่ระบุชื่อบริษัทที่ต้องการสร้าง")
     if not conn:
-         raise BadRequestError()
+        raise BadRequestError()
 
     query = f"""
         INSERT INTO companies (group_id, company_th, company_en, aliases, is_linked)
