@@ -1,0 +1,367 @@
+{
+  "sourceSystem": "google_sheets",
+  "sourceSpreadsheetId": "mock-elective-status-sheet",
+  "sourceSheetName": "ชีต1",
+  "courses": {
+    "course-offering-21105801-51": {
+      "sourceKey": "2569-ต้น-21105801-51",
+      "sourceRowNumber": 2,
+      "sourceHash": "mock-row-21105801-51-v1",
+      "mcvJoinCode": "x51",
+      "documents": {
+        "course_opening_form": { "externalUrl": "https://example.com/mock/21105801-opening-form" },
+        "course_syllabus": { "externalUrl": "https://example.com/mock/21105801-syllabus" }
+      },
+      "tasks": [
+        { "key": "INVITATION_LETTER", "label": "ทำจดหมายเชิญ", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "TEACHING_HOURS_LETTER", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "TEACHING_HOURS_NOTICE", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "SPECIAL_INSTRUCTOR_MCV_PERMISSION", "label": "แจ้งสิทธิ์ผู้สอนพิเศษเข้า MCV", "status": "DONE", "rawStatus": "Finished" },
+        { "key": "OPEN_MCV", "label": "เปิด MCV ให้กับแต่ละวิชา", "status": "DONE", "rawStatus": "Finished" },
+        { "key": "IMPORT_MENTOR_INSTRUCTOR", "label": "ดึงอาจารย์พี่เลี้ยง", "status": "DONE", "rawStatus": "OK" },
+        { "key": "IMPORT_SPECIAL_INSTRUCTOR", "label": "ดึงอาจารย์พิเศษเข้า MCV", "status": "DONE", "rawStatus": "OK" },
+        { "key": "MCV_JOIN_CODE", "label": "รหัส Join MCV สำหรับนิสิต", "status": "DONE", "rawStatus": "x51", "detail": "รหัสสำหรับนิสิตเข้าร่วม MCV" },
+        { "key": "IMPORT_STUDENTS_MCV", "label": "ดึงนิสิตเข้า MCV (แจ้ง)", "status": "DONE", "rawStatus": "OK" }
+      ],
+      "rawRow": {
+        "ไฟล์ขอเปิดรายวิชา แนบลิงก์": "https://example.com/mock/21105801-opening-form",
+        "ไฟล์ประมวลรายวิชา (Course Syllabus) แนบไฟล์": "https://example.com/mock/21105801-syllabus",
+        "ทำจดหมายเชิญ": "ได้รับแล้ว",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน": "ได้รับแล้ว",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)": "ได้รับแล้ว",
+        "แจ้งให้ อ.พิเศษขอสิทธิ์เป็น instructor กับ MCV": "Finished",
+        "เปิด MCV ให้กับแต่ละวิชา": "Finished",
+        "ดึงอาจารย์พี่เลี้ยง": "OK",
+        "ดึง อ.พิเศษเข้า": "OK",
+        "รหัส Join MCV สำหรับนิสิต": "x51",
+        "ดึงนิสิตเข้า MCV (แจ้ง)": "OK",
+        "ห้องที่ได้": "100ปี–401",
+        "week": "10"
+      }
+    },
+    "course-offering-21105802-52": {
+      "sourceKey": "2569-ต้น-21105802-52",
+      "sourceRowNumber": 3,
+      "sourceHash": "mock-row-21105802-52-v1",
+      "mcvJoinCode": "x52",
+      "documents": {
+        "course_opening_form": { "externalUrl": "https://example.com/mock/21105802-opening-form" },
+        "course_syllabus": { "externalUrl": "https://example.com/mock/21105802-syllabus" }
+      },
+      "tasks": [
+        { "key": "INVITATION_LETTER", "label": "ทำจดหมายเชิญ", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "TEACHING_HOURS_LETTER", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "TEACHING_HOURS_NOTICE", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "SPECIAL_INSTRUCTOR_MCV_PERMISSION", "label": "แจ้งสิทธิ์ผู้สอนพิเศษเข้า MCV", "status": "BLOCKED", "rawStatus": "แจ้งแล้วแต่คุณอิทธิพันธ์ไม่ดำเนินการ", "detail": "รอผู้ดูแล MCV ดำเนินการ" },
+        { "key": "OPEN_MCV", "label": "เปิด MCV ให้กับแต่ละวิชา", "status": "DONE", "rawStatus": "Finished" },
+        { "key": "IMPORT_MENTOR_INSTRUCTOR", "label": "ดึงอาจารย์พี่เลี้ยง", "status": "DONE", "rawStatus": "OK" },
+        { "key": "IMPORT_SPECIAL_INSTRUCTOR", "label": "ดึงอาจารย์พิเศษเข้า MCV", "status": "BLOCKED", "rawStatus": "ยังไม่ดำเนินการ" },
+        { "key": "MCV_JOIN_CODE", "label": "รหัส Join MCV สำหรับนิสิต", "status": "DONE", "rawStatus": "x52" },
+        { "key": "IMPORT_STUDENTS_MCV", "label": "ดึงนิสิตเข้า MCV (แจ้ง)", "status": "DONE", "rawStatus": "OK" }
+      ],
+      "rawRow": {
+        "ไฟล์ขอเปิดรายวิชา แนบลิงก์": "https://example.com/mock/21105802-opening-form",
+        "ไฟล์ประมวลรายวิชา (Course Syllabus) แนบไฟล์": "https://example.com/mock/21105802-syllabus",
+        "ทำจดหมายเชิญ": "ได้รับแล้ว",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน": "ได้รับแล้ว",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)": "ได้รับแล้ว",
+        "แจ้งให้ อ.พิเศษขอสิทธิ์เป็น instructor กับ MCV": "แจ้งแล้วแต่คุณอิทธิพันธ์ไม่ดำเนินการ",
+        "เปิด MCV ให้กับแต่ละวิชา": "Finished",
+        "ดึงอาจารย์พี่เลี้ยง": "OK",
+        "ดึง อ.พิเศษเข้า": "ยังไม่ดำเนินการ",
+        "รหัส Join MCV สำหรับนิสิต": "x52",
+        "ดึงนิสิตเข้า MCV (แจ้ง)": "OK",
+        "ห้องที่ได้": "ตึก 3–421",
+        "week": "10"
+      }
+    },
+    "course-offering-21105803-53": {
+      "sourceKey": "2569-ต้น-21105803-53",
+      "sourceRowNumber": 4,
+      "sourceHash": "mock-row-21105803-53-v1",
+      "mcvJoinCode": "x53",
+      "documents": {
+        "course_opening_form": { "externalUrl": "https://example.com/mock/21105803-opening-form" },
+        "course_syllabus": { "externalUrl": "https://example.com/mock/21105803-syllabus" }
+      },
+      "tasks": [
+        { "key": "INVITATION_LETTER", "label": "ทำจดหมายเชิญ", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "TEACHING_HOURS_LETTER", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "TEACHING_HOURS_NOTICE", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "SPECIAL_INSTRUCTOR_MCV_PERMISSION", "label": "แจ้งสิทธิ์ผู้สอนพิเศษเข้า MCV", "status": "DONE", "rawStatus": "Finished" },
+        { "key": "OPEN_MCV", "label": "เปิด MCV ให้กับแต่ละวิชา", "status": "DONE", "rawStatus": "Finished" },
+        { "key": "IMPORT_MENTOR_INSTRUCTOR", "label": "ดึงอาจารย์พี่เลี้ยง", "status": "DONE", "rawStatus": "OK" },
+        { "key": "IMPORT_SPECIAL_INSTRUCTOR", "label": "ดึงอาจารย์พิเศษเข้า MCV", "status": "DONE", "rawStatus": "OK" },
+        { "key": "MCV_JOIN_CODE", "label": "รหัส Join MCV สำหรับนิสิต", "status": "DONE", "rawStatus": "x53" },
+        { "key": "IMPORT_STUDENTS_MCV", "label": "ดึงนิสิตเข้า MCV (แจ้ง)", "status": "DONE", "rawStatus": "OK" }
+      ],
+      "rawRow": {
+        "ไฟล์ขอเปิดรายวิชา แนบลิงก์": "https://example.com/mock/21105803-opening-form",
+        "ไฟล์ประมวลรายวิชา (Course Syllabus) แนบไฟล์": "https://example.com/mock/21105803-syllabus",
+        "ทำจดหมายเชิญ": "ได้รับแล้ว",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน": "ได้รับแล้ว",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)": "ได้รับแล้ว",
+        "แจ้งให้ อ.พิเศษขอสิทธิ์เป็น instructor กับ MCV": "Finished",
+        "เปิด MCV ให้กับแต่ละวิชา": "Finished",
+        "ดึงอาจารย์พี่เลี้ยง": "OK",
+        "ดึง อ.พิเศษเข้า": "OK",
+        "รหัส Join MCV สำหรับนิสิต": "x53",
+        "ดึงนิสิตเข้า MCV (แจ้ง)": "OK",
+        "ห้องที่ได้": "CP5–203",
+        "week": "10"
+      }
+    },
+    "course-offering-21105804-54": {
+      "sourceKey": "2569-ต้น-21105804-54",
+      "sourceRowNumber": 5,
+      "sourceHash": "mock-row-21105804-54-v1",
+      "mcvJoinCode": "x54",
+      "documents": {
+        "course_opening_form": { "externalUrl": "https://example.com/mock/21105804-opening-form" },
+        "course_syllabus": { "externalUrl": "https://example.com/mock/21105804-syllabus" }
+      },
+      "tasks": [
+        { "key": "INVITATION_LETTER", "label": "ทำจดหมายเชิญ", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "TEACHING_HOURS_LETTER", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "TEACHING_HOURS_NOTICE", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "SPECIAL_INSTRUCTOR_MCV_PERMISSION", "label": "แจ้งสิทธิ์ผู้สอนพิเศษเข้า MCV", "status": "DONE", "rawStatus": "Finished" },
+        { "key": "OPEN_MCV", "label": "เปิด MCV ให้กับแต่ละวิชา", "status": "DONE", "rawStatus": "Finished" },
+        { "key": "IMPORT_MENTOR_INSTRUCTOR", "label": "ดึงอาจารย์พี่เลี้ยง", "status": "DONE", "rawStatus": "OK" },
+        { "key": "IMPORT_SPECIAL_INSTRUCTOR", "label": "ดึงอาจารย์พิเศษเข้า MCV", "status": "DONE", "rawStatus": "OK" },
+        { "key": "MCV_JOIN_CODE", "label": "รหัส Join MCV สำหรับนิสิต", "status": "DONE", "rawStatus": "x54" },
+        { "key": "IMPORT_STUDENTS_MCV", "label": "ดึงนิสิตเข้า MCV (แจ้ง)", "status": "DONE", "rawStatus": "OK" }
+      ],
+      "rawRow": {
+        "ไฟล์ขอเปิดรายวิชา แนบลิงก์": "https://example.com/mock/21105804-opening-form",
+        "ไฟล์ประมวลรายวิชา (Course Syllabus) แนบไฟล์": "https://example.com/mock/21105804-syllabus",
+        "ทำจดหมายเชิญ": "ได้รับแล้ว",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน": "ได้รับแล้ว",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)": "ได้รับแล้ว",
+        "แจ้งให้ อ.พิเศษขอสิทธิ์เป็น instructor กับ MCV": "Finished",
+        "เปิด MCV ให้กับแต่ละวิชา": "Finished",
+        "ดึงอาจารย์พี่เลี้ยง": "OK",
+        "ดึง อ.พิเศษเข้า": "OK",
+        "รหัส Join MCV สำหรับนิสิต": "x54",
+        "ดึงนิสิตเข้า MCV (แจ้ง)": "OK",
+        "ห้องที่ได้": "CP5–203",
+        "week": "9"
+      }
+    },
+    "course-offering-21105805-55": {
+      "sourceKey": "2569-ต้น-21105805-55",
+      "sourceRowNumber": 6,
+      "sourceHash": "mock-row-21105805-55-v1",
+      "mcvJoinCode": null,
+      "documents": {
+        "course_opening_form": { "externalUrl": "https://example.com/mock/21105805-opening-form" },
+        "course_syllabus": { "externalUrl": null }
+      },
+      "tasks": [
+        { "key": "INVITATION_LETTER", "label": "ทำจดหมายเชิญ", "status": "NOT_RECEIVED", "rawStatus": "ยังไม่ได้รับ" },
+        { "key": "TEACHING_HOURS_LETTER", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน", "status": "NOT_RECEIVED", "rawStatus": "ยังไม่ได้รับ" },
+        { "key": "TEACHING_HOURS_NOTICE", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)", "status": "IN_PROGRESS", "rawStatus": "กำลังดำเนินการ" },
+        { "key": "SPECIAL_INSTRUCTOR_MCV_PERMISSION", "label": "แจ้งสิทธิ์ผู้สอนพิเศษเข้า MCV", "status": "IN_PROGRESS", "rawStatus": "กำลังดำเนินการ" },
+        { "key": "OPEN_MCV", "label": "เปิด MCV ให้กับแต่ละวิชา", "status": "NOT_RECEIVED", "rawStatus": "ยังไม่เปิด" },
+        { "key": "IMPORT_MENTOR_INSTRUCTOR", "label": "ดึงอาจารย์พี่เลี้ยง", "status": "NOT_RECEIVED", "rawStatus": "ยังไม่ได้รับ" },
+        { "key": "IMPORT_SPECIAL_INSTRUCTOR", "label": "ดึงอาจารย์พิเศษเข้า MCV", "status": "NOT_RECEIVED", "rawStatus": "ยังไม่ได้รับ" },
+        { "key": "MCV_JOIN_CODE", "label": "รหัส Join MCV สำหรับนิสิต", "status": "UNKNOWN", "rawStatus": "ยังไม่มีรหัส" },
+        { "key": "IMPORT_STUDENTS_MCV", "label": "ดึงนิสิตเข้า MCV (แจ้ง)", "status": "NOT_APPLICABLE", "rawStatus": "รอเปิด MCV" }
+      ],
+      "rawRow": {
+        "ไฟล์ขอเปิดรายวิชา แนบลิงก์": "https://example.com/mock/21105805-opening-form",
+        "ไฟล์ประมวลรายวิชา (Course Syllabus) แนบไฟล์": "ยังไม่มีไฟล์",
+        "ทำจดหมายเชิญ": "ยังไม่ได้รับ",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน": "ยังไม่ได้รับ",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)": "กำลังดำเนินการ",
+        "แจ้งให้ อ.พิเศษขอสิทธิ์เป็น instructor กับ MCV": "กำลังดำเนินการ",
+        "เปิด MCV ให้กับแต่ละวิชา": "ยังไม่เปิด",
+        "ดึงอาจารย์พี่เลี้ยง": "ยังไม่ได้รับ",
+        "ดึง อ.พิเศษเข้า": "ยังไม่ได้รับ",
+        "รหัส Join MCV สำหรับนิสิต": "ยังไม่มีรหัส",
+        "ดึงนิสิตเข้า MCV (แจ้ง)": "รอเปิด MCV",
+        "ห้องที่ได้": "100ปี–402 / ออนไลน์",
+        "week": "8"
+      }
+    },
+    "course-offering-21105806-56": {
+      "sourceKey": "2569-ต้น-21105806-56",
+      "sourceRowNumber": 7,
+      "sourceHash": "mock-row-21105806-56-v1",
+      "mcvJoinCode": "x56",
+      "documents": {
+        "course_opening_form": { "externalUrl": "https://example.com/mock/21105806-opening-form" },
+        "course_syllabus": { "externalUrl": "https://example.com/mock/21105806-syllabus" }
+      },
+      "tasks": [
+        { "key": "INVITATION_LETTER", "label": "ทำจดหมายเชิญ", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "TEACHING_HOURS_LETTER", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "TEACHING_HOURS_NOTICE", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "SPECIAL_INSTRUCTOR_MCV_PERMISSION", "label": "แจ้งสิทธิ์ผู้สอนพิเศษเข้า MCV", "status": "DONE", "rawStatus": "Finished" },
+        { "key": "OPEN_MCV", "label": "เปิด MCV ให้กับแต่ละวิชา", "status": "IN_PROGRESS", "rawStatus": "กำลังดำเนินการ" },
+        { "key": "IMPORT_MENTOR_INSTRUCTOR", "label": "ดึงอาจารย์พี่เลี้ยง", "status": "DONE", "rawStatus": "OK" },
+        { "key": "IMPORT_SPECIAL_INSTRUCTOR", "label": "ดึงอาจารย์พิเศษเข้า MCV", "status": "DONE", "rawStatus": "OK" },
+        { "key": "MCV_JOIN_CODE", "label": "รหัส Join MCV สำหรับนิสิต", "status": "DONE", "rawStatus": "x56" },
+        { "key": "IMPORT_STUDENTS_MCV", "label": "ดึงนิสิตเข้า MCV (แจ้ง)", "status": "IN_PROGRESS", "rawStatus": "กำลังดำเนินการ" }
+      ],
+      "rawRow": {
+        "ไฟล์ขอเปิดรายวิชา แนบลิงก์": "https://example.com/mock/21105806-opening-form",
+        "ไฟล์ประมวลรายวิชา (Course Syllabus) แนบไฟล์": "https://example.com/mock/21105806-syllabus",
+        "ทำจดหมายเชิญ": "ได้รับแล้ว",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน": "ได้รับแล้ว",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)": "ได้รับแล้ว",
+        "แจ้งให้ อ.พิเศษขอสิทธิ์เป็น instructor กับ MCV": "Finished",
+        "เปิด MCV ให้กับแต่ละวิชา": "กำลังดำเนินการ",
+        "ดึงอาจารย์พี่เลี้ยง": "OK",
+        "ดึง อ.พิเศษเข้า": "OK",
+        "รหัส Join MCV สำหรับนิสิต": "x56",
+        "ดึงนิสิตเข้า MCV (แจ้ง)": "กำลังดำเนินการ",
+        "ห้องที่ได้": "ออนไลน์",
+        "week": "10"
+      }
+    },
+    "course-offering-21105807-57": {
+      "sourceKey": "2569-ต้น-21105807-57",
+      "sourceRowNumber": 8,
+      "sourceHash": "mock-row-21105807-57-v1",
+      "mcvJoinCode": "x57",
+      "documents": {
+        "course_opening_form": { "externalUrl": "https://example.com/mock/21105807-opening-form" },
+        "course_syllabus": { "externalUrl": "https://example.com/mock/21105807-syllabus" }
+      },
+      "tasks": [
+        { "key": "INVITATION_LETTER", "label": "ทำจดหมายเชิญ", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "TEACHING_HOURS_LETTER", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "TEACHING_HOURS_NOTICE", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "SPECIAL_INSTRUCTOR_MCV_PERMISSION", "label": "แจ้งสิทธิ์ผู้สอนพิเศษเข้า MCV", "status": "DONE", "rawStatus": "Finished" },
+        { "key": "OPEN_MCV", "label": "เปิด MCV ให้กับแต่ละวิชา", "status": "DONE", "rawStatus": "Finished" },
+        { "key": "IMPORT_MENTOR_INSTRUCTOR", "label": "ดึงอาจารย์พี่เลี้ยง", "status": "DONE", "rawStatus": "OK" },
+        { "key": "IMPORT_SPECIAL_INSTRUCTOR", "label": "ดึงอาจารย์พิเศษเข้า MCV", "status": "DONE", "rawStatus": "OK" },
+        { "key": "MCV_JOIN_CODE", "label": "รหัส Join MCV สำหรับนิสิต", "status": "DONE", "rawStatus": "x57" },
+        { "key": "IMPORT_STUDENTS_MCV", "label": "ดึงนิสิตเข้า MCV (แจ้ง)", "status": "DONE", "rawStatus": "OK" }
+      ],
+      "rawRow": {
+        "ไฟล์ขอเปิดรายวิชา แนบลิงก์": "https://example.com/mock/21105807-opening-form",
+        "ไฟล์ประมวลรายวิชา (Course Syllabus) แนบไฟล์": "https://example.com/mock/21105807-syllabus",
+        "ทำจดหมายเชิญ": "ได้รับแล้ว",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน": "ได้รับแล้ว",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)": "ได้รับแล้ว",
+        "แจ้งให้ อ.พิเศษขอสิทธิ์เป็น instructor กับ MCV": "Finished",
+        "เปิด MCV ให้กับแต่ละวิชา": "Finished",
+        "ดึงอาจารย์พี่เลี้ยง": "OK",
+        "ดึง อ.พิเศษเข้า": "OK",
+        "รหัส Join MCV สำหรับนิสิต": "x57",
+        "ดึงนิสิตเข้า MCV (แจ้ง)": "OK",
+        "ห้องที่ได้": "ตึก 4–302",
+        "week": "10"
+      }
+    },
+    "course-offering-21105808-58": {
+      "sourceKey": "2569-ต้น-21105808-58",
+      "sourceRowNumber": 9,
+      "sourceHash": "mock-row-21105808-58-v1",
+      "mcvJoinCode": null,
+      "documents": {
+        "course_opening_form": { "externalUrl": "https://example.com/mock/21105808-opening-form" },
+        "course_syllabus": { "externalUrl": "https://example.com/mock/21105808-syllabus-v2" }
+      },
+      "tasks": [
+        { "key": "INVITATION_LETTER", "label": "ทำจดหมายเชิญ", "status": "IN_PROGRESS", "rawStatus": "กำลังดำเนินการ" },
+        { "key": "TEACHING_HOURS_LETTER", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "TEACHING_HOURS_NOTICE", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "SPECIAL_INSTRUCTOR_MCV_PERMISSION", "label": "แจ้งสิทธิ์ผู้สอนพิเศษเข้า MCV", "status": "DONE", "rawStatus": "Finished" },
+        { "key": "OPEN_MCV", "label": "เปิด MCV ให้กับแต่ละวิชา", "status": "NOT_RECEIVED", "rawStatus": "ยังไม่เปิด" },
+        { "key": "IMPORT_MENTOR_INSTRUCTOR", "label": "ดึงอาจารย์พี่เลี้ยง", "status": "DONE", "rawStatus": "OK" },
+        { "key": "IMPORT_SPECIAL_INSTRUCTOR", "label": "ดึงอาจารย์พิเศษเข้า MCV", "status": "DONE", "rawStatus": "OK" },
+        { "key": "MCV_JOIN_CODE", "label": "รหัส Join MCV สำหรับนิสิต", "status": "UNKNOWN", "rawStatus": "ยังไม่มีรหัส" },
+        { "key": "IMPORT_STUDENTS_MCV", "label": "ดึงนิสิตเข้า MCV (แจ้ง)", "status": "NOT_APPLICABLE", "rawStatus": "รอเปิด MCV" }
+      ],
+      "rawRow": {
+        "ไฟล์ขอเปิดรายวิชา แนบลิงก์": "https://example.com/mock/21105808-opening-form",
+        "ไฟล์ประมวลรายวิชา (Course Syllabus) แนบไฟล์": "https://example.com/mock/21105808-syllabus-v2",
+        "ทำจดหมายเชิญ": "กำลังดำเนินการ",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน": "ได้รับแล้ว",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)": "ได้รับแล้ว",
+        "แจ้งให้ อ.พิเศษขอสิทธิ์เป็น instructor กับ MCV": "Finished",
+        "เปิด MCV ให้กับแต่ละวิชา": "ยังไม่เปิด",
+        "ดึงอาจารย์พี่เลี้ยง": "OK",
+        "ดึง อ.พิเศษเข้า": "OK",
+        "รหัส Join MCV สำหรับนิสิต": "ยังไม่มีรหัส",
+        "ดึงนิสิตเข้า MCV (แจ้ง)": "รอเปิด MCV",
+        "ห้องที่ได้": "100ปี–402 / ออนไลน์",
+        "week": "8"
+      }
+    },
+    "course-offering-21105809-59": {
+      "sourceKey": "2569-ต้น-21105809-59",
+      "sourceRowNumber": 10,
+      "sourceHash": "mock-row-21105809-59-v1",
+      "mcvJoinCode": "x59",
+      "documents": {
+        "course_opening_form": { "externalUrl": "https://example.com/mock/21105809-opening-form" },
+        "course_syllabus": { "externalUrl": "https://example.com/mock/21105809-syllabus" }
+      },
+      "tasks": [
+        { "key": "INVITATION_LETTER", "label": "ทำจดหมายเชิญ", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "TEACHING_HOURS_LETTER", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "TEACHING_HOURS_NOTICE", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "SPECIAL_INSTRUCTOR_MCV_PERMISSION", "label": "แจ้งสิทธิ์ผู้สอนพิเศษเข้า MCV", "status": "DONE", "rawStatus": "Finished" },
+        { "key": "OPEN_MCV", "label": "เปิด MCV ให้กับแต่ละวิชา", "status": "DONE", "rawStatus": "Finished" },
+        { "key": "IMPORT_MENTOR_INSTRUCTOR", "label": "ดึงอาจารย์พี่เลี้ยง", "status": "DONE", "rawStatus": "OK" },
+        { "key": "IMPORT_SPECIAL_INSTRUCTOR", "label": "ดึงอาจารย์พิเศษเข้า MCV", "status": "DONE", "rawStatus": "OK" },
+        { "key": "MCV_JOIN_CODE", "label": "รหัส Join MCV สำหรับนิสิต", "status": "DONE", "rawStatus": "x59" },
+        { "key": "IMPORT_STUDENTS_MCV", "label": "ดึงนิสิตเข้า MCV (แจ้ง)", "status": "DONE", "rawStatus": "OK" }
+      ],
+      "rawRow": {
+        "ไฟล์ขอเปิดรายวิชา แนบลิงก์": "https://example.com/mock/21105809-opening-form",
+        "ไฟล์ประมวลรายวิชา (Course Syllabus) แนบไฟล์": "https://example.com/mock/21105809-syllabus",
+        "ทำจดหมายเชิญ": "ได้รับแล้ว",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน": "ได้รับแล้ว",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)": "ได้รับแล้ว",
+        "แจ้งให้ อ.พิเศษขอสิทธิ์เป็น instructor กับ MCV": "Finished",
+        "เปิด MCV ให้กับแต่ละวิชา": "Finished",
+        "ดึงอาจารย์พี่เลี้ยง": "OK",
+        "ดึง อ.พิเศษเข้า": "OK",
+        "รหัส Join MCV สำหรับนิสิต": "x59",
+        "ดึงนิสิตเข้า MCV (แจ้ง)": "OK",
+        "ห้องที่ได้": "ออนไลน์",
+        "week": "10"
+      }
+    },
+    "course-offering-21105810-60": {
+      "sourceKey": "2569-ต้น-21105810-60",
+      "sourceRowNumber": 11,
+      "sourceHash": "mock-row-21105810-60-v1",
+      "mcvJoinCode": "x60",
+      "documents": {
+        "course_opening_form": { "externalUrl": "https://example.com/mock/21105810-opening-form" },
+        "course_syllabus": { "externalUrl": "https://example.com/mock/21105810-syllabus" }
+      },
+      "tasks": [
+        { "key": "INVITATION_LETTER", "label": "ทำจดหมายเชิญ", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "TEACHING_HOURS_LETTER", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน", "status": "RECEIVED", "rawStatus": "ได้รับแล้ว" },
+        { "key": "TEACHING_HOURS_NOTICE", "label": "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)", "status": "IN_PROGRESS", "rawStatus": "กำลังดำเนินการ" },
+        { "key": "SPECIAL_INSTRUCTOR_MCV_PERMISSION", "label": "แจ้งสิทธิ์ผู้สอนพิเศษเข้า MCV", "status": "DONE", "rawStatus": "Finished" },
+        { "key": "OPEN_MCV", "label": "เปิด MCV ให้กับแต่ละวิชา", "status": "DONE", "rawStatus": "Finished" },
+        { "key": "IMPORT_MENTOR_INSTRUCTOR", "label": "ดึงอาจารย์พี่เลี้ยง", "status": "DONE", "rawStatus": "OK" },
+        { "key": "IMPORT_SPECIAL_INSTRUCTOR", "label": "ดึงอาจารย์พิเศษเข้า MCV", "status": "DONE", "rawStatus": "OK" },
+        { "key": "MCV_JOIN_CODE", "label": "รหัส Join MCV สำหรับนิสิต", "status": "DONE", "rawStatus": "x60" },
+        { "key": "IMPORT_STUDENTS_MCV", "label": "ดึงนิสิตเข้า MCV (แจ้ง)", "status": "DONE", "rawStatus": "OK" }
+      ],
+      "rawRow": {
+        "ไฟล์ขอเปิดรายวิชา แนบลิงก์": "https://example.com/mock/21105810-opening-form",
+        "ไฟล์ประมวลรายวิชา (Course Syllabus) แนบไฟล์": "https://example.com/mock/21105810-syllabus",
+        "ทำจดหมายเชิญ": "ได้รับแล้ว",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน": "ได้รับแล้ว",
+        "ทำจดหมายและแจ้งจำนวนชั่วโมงสอน (แจ้งจำนวน)": "กำลังดำเนินการ",
+        "แจ้งให้ อ.พิเศษขอสิทธิ์เป็น instructor กับ MCV": "Finished",
+        "เปิด MCV ให้กับแต่ละวิชา": "Finished",
+        "ดึงอาจารย์พี่เลี้ยง": "OK",
+        "ดึง อ.พิเศษเข้า": "OK",
+        "รหัส Join MCV สำหรับนิสิต": "x60",
+        "ดึงนิสิตเข้า MCV (แจ้ง)": "OK",
+        "ห้องที่ได้": "CP5–204 / ออนไลน์",
+        "week": "10"
+      }
+    }
+  }
+}

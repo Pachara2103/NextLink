@@ -12,6 +12,8 @@
     "check:api": "npm run gen:api && git diff --exit-code -- src/types/api.ts",
     "check:planner": "node --experimental-strip-types scripts/elective-plan/check-scheduler.mjs && node --experimental-strip-types scripts/elective-plan/check-integrity.mjs && node --experimental-strip-types scripts/elective-plan/check-storage.mjs && node --experimental-strip-types scripts/elective-plan/check-metrics.mjs && node --experimental-strip-types scripts/elective-plan/check-seed.mjs && node --experimental-strip-types scripts/elective-plan/check-rooms.mjs && node --experimental-strip-types scripts/elective-plan/check-courses.mjs && node --experimental-strip-types scripts/elective-plan/check-checklist.mjs && node --experimental-strip-types scripts/elective-plan/check-xlsx.mjs && node --experimental-strip-types scripts/elective-plan/check-plan-api.mjs && node --experimental-strip-types scripts/elective-plan/check-plan-state.mjs",
     "check:browser": "node scripts/elective-plan/check-browser.mjs && node scripts/elective-plan/check-browser-api.mjs"
+    "check:dashboard": "node scripts/dashboard/check-domain.mjs",
+    "check:dashboard:browser": "node scripts/dashboard/check-browser.mjs"
   },
   "dependencies": {
     "next": "16.3.3",

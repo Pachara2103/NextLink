@@ -45,3 +45,6 @@ next-env.d.ts
 /output/
 !docs/
 !docs/elective-planner-integration.md
+
+!docs/dashboard-integration.md
+!docs/friday-activity-dashboard.md

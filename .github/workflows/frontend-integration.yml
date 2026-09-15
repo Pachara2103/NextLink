@@ -1,4 +1,4 @@
-name: Frontend planner integration
+name: Frontend planner and dashboard integration
 on:
   pull_request:
     paths: ['frontend/**', '.github/workflows/frontend-integration.yml']
@@ -23,9 +23,11 @@ jobs:
       - run: npm ci
       - run: npm run check:config
       - run: npm run check:planner
+      - run: npm run check:dashboard
       - run: npm run lint
       - run: npm run build
         env:
           API_ORIGIN: ''
       - run: npx playwright install --with-deps chromium
       - run: npm run check:browser
+      - run: npm run check:dashboard:browser

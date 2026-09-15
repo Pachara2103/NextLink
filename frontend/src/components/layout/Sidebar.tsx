@@ -33,7 +33,7 @@ export function Sidebar({
   active,
   onNavigate,
 }: {
-  active: PanelKey | "planner";
+  active: PanelKey | "planner" | "dashboard";
   onNavigate: (panel: PanelKey) => void;
 }) {
   const {
@@ -49,6 +49,8 @@ export function Sidebar({
   const [confirmingSignOut, setConfirmingSignOut] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
+  // Real links let the Dashboard's unsaved-edit guard cancel route exits.
+  const NavControl = active === "dashboard" ? Link : "button";
 
   async function onSignOut() {
     setSigningOut(true);
@@ -99,10 +101,11 @@ export function Sidebar({
           const on = item.key === active;
           const count = counts[item.key];
           return (
-            <button
+            <NavControl
               key={item.key}
+              href={`/?panel=${item.key}`}
               type="button"
-              onClick={() => onNavigate(item.key)}
+              onClick={active === "dashboard" ? undefined : () => onNavigate(item.key)}
               aria-current={on ? "page" : undefined}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition",
@@ -129,38 +132,35 @@ export function Sidebar({
                   {count.value}
                 </span>
               )}
-            </button>
+            </NavControl>
           );
         })}
+        <Link href="/dashboard" aria-current={active === "dashboard" ? "page" : undefined}
+          className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition", active === "dashboard" ? "bg-accent-soft text-text shadow-[inset_0_0_0_1px_var(--color-accent-line)]" : "text-text-2 hover:bg-surface-2 hover:text-text")}>
+          <Icon
+            name="layers"
+            className={cn(
+              "size-[18px] shrink-0",
+              active === "dashboard" ? "text-accent" : "text-text-3",
+            )}
+          />
+          Dashboard
+        </Link>
         <Link href="/elective-plan" aria-current={active === "planner" ? "page" : undefined}
           className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition", active === "planner" ? "bg-accent-soft text-text shadow-[inset_0_0_0_1px_var(--color-accent-line)]" : "text-text-2 hover:bg-surface-2 hover:text-text")}>
-          <Icon name="layers" className="size-[18px] text-accent" />
+          <Icon
+            name="layers"
+            className={cn(
+              "size-[18px] shrink-0",
+              active === "planner" ? "text-accent" : "text-text-3",
+            )}
+          />
           จัดตารางวิชาเลือก
         </Link>
       </nav>
 
       <div className="mt-auto space-y-3 p-4">
         <ThemeSwitcher />
-        <div className="rounded-xl border border-line-soft bg-surface p-4">
-          <span className="font-mono text-[10px] tracking-[0.14em] text-text-3 uppercase">
-            ความคืบหน้าการผูกบริษัท
-          </span>
-          <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="font-display text-2xl font-semibold tabular-nums text-text">
-              {ratio}
-            </span>
-            <span className="text-sm text-text-3">%</span>
-          </div>
-          <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-accent to-ok"
-              style={{ width: `${ratio}%` }}
-            />
-          </div>
-          <p className="mt-2 text-[11px] text-text-3">
-            ผูกแล้ว {linkedGroups.length} จาก {groupLines.length} กลุ่ม
-          </p>
-        </div>
 
         <div className="flex items-center gap-3 rounded-xl px-2 py-1.5">
           {/* One glyph rather than the first two letters of the name: sliced

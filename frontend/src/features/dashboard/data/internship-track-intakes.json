@@ -1,0 +1,314 @@
+{
+  "description": "จำนวนรับจำลองแยกฝึกงานและสหกิจ สร้างเพื่อสาธิตการแยกหน้า ไม่ใช่ยอดจริงจากบริษัท",
+  "lastUpdated": "2026-09-07T14:00:00+07:00",
+  "tracks": {
+    "ฝึกงาน": {
+      "internship-company-mock-cloud": [
+        {
+          "name": "Software Engineering",
+          "declaredIntake": 2,
+          "accepted": 2
+        },
+        {
+          "name": "Site Reliability",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-softmatrix": [
+        {
+          "name": "Platform",
+          "declaredIntake": 2,
+          "accepted": 2
+        },
+        {
+          "name": "Frontend",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-dataforge": [
+        {
+          "name": "Data Engineering",
+          "declaredIntake": 1,
+          "accepted": 1
+        },
+        {
+          "name": "Data Science",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-ai-path": [
+        {
+          "name": "ML Engineering",
+          "declaredIntake": 2,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-cyberflow": [
+        {
+          "name": "Security Operations",
+          "declaredIntake": 1,
+          "accepted": 1
+        },
+        {
+          "name": "AppSec",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-platform": [
+        {
+          "name": "DevOps",
+          "declaredIntake": 2,
+          "accepted": 2
+        }
+      ],
+      "internship-company-mock-product": [
+        {
+          "name": "Product Analyst",
+          "declaredIntake": 1,
+          "accepted": 1
+        },
+        {
+          "name": "UX Research",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-quantum": [
+        {
+          "name": "Research Assistant",
+          "declaredIntake": 1,
+          "accepted": 0
+        }
+      ],
+      "internship-company-mock-market": [
+        {
+          "name": "Backend",
+          "declaredIntake": 1,
+          "accepted": 1
+        },
+        {
+          "name": "Growth Analytics",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-design": [
+        {
+          "name": "Design System",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-nextcompass": [
+        {
+          "name": "Solution Analyst",
+          "declaredIntake": 1,
+          "accepted": 2
+        }
+      ],
+      "internship-company-mock-greentech": [
+        {
+          "name": "Embedded Software",
+          "declaredIntake": 1,
+          "accepted": 1
+        },
+        {
+          "name": "IoT",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-healthlink": [
+        {
+          "name": "Backend",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-logistics": [
+        {
+          "name": "Optimization",
+          "declaredIntake": 1,
+          "accepted": 1
+        },
+        {
+          "name": "Mobile",
+          "declaredIntake": 0,
+          "accepted": 0
+        }
+      ],
+      "internship-company-mock-fincore": [
+        {
+          "name": "Core Banking",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-edutech": [
+        {
+          "name": "Fullstack",
+          "declaredIntake": 1,
+          "accepted": 0
+        }
+      ]
+    },
+    "สหกิจศึกษา": {
+      "internship-company-mock-cloud": [
+        {
+          "name": "Software Engineering",
+          "declaredIntake": 2,
+          "accepted": 2
+        },
+        {
+          "name": "Site Reliability",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-softmatrix": [
+        {
+          "name": "Platform",
+          "declaredIntake": 1,
+          "accepted": 1
+        },
+        {
+          "name": "Frontend",
+          "declaredIntake": 2,
+          "accepted": 2
+        }
+      ],
+      "internship-company-mock-dataforge": [
+        {
+          "name": "Data Engineering",
+          "declaredIntake": 2,
+          "accepted": 2
+        },
+        {
+          "name": "Data Science",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-ai-path": [
+        {
+          "name": "ML Engineering",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-cyberflow": [
+        {
+          "name": "Security Operations",
+          "declaredIntake": 1,
+          "accepted": 1
+        },
+        {
+          "name": "AppSec",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-platform": [
+        {
+          "name": "DevOps",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-product": [
+        {
+          "name": "Product Analyst",
+          "declaredIntake": 1,
+          "accepted": 1
+        },
+        {
+          "name": "UX Research",
+          "declaredIntake": 0,
+          "accepted": 0
+        }
+      ],
+      "internship-company-mock-quantum": [
+        {
+          "name": "Research Assistant",
+          "declaredIntake": 1,
+          "accepted": 0
+        }
+      ],
+      "internship-company-mock-market": [
+        {
+          "name": "Backend",
+          "declaredIntake": 2,
+          "accepted": 1
+        },
+        {
+          "name": "Growth Analytics",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-design": [
+        {
+          "name": "Design System",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-nextcompass": [
+        {
+          "name": "Solution Analyst",
+          "declaredIntake": 2,
+          "accepted": 2
+        }
+      ],
+      "internship-company-mock-greentech": [
+        {
+          "name": "Embedded Software",
+          "declaredIntake": 1,
+          "accepted": 1
+        },
+        {
+          "name": "IoT",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-healthlink": [
+        {
+          "name": "Backend",
+          "declaredIntake": 1,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-logistics": [
+        {
+          "name": "Optimization",
+          "declaredIntake": 1,
+          "accepted": 1
+        },
+        {
+          "name": "Mobile",
+          "declaredIntake": 1,
+          "accepted": 0
+        }
+      ],
+      "internship-company-mock-fincore": [
+        {
+          "name": "Core Banking",
+          "declaredIntake": 2,
+          "accepted": 1
+        }
+      ],
+      "internship-company-mock-edutech": [
+        {
+          "name": "Fullstack",
+          "declaredIntake": 1,
+          "accepted": 0
+        }
+      ]
+    }
+  }
+}

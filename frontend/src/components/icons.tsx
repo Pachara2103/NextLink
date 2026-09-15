@@ -62,6 +62,9 @@ export const ICON_NAMES = [
   "grid",
   "chevron-up",
   "more-vertical",
+  // ธีมเว็บไซต์ (components/theme/ThemeSwitcher.tsx)
+  "sun",
+  "moon",
   // คุณขวัญใจ (components/agent/*)
   "send",
   "stop",
@@ -277,6 +280,14 @@ export function IconSprite() {
       </symbol>
       <symbol {...STROKE} id="i-chevron-up" viewBox="0 0 24 24">
         <path d="m6 15 6-6 6 6" />
+      </symbol>
+      {/* The two theme options on the sidebar switch. */}
+      <symbol {...STROKE} id="i-sun" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2.5v2M12 19.5v2M4.8 4.8l1.4 1.4M17.8 17.8l1.4 1.4M2.5 12h2M19.5 12h2M4.8 19.2l1.4-1.4M17.8 6.2l1.4-1.4" />
+      </symbol>
+      <symbol {...STROKE} id="i-moon" viewBox="0 0 24 24">
+        <path d="M20 13.6A8.2 8.2 0 0 1 10.4 4 7.6 7.6 0 1 0 20 13.6Z" />
       </symbol>
       <symbol {...STROKE} id="i-loader" viewBox="0 0 24 24">
         <path d="M12 3v4" />
