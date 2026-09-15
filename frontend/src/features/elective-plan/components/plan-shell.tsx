@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { PlanStorage } from "@/features/elective-plan/components/plan-storage";
 import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
 import { AppNav } from "@/features/elective-plan/components/app-nav";
@@ -34,6 +34,9 @@ export function PlanShell({
   children: ReactNode;
 }) {
   const plan = usePlanState();
+  // Every planner page renders this shell, and nothing else does: it is the
+  // one place that can say "somebody is looking at the plan now".
+  useEffect(() => { plan.load(); }, [plan]);
   return (
     <div className="app-shell">
       <header className="topbar">

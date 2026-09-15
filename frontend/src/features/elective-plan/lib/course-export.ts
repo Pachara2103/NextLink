@@ -49,7 +49,7 @@ export type ExportContext = {
 function contactText(course: PlanCourse): string {
   const contact = course.coordinator;
   if (!contact) return "";
-  return [contact.name, contact.email, contact.lineId ? `LINE ${contact.lineId}` : ""].filter(Boolean).join(" · ");
+  return [contact.name, contact.email, contact.phone].filter(Boolean).join(" · ");
 }
 
 function statusText(course: PlanCourse, placed: PlacedPeriod[]): string {
@@ -67,6 +67,7 @@ function roomText(course: PlanCourse, placed: PlacedPeriod[]): string {
 function courseSheet(context: ExportContext, rows: ExportRow[]): Sheet {
   const columns = [
     { header: "รหัสวิชา", width: 12 },
+    { header: "ตอน", width: 7 },
     { header: "ชื่อวิชา", width: 38 },
     { header: "หมวด", width: 22 },
     { header: "บริษัท", width: 18 },
@@ -77,7 +78,6 @@ function courseSheet(context: ExportContext, rows: ExportRow[]): Sheet {
     { header: "ห้อง", width: 26, wrap: true },
     ...(context.isArchived ? [] : [{ header: "สถานะการจัด", width: 14 }]),
     { header: "คาบ/สัปดาห์", width: 11 },
-    { header: "ที่นั่งขั้นต่ำ", width: 11 },
     { header: "รับได้ (คน)", width: 11 },
     { header: "จำนวนสัปดาห์", width: 12 },
     ...(context.isArchived ? [] : [{ header: "ผู้ประสานงาน", width: 34, wrap: true }]),
@@ -86,6 +86,7 @@ function courseSheet(context: ExportContext, rows: ExportRow[]): Sheet {
 
   const body: CellValue[][] = rows.map(({ course, placed }) => [
     course.courseCode,
+    course.section,
     course.title,
     course.category,
     course.provider,
@@ -96,7 +97,6 @@ function courseSheet(context: ExportContext, rows: ExportRow[]): Sheet {
     roomText(course, placed),
     ...(context.isArchived ? [] : [statusText(course, placed)]),
     course.sessionsPerWeek,
-    course.minSeats,
     course.capacity,
     course.weeks,
     ...(context.isArchived ? [] : [contactText(course)]),
@@ -160,6 +160,7 @@ export type ChecklistExportRow = { course: PlanCourse; checklist: CourseChecklis
 function checklistSheet(context: ExportContext, rows: ChecklistExportRow[]): Sheet {
   const columns = [
     { header: "รหัสวิชา", width: 12 },
+    { header: "ตอน", width: 7 },
     { header: "ชื่อวิชา", width: 38 },
     { header: "บริษัท", width: 18 },
     ...CHECKLIST_FIELDS.map((field) => ({ header: field.label, width: field.kind === "code" ? 22 : 20, wrap: true })),
@@ -170,6 +171,7 @@ function checklistSheet(context: ExportContext, rows: ChecklistExportRow[]): She
     const progress = checklistProgress(checklist);
     return [
       course.courseCode,
+      course.section,
       course.title,
       course.provider,
       ...CHECKLIST_FIELDS.map((field) => checklistValueText(checklist, field)),

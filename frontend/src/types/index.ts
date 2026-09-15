@@ -94,6 +94,42 @@ export type {
 /** One press of "อัปเดตข้อมูล", as `GET /line/update_logs` returns it. */
 export type { UpdateLog } from "./line";
 
+// --- elective planner ----------------------------------------------------
+
+/**
+ * The wire shapes of "จัดตารางวิชาเลือก".
+ *
+ * These are the API's words, not the planner's: an `Elective` has a numeric id
+ * and a `companyId`, where a `PlanCourse` has a string id and a `provider`
+ * name. Nothing outside `features/elective-plan/lib/plan-api.ts` should see
+ * both vocabularies — that file is the only translator, so a field that moves
+ * moves in one place.
+ *
+ * Hand-written for now; see the note at the top of `elective.ts`.
+ */
+export type {
+  DeliveryMode,
+  DoneStatus,
+  Elective,
+  ElectiveChecklist,
+  ElectiveChecklistUpdate,
+  ElectivePerson,
+  ElectivePlan,
+  ElectiveRoom,
+  ElectiveRoomBlock,
+  ElectiveRoomWrite,
+  ElectiveSession,
+  ElectiveSessionWrite,
+  ElectiveSlot,
+  ElectiveTerm,
+  ElectiveTermCreate,
+  ElectiveWrite,
+  ReceiptStatus,
+  RoomTier,
+  SessionSource,
+  TermStatus,
+} from "./elective";
+
 /**
  * คุณขวัญใจ — one turn of a conversation, and the progress of one run.
  * Hand-written for now; see the note at the top of `agent.ts`.

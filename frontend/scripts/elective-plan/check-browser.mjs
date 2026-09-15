@@ -8,7 +8,7 @@ import { once } from 'node:events';
 const reserve = createServer(); reserve.listen(0, '127.0.0.1'); await once(reserve, 'listening');
 const port = reserve.address().port; await new Promise((resolve) => reserve.close(resolve));
 const base = `http://127.0.0.1:${port}`;
-const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '-H', '127.0.0.1', '-p', String(port)], { env: { ...process.env, PORT: String(port), HOSTNAME: '127.0.0.1', NODE_ENV: 'production', API_ORIGIN: 'http://127.0.0.1:18999' }, stdio: ['ignore', 'pipe', 'pipe'] });
+const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '-H', '127.0.0.1', '-p', String(port)], { env: { ...process.env, PORT: String(port), HOSTNAME: '127.0.0.1', NODE_ENV: 'production', API_ORIGIN: 'http://127.0.0.1:18999', PLAN_SOURCE: 'seed' }, stdio: ['ignore', 'pipe', 'pipe'] });
 let logs = ''; server.stdout.on('data', (data) => { logs += data; }); server.stderr.on('data', (data) => { logs += data; });
 let browser;
 const results = [];
@@ -26,7 +26,9 @@ try {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   assert.ok(ready, 'production server started');
-  browser = await chromium.launch({ headless: true });
+  // PW_CHROMIUM: use a browser Playwright did not install itself. CI images
+  // often already carry one, and downloading a second copy per run is minutes.
+  browser = await chromium.launch({ headless: true, ...(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {}) });
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
   const watch = (page) => {
     page.on('pageerror', (error) => errors.push(error.message));
@@ -48,21 +50,33 @@ try {
   });
   const page = await context.newPage(); watch(page);
   page.setDefaultTimeout(15000);
+  // The switch is icon-only: the words moved to aria-label, and each half is a
+  // radio inside a radiogroup rather than a plain button.
   const chooseTheme = async (value) => {
-    await page.getByRole('button', { name: value === 'classic' ? 'สีดั้งเดิม' : 'โหมดมืด', exact: true }).filter({ visible: true }).click();
+    await page.getByRole('radio', { name: value === 'classic' ? 'โหมดสว่าง (สีดั้งเดิม)' : 'โหมดมืด', exact: true }).filter({ visible: true }).click();
     await page.waitForFunction(value => document.documentElement.dataset.theme === value, value);
+  };
+  /**
+   * The login page carries no theme control - the switch lives in the signed-in
+   * chrome - so set the palette the way the app stores it and let the server
+   * render decide, which is the path a returning visitor actually takes.
+   */
+  const storedTheme = async (value) => {
+    await page.evaluate(next => { document.cookie = `nextlink-theme=${next}; Path=/; Max-Age=31536000; SameSite=Lax`; }, value);
+    await page.reload();
+    await page.locator('input[name=username]').waitFor();
   };
   const themeIs = async (value) => assert.equal(await page.locator('html').getAttribute('data-theme'), value);
   await check('planner deep links require sign-in and return to the requested page', async () => {
     await page.goto(base + '/elective-plan/courses/list?view=checklist');
     await page.waitForURL('**/login?next=*');
     assert.equal(await page.locator('.elective-planner').count(), 0);
-    await chooseTheme('classic');
-    await page.reload(); await page.locator('input[name=username]').waitFor();
+    await storedTheme('classic');
     await themeIs('classic');
     assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(246, 247, 251)');
     await page.screenshot({ path: 'output/browser/login-classic.png', fullPage: true });
-    await chooseTheme('dark');
+    await storedTheme('dark');
+    await themeIs('dark');
     await page.screenshot({ path: 'output/browser/login-dark.png', fullPage: true });
     await page.locator('input[name=username]').fill('planner-fixture');
     await page.locator('input[name=password]').fill('local-test-only');
@@ -227,7 +241,7 @@ try {
     await dialog.waitFor();
     await dialog.getByLabel('รหัสวิชา', { exact: true }).fill('21105899');
     await dialog.getByLabel('ชื่อวิชา', { exact: true }).fill('Prompt Engineering for Teams');
-    await dialog.getByLabel('หมวดของวิชา', { exact: true }).fill('ปัญญาประดิษฐ์');
+    await dialog.getByLabel(/หมวดของวิชา/).selectOption('ปัญญาประดิษฐ์และข้อมูล');
     await dialog.getByLabel('บริษัทผู้สอน', { exact: true }).fill('บริษัททดสอบ');
     await dialog.getByLabel('ผู้สอน', { exact: true }).fill('อาจารย์ทดสอบ');
     await dialog.getByLabel('รูปแบบการสอน').selectOption('ONLINE');
@@ -320,8 +334,70 @@ try {
     assert.ok(box.lines <= 2.1, `expected at most two lines, got ${box.lines}`);
     await seed(blank);
   });
+  await check('the same course code is allowed again only as another section', async () => {
+    await seed(blank); await go('/courses/list');
+    await page.getByRole('button', { name: '＋ เพิ่มรายวิชา', exact: true }).click();
+    const dialog = page.locator('dialog.course-form-dialog');
+    await dialog.waitFor();
+    await dialog.getByLabel('รหัสวิชา', { exact: true }).fill('21105801');
+    await dialog.getByLabel('ชื่อวิชา', { exact: true }).fill('SW Dev for CMMI Standard (ตอนที่สอง)');
+    await dialog.getByLabel(/หมวดของวิชา/).selectOption('วิศวกรรมซอฟต์แวร์');
+    await dialog.getByLabel('บริษัทผู้สอน', { exact: true }).fill('Soft Square');
+    await dialog.getByLabel('ผู้สอน', { exact: true }).fill('อาจารย์กานต์ ศรีสุวรรณ');
+    await dialog.getByRole('button', { name: 'พุธเช้า — ไม่สะดวก', exact: true }).click();
+    // ตอนเดียวกันคือวิชาซ้ำ
+    await dialog.getByRole('button', { name: 'เพิ่มรายวิชา', exact: true }).click();
+    await dialog.locator('.room-form-error').getByText('ตอน 1 อยู่แล้ว', { exact: false }).waitFor();
+    // คนละตอนคือคนละวิชา
+    await dialog.getByLabel('ตอนเรียน').fill('2');
+    await dialog.getByRole('button', { name: 'เพิ่มรายวิชา', exact: true }).click();
+    await dialog.waitFor({ state: 'detached' });
+    const added = (await read()).courseEdits.added;
+    assert.equal(added.length, 1);
+    assert.equal(added[0].section, 2);
+    assert.equal(added[0].id, 'plan-21105801-2', 'the section is part of the id, so the two keep separate periods');
+    await page.getByText('21105801 ตอน 2', { exact: false }).first().waitFor();
+    await seed(blank);
+  });
+  await check('course and company share one column in both tables', async () => {
+    await seed(blank); await go('/courses/list');
+    await page.locator('tbody tr').first().waitFor();
+    assert.deepEqual(
+      (await page.locator('thead th').allInnerTexts()).map((text) => text.trim()),
+      ['วิชา', 'ผู้สอน', 'ช่วงที่สะดวก', 'คาบที่ได้', 'ห้อง'],
+    );
+    const cell = page.locator('tbody tr').first().locator('td').first();
+    // ชื่อวิชาและชื่อบริษัทยังเป็นลิงก์คนละที่ แม้อยู่ในเซลล์เดียวกัน
+    await cell.getByRole('link', { name: 'Soft Square', exact: true }).waitFor();
+    assert.match(await cell.innerText(), /SW Dev for CMMI Standard[\s\S]*Soft Square[\s\S]*21105801/);
+    await go('/courses/list?view=checklist');
+    await page.locator('select.checklist-select').first().waitFor();
+    // หนึ่งคอลัมน์วิชา + แปดขั้นของเช็กลิสต์
+    assert.equal(await page.locator('thead th').count(), 9);
+    assert.equal((await page.locator('thead th').first().innerText()).trim(), 'วิชา');
+    assert.equal(await page.locator('thead th').filter({ hasText: 'สร้างคอร์ส MCV' }).count(), 1);
+  });
+  await check('a room that already holds a class refuses another from the board', async () => {
+    await seed(scheduled); await go('/');
+    const seeded = JSON.parse(await readFile('src/features/elective-plan/data/plan-courses.json', 'utf8')).courses;
+    const target = scheduled.assignments.find((item) => item.roomId);
+    const mover = scheduled.assignments.find(
+      (item) => item.roomId && item.courseId !== target.courseId && item.slotId !== target.slotId,
+    );
+    const titleOf = (id) => seeded.find((item) => item.id === id).title;
+    // ยกวิชาหนึ่งขึ้นมา แล้วสั่งวางลงช่องที่อีกวิชาหนึ่งนั่งอยู่ - เล็งช่องจาก
+    // ชิปที่อยู่ในนั้น ไม่ใช่จากชื่อช่อง เพราะห้องในตึกเดียวกันใช้ชื่อคอลัมน์ร่วมกัน
+    await page.locator('.matrix-chip').filter({ hasText: titleOf(mover.courseId) }).first().click();
+    const occupied = page.locator('.matrix td')
+      .filter({ has: page.locator('.matrix-chip', { hasText: titleOf(target.courseId) }) })
+      .first();
+    await occupied.press('Enter');
+    await page.getByRole('region', { name: 'การบันทึกแผน' })
+      .getByText('ห้องนี้มีคลาสอยู่แล้วในคาบนี้ กรุณาเลือกห้องอื่นหรือคาบอื่น', { exact: true }).waitFor();
+    assert.deepEqual((await read()).assignments, scheduled.assignments);
+  });
   await check('MCV code remains editable until blur while incomplete filter is active', async () => {
-    const completedExceptCode = { invitationLetter: 'RECEIVED', teachingHoursLetter: 'RECEIVED', mcvInstructorRequest: 'DONE', mentorAdded: 'DONE', guestLecturerAdded: 'DONE', studentsAdded: 'DONE', mcvJoinCode: '' };
+    const completedExceptCode = { invitationLetter: 'RECEIVED', teachingHoursLetter: 'RECEIVED', mcvInstructorRequest: 'DONE', mcvCourseCreated: 'DONE', mentorAdded: 'DONE', guestLecturerAdded: 'DONE', studentsAdded: 'DONE', mcvJoinCode: '' };
     await seed({ ...blank, checklists: { [courseId]: completedExceptCode } });
     await go('/courses/list?view=checklist&done=incomplete');
     const code = page.getByRole('textbox', { name: 'รหัส Join MCV สำหรับนิสิต — SW Dev for CMMI Standard', exact: true });

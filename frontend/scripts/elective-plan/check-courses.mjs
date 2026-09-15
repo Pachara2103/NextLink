@@ -44,6 +44,7 @@ const check = (name, fn) => {
 const course = (id, over = {}) => ({
   id,
   courseCode: over.courseCode ?? id.replace("plan-", ""),
+  section: over.section ?? 1,
   title: over.title ?? `วิชา ${id}`,
   category: over.category ?? "วิศวกรรมซอฟต์แวร์",
   provider: over.provider ?? "บริษัทตัวอย่าง",
@@ -52,7 +53,6 @@ const course = (id, over = {}) => ({
   deliveryMode: over.deliveryMode ?? "ON_SITE",
   availability: over.availability ?? ["MON_AM"],
   sessionsPerWeek: over.sessionsPerWeek ?? 1,
-  minSeats: over.minSeats ?? 40,
   capacity: over.capacity ?? 40,
   weeks: over.weeks ?? 10,
   notes: over.notes ?? null,
@@ -163,12 +163,25 @@ check("a course must have a code, a title, a company and a lecturer", () => {
   return validateCourseDraft(draft(), SEED) ? `a complete draft was rejected: ${validateCourseDraft(draft(), SEED)}` : null;
 });
 
-check("two courses cannot share a code, but editing one keeps its own", () => {
+check("two courses cannot share a code and a section, but another section can", () => {
   const clash = draft({ courseCode: SEED[0].courseCode });
   if (!validateCourseDraft(clash, SEED)) return "a duplicate course code was accepted";
   if (validateCourseDraft(clash, SEED, SEED[0].id)) return "a course was rejected for clashing with itself";
   // Whitespace and case are not a different course.
-  return validateCourseDraft(draft({ courseCode: ` ${SEED[0].courseCode} ` }), SEED) ? null : "a padded duplicate was accepted";
+  if (!validateCourseDraft(draft({ courseCode: ` ${SEED[0].courseCode} ` }), SEED)) return "a padded duplicate was accepted";
+  // The same code taught to a second group is a second course, not a duplicate.
+  return validateCourseDraft(draft({ courseCode: SEED[0].courseCode, section: 2 }), SEED);
+});
+
+check("a section is a whole number from 1, and lands in the id from the second on", () => {
+  if (!validateCourseDraft(draft({ section: 0 }), SEED)) return "section 0 was accepted";
+  if (!validateCourseDraft(draft({ section: 1.5 }), SEED)) return "a fractional section was accepted";
+  if (makeCourseId(draft({ courseCode: "21105899", section: 1 }), []) !== "plan-21105899") return "section 1 should not be in the id";
+  if (makeCourseId(draft({ courseCode: "21105899", section: 2 }), []) !== "plan-21105899-2") return "section 2 is missing from the id";
+  // Two sections of one course are two ids, so they keep separate periods.
+  const first = addCourse(EMPTY, draft({ courseCode: "21105899", section: 1 }), []);
+  const second = addCourse(first.state, draft({ courseCode: "21105899", section: 2 }), [first.id]);
+  return first.id !== second.id ? null : "both sections were given the same id";
 });
 
 check("a course cannot meet more often than the company offered", () => {
@@ -185,7 +198,7 @@ check("counts have to be whole numbers inside the range the seed loader allows",
     { weeks: 53 },
     { capacity: -1 },
     { capacity: 40.5 },
-    { minSeats: Number.NaN },
+    { capacity: Number.NaN },
   ];
   for (const over of bad) {
     if (!validateCourseDraft(draft(over), SEED)) return `${JSON.stringify(over)} was accepted`;
@@ -199,12 +212,12 @@ check("a delivery mode the scheduler does not know is refused", () => {
 });
 
 check("a coordinator is kept whole or dropped whole", () => {
-  const named = normalizeCourseDraft(draft({ coordinator: { name: " คุณนลิน ", email: " a@b.co ", lineId: "" } }));
+  const named = normalizeCourseDraft(draft({ coordinator: { name: " คุณนลิน ", email: " a@b.co ", phone: "" } }));
   if (named.coordinator.name !== "คุณนลิน" || named.coordinator.email !== "a@b.co") return "the contact was not trimmed";
-  if (named.coordinator.lineId !== null) return "an empty LINE id was kept as an empty string";
-  const nameless = normalizeCourseDraft(draft({ coordinator: { name: "  ", email: "a@b.co", lineId: null } }));
+  if (named.coordinator.phone !== null) return "an empty phone number was kept as an empty string";
+  const nameless = normalizeCourseDraft(draft({ coordinator: { name: "  ", email: "a@b.co", phone: null } }));
   if (nameless.coordinator !== null) return "a contact with no name was kept";
-  return validateCourseDraft(draft({ coordinator: { name: "คุณนลิน", email: "not-an-email", lineId: null } }), SEED)
+  return validateCourseDraft(draft({ coordinator: { name: "คุณนลิน", email: "not-an-email", phone: null } }), SEED)
     ? null
     : "a malformed coordinator email was accepted";
 });

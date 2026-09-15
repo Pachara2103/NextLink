@@ -44,6 +44,7 @@ const finished = {
   invitationLetter: "RECEIVED",
   teachingHoursLetter: "RECEIVED",
   mcvInstructorRequest: "DONE",
+  mcvCourseCreated: "DONE",
   mentorAdded: "DONE",
   guestLecturerAdded: "DONE",
   mcvJoinCode: "CP-4821",
@@ -73,17 +74,25 @@ check("every status has a label, and no label is left blank", () => {
   return latin.length === 0 ? null : `still in English: ${latin.join(", ")}`;
 });
 
-check("a course nobody has touched is 0/7 and not complete", () => {
+check("a course nobody has touched is 0/8 and not complete", () => {
   const progress = checklistProgress(EMPTY_CHECKLIST);
-  if (progress.done !== 0 || progress.total !== 7) return `progress is ${progress.done}/${progress.total}`;
+  if (progress.done !== 0 || progress.total !== 8) return `progress is ${progress.done}/${progress.total}`;
   return isChecklistComplete(EMPTY_CHECKLIST) ? "an untouched checklist counted as complete" : null;
 });
 
-check("everything answered is 7/7 and complete", () => {
+check("everything answered is 8/8 and complete", () => {
   const checklist = readChecklist(finished);
   const progress = checklistProgress(checklist);
-  if (progress.done !== 7) return `progress is ${progress.done}/7`;
+  if (progress.done !== 8) return `progress is ${progress.done}/8`;
   return isChecklistComplete(checklist) ? null : "a finished checklist did not count as complete";
+});
+
+check("the MCV course has to exist before anyone is invited into it", () => {
+  const fields = CHECKLIST_FIELDS.map((item) => item.key);
+  const created = fields.indexOf("mcvCourseCreated");
+  if (created < 0) return "สร้างคอร์สใน MCV is missing from the list";
+  const invites = ["mentorAdded", "guestLecturerAdded", "studentsAdded"].map((key) => fields.indexOf(key));
+  return invites.every((index) => index > created) ? null : "an invitation step comes before the course is created";
 });
 
 check("\"กำลังดำเนินการ\" is not \"ได้รับแล้ว\"", () => {
@@ -142,4 +151,4 @@ if (failures) {
   console.error(`\nchecklist: ${failures} failing check(s)`);
   process.exit(1);
 }
-console.log("checklist: ok (10 checks)");
+console.log("checklist: ok (11 checks)");

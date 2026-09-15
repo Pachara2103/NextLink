@@ -5,6 +5,7 @@ import term25682Json from "@/features/elective-plan/data/terms/2568-2.json";
 import term25681Json from "@/features/elective-plan/data/terms/2568-1.json";
 import term25672Json from "@/features/elective-plan/data/terms/2567-2.json";
 import { assertSeedNumber, validateArchiveSessions } from "./seed-validation.ts";
+import type { PlanSource } from "./use-plan-state";
 import { ALL_SLOTS, isSlotId, slotRank, type SlotId } from "./slots.ts";
 import type {
   ArchivedSession,
@@ -44,6 +45,7 @@ import type {
 type RawCourse = {
   id: string;
   courseCode: string;
+  section?: number;
   title: string;
   category: string;
   provider: string;
@@ -52,7 +54,6 @@ type RawCourse = {
   deliveryMode: string;
   availability: unknown;
   sessionsPerWeek: number;
-  minSeats: number;
   capacity: number;
   weeks: number;
   notes?: string | null;
@@ -126,7 +127,8 @@ function readCourse(raw: RawCourse): PlanCourse {
   if (!["ONLINE", "HYBRID", "ON_SITE"].includes(raw.deliveryMode)) throw new Error(`course ${raw.id}: unknown delivery mode ${raw.deliveryMode}`);
   assertSeedNumber(`course ${raw.id} sessionsPerWeek`, raw.sessionsPerWeek, 1, 18);
   assertSeedNumber(`course ${raw.id} capacity`, raw.capacity, 0, 10000);
-  assertSeedNumber(`course ${raw.id} minSeats`, raw.minSeats, 0, 10000);
+  // ตอนเรียนไม่ได้อยู่ในไฟล์ทุกแถว วิชาที่เปิดตอนเดียวคือตอน 1
+  assertSeedNumber(`course ${raw.id} section`, raw.section ?? 1, 1, 99);
   assertSeedNumber(`course ${raw.id} weeks`, raw.weeks, 1, 52);
   const availability = readSlots(`course ${raw.courseCode}`, raw.availability);
   if (raw.sessionsPerWeek > availability.length) {
@@ -137,6 +139,7 @@ function readCourse(raw: RawCourse): PlanCourse {
   return {
     id: raw.id,
     courseCode: raw.courseCode,
+    section: raw.section ?? 1,
     title: raw.title,
     category: raw.category,
     provider: raw.provider,
@@ -145,7 +148,6 @@ function readCourse(raw: RawCourse): PlanCourse {
     deliveryMode: raw.deliveryMode === "ONLINE" ? "ONLINE" : raw.deliveryMode === "HYBRID" ? "HYBRID" : "ON_SITE",
     availability,
     sessionsPerWeek: raw.sessionsPerWeek,
-    minSeats: raw.minSeats,
     capacity: raw.capacity,
     weeks: raw.weeks,
     notes: raw.notes ?? null,
@@ -167,6 +169,25 @@ function readTermMeta(raw: (typeof termIndexJson)["terms"][number]): TermMeta {
     shortLabel: raw.shortLabel,
     status: raw.status === "CURRENT" ? "CURRENT" : "ARCHIVED",
   };
+}
+
+/**
+ * Which plan this process serves: the shared one, or the bundled copy.
+ *
+ * The shared plan is the product. The bundled copy is what the regression
+ * suites drive and what lets the planner be opened with no backend running, so
+ * it is an explicit opt-in (`PLAN_SOURCE=seed`) rather than a fallback — a
+ * planner that silently dropped to a mock when the API was down would look
+ * like it was working while saving nothing.
+ *
+ * Read here, in a server component, rather than through `NEXT_PUBLIC_`: that
+ * would bake the answer into the bundle at build time, which means a separate
+ * build to run the suites and a `VAR=value next build` line that does not work
+ * on Windows. This is one environment variable on `next start`.
+ */
+export function planSource(): PlanSource {
+  if (process.env.PLAN_SOURCE !== "seed") return { kind: "api" };
+  return { kind: "seed", payload: getPlanPayload(), terms: getTermIndex(), archives: getArchivedTerms() };
 }
 
 export function getPlanPayload(): PlanPayload {

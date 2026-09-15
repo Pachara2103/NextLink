@@ -13,8 +13,11 @@ export interface paths {
         };
         /**
          * Health Api
-         * @description Unauthenticated liveness probe, so the console can tell "backend down"
-         *     from "token rejected" without spending a real request.
+         * @description ตัวเดียวที่ตอบได้เสมอ และตั้งใจให้ถูกยิงถี่ ๆ ตอนเซิร์ฟเวอร์ล่ม
+         *
+         *     ไม่แตะฐานข้อมูลเลย: frontend poll ทุก 2 วินาทีตอนเชื่อมต่อไม่ได้ ถ้าตัวนี้
+         *     ต้องคุยกับ pg ทุกครั้ง มันจะกลายเป็นภาระตอนที่ระบบกำลังแย่อยู่แล้ว
+         *     จำนวนงานกราฟที่ค้างดูได้ที่ /api/v1/admin/graph/outbox แทน
          */
         get: operations["health_api_api_v1_health_get"];
         put?: never;
@@ -87,11 +90,72 @@ export interface paths {
         put?: never;
         /**
          * Logout Api
-         * @description Tokens are stateless and self-expiring, so there is nothing to revoke
-         *     here — the client dropping the token IS the logout. This endpoint exists so
-         *     that stays true from one place, and so a future denylist has a home.
+         * @description Revoke only the presented session, including copies held elsewhere.
          */
         post: operations["logout_api_api_v1_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/graph/outbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Outbox Status Api
+         * @description งานเขียนกราฟที่ยังค้าง - ค่าปกติคือ pending = 0
+         */
+        get: operations["outbox_status_api_api_v1_admin_graph_outbox_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/graph/replay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Outbox Replay Api
+         * @description ทำงานที่ค้างทั้งหมดเดี๋ยวนี้ (worker เบื้องหลังก็ทำให้อยู่แล้วทุก ๆ รอบ)
+         */
+        post: operations["outbox_replay_api_api_v1_admin_graph_replay_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/graph/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reconcile Api
+         * @description เทียบ pg กับ neo4j
+         *
+         *     `apply=false` (ค่าเริ่มต้น) = รายงานอย่างเดียว ไม่แตะอะไร
+         *     `apply=true`  = ซ่อมให้ตรงกับ postgres โดยส่งงานผ่าน outbox ตามทางเดินปกติ
+         */
+        post: operations["reconcile_api_api_v1_admin_graph_reconcile_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -150,6 +214,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Contacts Api */
+        get: operations["get_contacts_api_api_v1_contacts_get"];
+        put?: never;
+        /** Create Contact Api */
+        post: operations["create_contact_api_api_v1_contacts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/contacts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Contact Api */
+        put: operations["update_contact_api_api_v1_contacts__id__put"];
+        post?: never;
+        /** Delete Contact Api */
+        delete: operations["delete_contact_api_api_v1_contacts__id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/employees": {
         parameters: {
             query?: never;
@@ -196,7 +296,13 @@ export interface paths {
         /** Update Employee Pg Api */
         put: operations["update_employee_pg_api_api_v1_employees__id__put"];
         post?: never;
-        /** Decline Employee Api */
+        /**
+         * Decline Employee Api
+         * @description ปฏิเสธแถวที่ยัง pending - ลบใน Postgres เท่านั้น
+         *
+         *     แถวที่ยัง pending ยังไม่มี node ใน graph จึงไม่มีอะไรต้องลบอีกฝั่ง
+         *     ถ้าจะลบคนที่อนุมัติแล้วให้ใช้ DELETE /{id}/sync
+         */
         delete: operations["decline_employee_api_api_v1_employees__id__delete"];
         options?: never;
         head?: never;
@@ -214,11 +320,255 @@ export interface paths {
         /** Sync Update Employee Api */
         put: operations["sync_update_employee_api_api_v1_employees__id__sync_put"];
         post?: never;
-        /** Sync Delete Employee Api */
+        /**
+         * Sync Delete Employee Api
+         * @description ลบคนที่อนุมัติแล้ว - ลบทั้ง Postgres และ Neo4j ใน transaction เดียว
+         *
+         *     sync_delete_employee มีอยู่ใน services แล้วแต่ยังไม่มี route มาก่อน
+         *     หน้า ผู้ติดต่อและบุคคลในบริษัท ต้องใช้ตรงนี้: คนที่อนุมัติแล้วมี node
+         *     อยู่ใน graph ถ้าลบด้วย DELETE /{id} เฉย ๆ graph จะเหลือ node ค้างที่
+         *     ฐานข้อมูลหลักไม่มีแล้ว
+         */
         delete: operations["sync_delete_employee_api_api_v1_employees__id__sync_delete"];
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/electives/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Plan Api */
+        get: operations["get_plan_api_api_v1_electives_plan_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/electives/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Terms Api */
+        get: operations["list_terms_api_api_v1_electives_terms_get"];
+        put?: never;
+        /**
+         * Create Term Api
+         * @description เปิดเทอมใหม่ - เทอมที่กำลังจัดอยู่จะถูกปิดไปพร้อมกัน
+         */
+        post: operations["create_term_api_api_v1_electives_terms_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/electives/terms/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Current Term Api */
+        get: operations["get_current_term_api_api_v1_electives_terms_current_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/electives/terms/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Term Api */
+        post: operations["archive_term_api_api_v1_electives_terms__id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/electives/rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Rooms Api */
+        get: operations["list_rooms_api_api_v1_electives_rooms_get"];
+        put?: never;
+        /** Create Room Api */
+        post: operations["create_room_api_api_v1_electives_rooms_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/electives/rooms/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Room Api */
+        put: operations["update_room_api_api_v1_electives_rooms__id__put"];
+        post?: never;
+        /** Delete Room Api */
+        delete: operations["delete_room_api_api_v1_electives_rooms__id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/electives/rooms/{id}/blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Room Blocks Api */
+        put: operations["set_room_blocks_api_api_v1_electives_rooms__id__blocks_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/electives/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace Sessions Api
+         * @description ผลของปุ่ม "จัดตารางใหม่" - คาบที่ล็อกไว้ไม่ถูกแตะ
+         */
+        put: operations["replace_sessions_api_api_v1_electives_sessions_put"];
+        /** Place Session Api */
+        post: operations["place_session_api_api_v1_electives_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/electives/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Session Api */
+        put: operations["update_session_api_api_v1_electives_sessions__id__put"];
+        post?: never;
+        /** Delete Session Api */
+        delete: operations["delete_session_api_api_v1_electives_sessions__id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/electives": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Electives Api */
+        get: operations["list_electives_api_api_v1_electives_get"];
+        put?: never;
+        /** Create Elective Api */
+        post: operations["create_elective_api_api_v1_electives_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/electives/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Elective Api */
+        get: operations["get_elective_api_api_v1_electives__id__get"];
+        /** Update Elective Api */
+        put: operations["update_elective_api_api_v1_electives__id__put"];
+        post?: never;
+        /** Delete Elective Api */
+        delete: operations["delete_elective_api_api_v1_electives__id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/electives/{id}/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Availability Api */
+        put: operations["set_availability_api_api_v1_electives__id__availability_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/electives/{id}/checklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Checklist Api */
+        get: operations["get_checklist_api_api_v1_electives__id__checklist_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Checklist Api */
+        patch: operations["update_checklist_api_api_v1_electives__id__checklist_patch"];
         trace?: never;
     };
     "/api/v1/line/groups": {
@@ -238,6 +588,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/line/update_logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Update Logs Api */
+        get: operations["get_update_logs_api_api_v1_line_update_logs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/line/update-information": {
         parameters: {
             query?: never;
@@ -247,7 +614,13 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Update Information Api */
+        /**
+         * Update Information Api
+         * @description สรุปข้อมูลจากแชตของกลุ่มที่ console ส่งมาใน groupData
+         *
+         *     body ไม่ใช่ของเสริม: กลุ่มที่ไม่อยู่ใน groupData จะไม่ถูกสรุป จอเป็นคน
+         *     ตัดสินว่ารอบนี้ทำกลุ่มไหนบ้าง เพราะมันถือข้อมูลกลุ่ม+บริษัทอยู่แล้ว
+         */
         post: operations["update_information_api_api_v1_line_update_information_post"];
         delete?: never;
         options?: never;
@@ -291,15 +664,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agent/call/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stream Agent Api */
+        post: operations["stream_agent_api_api_v1_agent_call_stream_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chat_histories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Chat Histories Api */
+        get: operations["get_chat_histories_api_api_v1_chat_histories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ChatAsk */
+        ChatAsk: {
+            /** Question */
+            question: string;
+        };
+        /** ChatHistory */
+        ChatHistory: {
+            /** Userid */
+            userId: number;
+            role: components["schemas"]["ChatRole"];
+            /** Message */
+            message: string;
+            /** Id */
+            id: number;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+        };
         /**
-         * ContactStatus
+         * ChatRole
          * @enum {string}
          */
-        ContactStatus: "pending" | "active" | "resigned" | "transferred" | "inactive";
+        ChatRole: "user" | "ai";
         /** Company */
         Company: {
             /** Createdat */
@@ -346,6 +773,454 @@ export interface components {
              */
             aliases?: string[] | null;
         };
+        /** Contact */
+        Contact: {
+            /** Createdat */
+            createdAt: string | null;
+            /** Updatedat */
+            updatedAt: string | null;
+            /** Name */
+            name: string;
+            role: components["schemas"]["ContactRole"];
+            /** Nickname */
+            nickname: string | null;
+            /**
+             * Phone
+             * @description เบอร์โทรศัพท์
+             */
+            phone?: string | null;
+            /**
+             * Email
+             * @description อีเมล
+             */
+            email?: string | null;
+            /** Id */
+            id: number;
+            /** Companyid */
+            companyId: number;
+            status: components["schemas"]["ContactStatus"];
+        };
+        /** ContactCreate */
+        ContactCreate: {
+            /** Name */
+            name: string;
+            role: components["schemas"]["ContactRole"];
+            /** Nickname */
+            nickname: string | null;
+            /**
+             * Phone
+             * @description เบอร์โทรศัพท์
+             */
+            phone?: string | null;
+            /**
+             * Email
+             * @description อีเมล
+             */
+            email?: string | null;
+            /** Companyid */
+            companyId: number;
+        };
+        /**
+         * ContactRole
+         * @enum {string}
+         */
+        ContactRole: "instructor" | "senior" | "alumni" | "insider";
+        /**
+         * ContactStatus
+         * @enum {string}
+         */
+        ContactStatus: "pending" | "active" | "resigned" | "transferred" | "inactive";
+        /** ContactUpdate */
+        ContactUpdate: {
+            /** Name */
+            name: string;
+            role: components["schemas"]["ContactRole"];
+            /** Nickname */
+            nickname: string | null;
+            /**
+             * Phone
+             * @description เบอร์โทรศัพท์
+             */
+            phone?: string | null;
+            /**
+             * Email
+             * @description อีเมล
+             */
+            email?: string | null;
+            status: components["schemas"]["ContactStatus"];
+        };
+        /**
+         * DeliveryMode
+         * @enum {string}
+         */
+        DeliveryMode: "ON_SITE" | "HYBRID" | "ONLINE";
+        /**
+         * DoneStatus
+         * @description งาน MCV เจ้าหน้าที่ทำเอง จบหรือไม่จบเท่านั้น - "กำลังทำ" แปลว่าเปิดแท็บค้างไว้
+         * @enum {string}
+         */
+        DoneStatus: "NOT_DONE" | "DONE";
+        /**
+         * Elective
+         * @description วิชาหนึ่งอย่างที่ตารางแสดง - ชื่อบริษัทและชื่อคนติดมาด้วย
+         *
+         *     ไม่ได้สืบจาก CompanyName แม้จะมีสองช่องซ้ำกัน เพราะ `aliases` ที่ติดมากับ
+         *     มันไม่มีความหมายในตารางเรียนและจะเป็น null ในทุกแถวตลอดไป
+         */
+        Elective: {
+            /** Createdat */
+            createdAt: string | null;
+            /** Updatedat */
+            updatedAt: string | null;
+            /** Coursecode */
+            courseCode: string;
+            /**
+             * Section
+             * @description ตอนเรียน
+             * @default 1
+             */
+            section: number;
+            /** Electivename */
+            electiveName: string;
+            /** Category */
+            category: string;
+            /** @default ON_SITE */
+            deliveryMode: components["schemas"]["DeliveryMode"];
+            /**
+             * Capacity
+             * @description จำนวนที่รับ ใช้เป็นเกณฑ์เลือกห้องด้วย
+             */
+            capacity: number;
+            /**
+             * Sessionsperweek
+             * @default 1
+             */
+            sessionsPerWeek: number;
+            /**
+             * Weeks
+             * @default 10
+             */
+            weeks: number;
+            /** Applicationformurl */
+            applicationFormUrl?: string | null;
+            /** Coursesyllabusurl */
+            courseSyllabusUrl?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Id */
+            id: number;
+            /** Termid */
+            termId: number;
+            /** Companyid */
+            companyId: number;
+            /** Companyth */
+            companyTh?: string | null;
+            /** Companyen */
+            companyEn?: string | null;
+            /** Lecturerid */
+            lecturerId: number;
+            /** Lecturername */
+            lecturerName?: string | null;
+            /** Coordinatorid */
+            coordinatorId?: number | null;
+            /** Coordinatorname */
+            coordinatorName?: string | null;
+            /** Coordinatoremail */
+            coordinatorEmail?: string | null;
+            /** Coordinatorphone */
+            coordinatorPhone?: string | null;
+            /** Availability */
+            availability?: components["schemas"]["ElectiveSlot"][];
+        };
+        /** ElectiveChecklist */
+        ElectiveChecklist: {
+            /** Createdat */
+            createdAt: string | null;
+            /** Updatedat */
+            updatedAt: string | null;
+            /** Electiveid */
+            electiveId: number;
+            inviteLetter: components["schemas"]["ReceiptStatus"];
+            instructionLetter: components["schemas"]["ReceiptStatus"];
+            informLecturer: components["schemas"]["DoneStatus"];
+            createMcv: components["schemas"]["DoneStatus"];
+            inviteMentor: components["schemas"]["DoneStatus"];
+            inviteLecturer: components["schemas"]["DoneStatus"];
+            inviteStudents: components["schemas"]["DoneStatus"];
+            /** Mcvjoincode */
+            mcvJoinCode: string;
+        };
+        /**
+         * ElectiveChecklistUpdate
+         * @description PATCH: ส่งมาเฉพาะช่องที่กด ช่องที่ไม่ได้ส่งคือช่องที่ไม่ได้แตะ
+         *
+         *     ทั้งตารางเป็นช่องเล็ก ๆ ที่คนกดทีละช่อง การให้ส่งทั้งแถวกลับมาแปลว่า
+         *     สองคนที่กดคนละช่องพร้อมกันจะลบงานของกันและกัน
+         */
+        ElectiveChecklistUpdate: {
+            inviteLetter?: components["schemas"]["ReceiptStatus"] | null;
+            instructionLetter?: components["schemas"]["ReceiptStatus"] | null;
+            informLecturer?: components["schemas"]["DoneStatus"] | null;
+            createMcv?: components["schemas"]["DoneStatus"] | null;
+            inviteMentor?: components["schemas"]["DoneStatus"] | null;
+            inviteLecturer?: components["schemas"]["DoneStatus"] | null;
+            inviteStudents?: components["schemas"]["DoneStatus"] | null;
+            /** Mcvjoincode */
+            mcvJoinCode?: string | null;
+        };
+        /**
+         * ElectivePerson
+         * @description ผู้สอน/ผู้ประสานงานอย่างที่หน้าเว็บรู้จัก - อาจมีแค่ชื่อ
+         *
+         *     หน้าจัดตารางกรอกชื่อวิทยากรจากอีเมลที่บริษัทส่งมา ไม่ได้เลือกจากรายชื่อ
+         *     employees ที่มีอยู่ ถ้าหาไม่เจอในบริษัทนั้น service จะสร้างแถวใหม่ให้
+         *     (relevant = elective, job_title = lecturer) แทนที่จะปฏิเสธทั้งวิชา
+         */
+        ElectivePerson: {
+            /**
+             * Id
+             * @description ถ้ารู้ว่าเป็นใครใน employees ให้ส่ง id มาเลย
+             */
+            id?: number | null;
+            /** Name */
+            name?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Phone */
+            phone?: string | null;
+        };
+        /**
+         * ElectivePlan
+         * @description ทุกอย่างที่หน้า "จัดตารางวิชาเลือก" ต้องใช้ ในการอ่านครั้งเดียว
+         *
+         *     หน้านี้ไม่มีโหมดที่แสดงวิชาโดยไม่มีห้อง หรือมีตารางโดยไม่มีเช็กลิสต์ -
+         *     ผู้ใช้สลับแท็บไปมาระหว่างทั้งสามมุมของข้อมูลชุดเดียวกัน การแยกเป็น 5
+         *     endpoint แปลว่าหน้าแรกต้องรอ 5 รอบ และมีโอกาสได้ภาพที่ไม่ตรงกันเอง
+         */
+        ElectivePlan: {
+            term: components["schemas"]["ElectiveTerm"];
+            /** Rooms */
+            rooms?: components["schemas"]["ElectiveRoom"][];
+            /** Electives */
+            electives?: components["schemas"]["Elective"][];
+            /** Sessions */
+            sessions?: components["schemas"]["ElectiveSession"][];
+            /** Checklists */
+            checklists?: components["schemas"]["ElectiveChecklist"][];
+        };
+        /** ElectiveRoom */
+        ElectiveRoom: {
+            /** Createdat */
+            createdAt: string | null;
+            /** Updatedat */
+            updatedAt: string | null;
+            /** Name */
+            name: string;
+            /** Building */
+            building: string;
+            /** Floor */
+            floor: string;
+            /** Seats */
+            seats: number;
+            /**
+             * Seatsisestimated
+             * @description true = ตัวเลขจากการสังเกต ระบบถือเป็นขอบล่างและแสดงเป็น ~40
+             * @default false
+             */
+            seatsIsEstimated: boolean;
+            /** @default needs_approval */
+            tier: components["schemas"]["RoomTier"];
+            /**
+             * Isactive
+             * @default true
+             */
+            isActive: boolean;
+            /** Id */
+            id: number;
+            /** Blockedslots */
+            blockedSlots?: components["schemas"]["ElectiveRoomBlock"][];
+        };
+        /**
+         * ElectiveRoomBlock
+         * @description คาบที่ห้องถูกใช้ไปแล้วด้วยเรื่องอื่น - reason คือข้อความที่ขึ้นในช่องนั้น
+         */
+        ElectiveRoomBlock: {
+            slot: components["schemas"]["ElectiveSlot"];
+            /** Reason */
+            reason: string;
+        };
+        /** ElectiveRoomWrite */
+        ElectiveRoomWrite: {
+            /** Name */
+            name: string;
+            /** Building */
+            building: string;
+            /** Floor */
+            floor: string;
+            /** Seats */
+            seats: number;
+            /**
+             * Seatsisestimated
+             * @description true = ตัวเลขจากการสังเกต ระบบถือเป็นขอบล่างและแสดงเป็น ~40
+             * @default false
+             */
+            seatsIsEstimated: boolean;
+            /** @default needs_approval */
+            tier: components["schemas"]["RoomTier"];
+            /**
+             * Isactive
+             * @default true
+             */
+            isActive: boolean;
+            /** Blockedslots */
+            blockedSlots?: components["schemas"]["ElectiveRoomBlock"][];
+        };
+        /** ElectiveSession */
+        ElectiveSession: {
+            /** Createdat */
+            createdAt: string | null;
+            /** Updatedat */
+            updatedAt: string | null;
+            /** Id */
+            id: number;
+            /** Electiveid */
+            electiveId: number;
+            /** Termid */
+            termId: number;
+            slot: components["schemas"]["ElectiveSlot"];
+            /** Roomid */
+            roomId: number | null;
+            /**
+             * Starttime
+             * Format: time
+             */
+            startTime: string;
+            /**
+             * Endtime
+             * Format: time
+             */
+            endTime: string;
+            /** Islocked */
+            isLocked: boolean;
+            source: components["schemas"]["SessionSource"];
+        };
+        /** ElectiveSessionWrite */
+        ElectiveSessionWrite: {
+            /** Electiveid */
+            electiveId: number;
+            slot: components["schemas"]["ElectiveSlot"];
+            /**
+             * Roomid
+             * @description null = วิชาออนไลน์ หรือยังไม่ได้ห้อง
+             */
+            roomId?: number | null;
+            /** Starttime */
+            startTime?: string | null;
+            /** Endtime */
+            endTime?: string | null;
+            /**
+             * Islocked
+             * @default false
+             */
+            isLocked: boolean;
+            /** @default manual */
+            source: components["schemas"]["SessionSource"];
+        };
+        /**
+         * ElectiveSlot
+         * @description คาบประจำสัปดาห์: หกวัน (จ-ส) คูณสามช่วง = 18 คาบ
+         *
+         *     หน่วยของตารางนี้คือคาบ ไม่ใช่วันที่ เพราะบริษัทตอบว่า "พุธเช้าสะดวก"
+         * @enum {string}
+         */
+        ElectiveSlot: "MON_AM" | "MON_PM" | "MON_EVE" | "TUE_AM" | "TUE_PM" | "TUE_EVE" | "WED_AM" | "WED_PM" | "WED_EVE" | "THU_AM" | "THU_PM" | "THU_EVE" | "FRI_AM" | "FRI_PM" | "FRI_EVE" | "SAT_AM" | "SAT_PM" | "SAT_EVE";
+        /** ElectiveTerm */
+        ElectiveTerm: {
+            /** Createdat */
+            createdAt: string | null;
+            /** Updatedat */
+            updatedAt: string | null;
+            /**
+             * Year
+             * @description ปีการศึกษา พ.ศ. เช่น 2569
+             */
+            year: number;
+            /**
+             * Semester
+             * @description 1 = ต้น, 2 = ปลาย, 3 = ฤดูร้อน
+             * @enum {integer}
+             */
+            semester: 1 | 2 | 3;
+            /** Id */
+            id: number;
+            status: components["schemas"]["TermStatus"];
+        };
+        /** ElectiveTermCreate */
+        ElectiveTermCreate: {
+            /**
+             * Year
+             * @description ปีการศึกษา พ.ศ. เช่น 2569
+             */
+            year: number;
+            /**
+             * Semester
+             * @description 1 = ต้น, 2 = ปลาย, 3 = ฤดูร้อน
+             * @enum {integer}
+             */
+            semester: 1 | 2 | 3;
+        };
+        /** ElectiveWrite */
+        ElectiveWrite: {
+            /** Coursecode */
+            courseCode: string;
+            /**
+             * Section
+             * @description ตอนเรียน
+             * @default 1
+             */
+            section: number;
+            /** Electivename */
+            electiveName: string;
+            /** Category */
+            category: string;
+            /** @default ON_SITE */
+            deliveryMode: components["schemas"]["DeliveryMode"];
+            /**
+             * Capacity
+             * @description จำนวนที่รับ ใช้เป็นเกณฑ์เลือกห้องด้วย
+             */
+            capacity: number;
+            /**
+             * Sessionsperweek
+             * @default 1
+             */
+            sessionsPerWeek: number;
+            /**
+             * Weeks
+             * @default 10
+             */
+            weeks: number;
+            /** Applicationformurl */
+            applicationFormUrl?: string | null;
+            /** Coursesyllabusurl */
+            courseSyllabusUrl?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Termid
+             * @description ไม่ส่ง = เทอมที่กำลังจัดอยู่
+             */
+            termId?: number | null;
+            /** Companyid */
+            companyId: number;
+            lecturer: components["schemas"]["ElectivePerson"];
+            coordinator?: components["schemas"]["ElectivePerson"] | null;
+            /**
+             * Availability
+             * @description คาบที่บริษัทแจ้งว่าสอนได้
+             */
+            availability?: components["schemas"]["ElectiveSlot"][];
+        };
         /** Employee */
         Employee: {
             /** Createdat */
@@ -390,10 +1265,7 @@ export interface components {
             /** Id */
             id: number;
         };
-        /**
-         * EmployeeBase
-         * @description Schema for creating a new employee.
-         */
+        /** EmployeeBase */
         EmployeeBase: {
             /** @description ความเกี่ยวข้องกับบริษัท */
             relevant?: components["schemas"]["RelevantType"] | null;
@@ -431,24 +1303,6 @@ export interface components {
             /** Companyid */
             companyId: number;
         };
-        /** HTTPValidationError */
-        HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
-        };
-        /** LineGroup */
-        LineGroup: {
-            /** Createdat */
-            createdAt: string | null;
-            /** Updatedat */
-            updatedAt: string | null;
-            /** Groupid */
-            groupId: string;
-            /** Displayname */
-            displayName: string | null;
-            /** Pictureurl */
-            pictureUrl: string | null;
-        };
         /** GroupInfo */
         GroupInfo: {
             /**
@@ -481,20 +1335,70 @@ export interface components {
             /** Pictureurl */
             pictureUrl: string | null;
         };
-        /** UpdateInformationRequest */
-        UpdateInformationRequest: {
-            /**
-             * Groupdata
-             * @description ข้อมูลกลุ่มไลน์ที่ merge กับบริษัทแล้ว key = groupId
-             */
-            groupData?: {
-                [key: string]: components["schemas"]["GroupInfo"];
-            };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /** LineGroup */
+        LineGroup: {
+            /** Createdat */
+            createdAt: string | null;
+            /** Updatedat */
+            updatedAt: string | null;
+            /** Groupid */
+            groupId: string;
+            /** Displayname */
+            displayName: string | null;
+            /** Pictureurl */
+            pictureUrl: string | null;
+        };
+        /** ListResponse[ChatHistory] */
+        ListResponse_ChatHistory_: {
+            /** Items */
+            items: components["schemas"]["ChatHistory"][];
+            /** Total */
+            total?: number | null;
         };
         /** ListResponse[Company] */
         ListResponse_Company_: {
             /** Items */
             items: components["schemas"]["Company"][];
+            /** Total */
+            total?: number | null;
+        };
+        /** ListResponse[Contact] */
+        ListResponse_Contact_: {
+            /** Items */
+            items: components["schemas"]["Contact"][];
+            /** Total */
+            total?: number | null;
+        };
+        /** ListResponse[ElectiveRoom] */
+        ListResponse_ElectiveRoom_: {
+            /** Items */
+            items: components["schemas"]["ElectiveRoom"][];
+            /** Total */
+            total?: number | null;
+        };
+        /** ListResponse[ElectiveSession] */
+        ListResponse_ElectiveSession_: {
+            /** Items */
+            items: components["schemas"]["ElectiveSession"][];
+            /** Total */
+            total?: number | null;
+        };
+        /** ListResponse[ElectiveTerm] */
+        ListResponse_ElectiveTerm_: {
+            /** Items */
+            items: components["schemas"]["ElectiveTerm"][];
+            /** Total */
+            total?: number | null;
+        };
+        /** ListResponse[Elective] */
+        ListResponse_Elective_: {
+            /** Items */
+            items: components["schemas"]["Elective"][];
             /** Total */
             total?: number | null;
         };
@@ -516,6 +1420,13 @@ export interface components {
         ListResponse_Note_: {
             /** Items */
             items: components["schemas"]["Note"][];
+            /** Total */
+            total?: number | null;
+        };
+        /** ListResponse[UpdateLog] */
+        ListResponse_UpdateLog_: {
+            /** Items */
+            items: components["schemas"]["UpdateLog"][];
             /** Total */
             total?: number | null;
         };
@@ -549,14 +1460,7 @@ export interface components {
             tokenType: string;
             user: components["schemas"]["UserProfile"];
         };
-        /**
-         * Note
-         * @description One row joined with the names the console needs to render it.
-         *
-         *     company_th / company_en / aliases come from `companies`, person_name /
-         *     person_nickname from `employees` — enriched here so the client never has
-         *     to stitch three lists together to render one card.
-         */
+        /** Note */
         Note: {
             /**
              * Nameth
@@ -592,36 +1496,43 @@ export interface components {
             createdAt: string | null;
             /** Updatedat */
             updatedAt: string | null;
-            /**
-             * Content
-             * @description เนื้อหาโน้ต
-             */
+            /** Content */
             content: string;
-            /**
-             * @description ประเภทของโน้ต
-             * @default mou
-             */
             type: components["schemas"]["NoteType"];
-            /**
-             * @description ระดับของโน้ต
-             * @default neutral
-             */
             sentiment: components["schemas"]["Sentiment"];
-            /**
-             * @description ที่มาของเรื่อง
-             * @default external
-             */
             source: components["schemas"]["NoteSource"];
             /** Year */
             year: number;
-            /** Semester */
+            /**
+             * Semester
+             * @enum {integer}
+             */
             semester: 1 | 2 | 3;
             /** Companyid */
             companyId: number;
             /** Employeeid */
-            employeeId?: number | null;
+            employeeId: number | null;
             /** Id */
             id: number;
+        };
+        /** NoteCreate */
+        NoteCreate: {
+            /** Content */
+            content: string;
+            type: components["schemas"]["NoteType"];
+            sentiment: components["schemas"]["Sentiment"];
+            source: components["schemas"]["NoteSource"];
+            /** Year */
+            year: number;
+            /**
+             * Semester
+             * @enum {integer}
+             */
+            semester: 1 | 2 | 3;
+            /** Companyid */
+            companyId: number;
+            /** Employeeid */
+            employeeId: number | null;
         };
         /**
          * NoteSource
@@ -634,45 +1545,6 @@ export interface components {
          */
         NoteType: "mou" | "elective" | "internship" | "coop" | "friday" | "person";
         /**
-         * NoteCreate
-         * @description Body of both writes.
-         *
-         *     `company_id` is required for every type, because a note is always filed
-         *     under a company. `employee_id` is required on top of that when the type is
-         *     `person`, and must be absent otherwise — checked in services/note.py, and
-         *     again by ck_notes_employee_binding.
-         */
-        NoteCreate: {
-            /**
-             * Content
-             * @description เนื้อหาโน้ต
-             */
-            content: string;
-            /**
-             * @description ประเภทของโน้ต
-             * @default mou
-             */
-            type: components["schemas"]["NoteType"];
-            /**
-             * @description ระดับของโน้ต
-             * @default neutral
-             */
-            sentiment: components["schemas"]["Sentiment"];
-            /**
-             * @description ที่มาของเรื่อง
-             * @default external
-             */
-            source: components["schemas"]["NoteSource"];
-            /** Year */
-            year: number;
-            /** Semester */
-            semester: 1 | 2 | 3;
-            /** Companyid */
-            companyId: number;
-            /** Employeeid */
-            employeeId?: number | null;
-        };
-        /**
          * ProfileUpdate
          * @description Body of `PUT /auth/me`. The only thing a user may change about itself.
          */
@@ -684,15 +1556,32 @@ export interface components {
             displayName?: string | null;
         };
         /**
+         * ReceiptStatus
+         * @description จดหมายเป็นของที่ "รอ" จึงมีสถานะกลางว่าขอไปแล้วแต่ยังไม่กลับมา
+         * @enum {string}
+         */
+        ReceiptStatus: "NOT_RECEIVED" | "IN_PROGRESS" | "RECEIVED";
+        /**
          * RelevantType
          * @enum {string}
          */
         RelevantType: "mou" | "elective" | "internship" | "coop" | "friday" | "general";
         /**
+         * RoomTier
+         * @description ห้องภาคจัดได้เลย ห้องคณะต้องยื่นขอก่อน ตัวจัดตารางจึงเลือกห้องภาคก่อนเสมอ
+         * @enum {string}
+         */
+        RoomTier: "ready" | "needs_approval";
+        /**
          * Sentiment
          * @enum {string}
          */
         Sentiment: "positive" | "neutral" | "warning" | "negative";
+        /**
+         * SessionSource
+         * @enum {string}
+         */
+        SessionSource: "auto" | "manual";
         /**
          * StatusResponse
          * @description The one shape every write that has nothing to return answers with.
@@ -705,6 +1594,54 @@ export interface components {
              * @constant
              */
             status: "success";
+        };
+        /**
+         * TermStatus
+         * @enum {string}
+         */
+        TermStatus: "current" | "archived";
+        /**
+         * UpdateInformationRequest
+         * @description body ของ POST /line/update-information
+         *
+         *     group_data: key = group_id, value = GroupInfo ของกลุ่มนั้น กลุ่มที่ไม่ได้
+         *     ส่งมาจะไม่ถูกสรุปในรอบนี้
+         */
+        UpdateInformationRequest: {
+            /**
+             * Groupdata
+             * @description ข้อมูลกลุ่มไลน์ที่ merge กับบริษัทแล้ว key = groupId
+             */
+            groupData?: {
+                [key: string]: components["schemas"]["GroupInfo"];
+            };
+        };
+        /**
+         * UpdateLog
+         * @description One press of "อัปเดตข้อมูล", with the groups that pass could not finish.
+         *
+         *     display_name is the *user's* name, joined in from users — the console lists
+         *     who ran the update, not which group it ran on. error_groups is never null on
+         *     the way out: the column defaults to '{}', and a run with nothing wrong is
+         *     an empty list rather than a missing field the client has to guard.
+         */
+        UpdateLog: {
+            /** Id */
+            id: number;
+            /** Userid */
+            userId: number;
+            /** Displayname */
+            displayName: string | null;
+            /**
+             * Errorgroups
+             * @description ชื่อกลุ่มไลน์ที่สรุปข้อมูลไม่สำเร็จ
+             */
+            errorGroups?: string[];
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
         };
         /**
          * UserProfile
@@ -893,6 +1830,103 @@ export interface operations {
             };
         };
     };
+    outbox_status_api_api_v1_admin_graph_outbox_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    outbox_replay_api_api_v1_admin_graph_replay_post: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reconcile_api_api_v1_admin_graph_reconcile_post: {
+        parameters: {
+            query?: {
+                apply?: boolean;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_companies_api_api_v1_companies_get: {
         parameters: {
             query?: never;
@@ -1031,7 +2065,7 @@ export interface operations {
             };
         };
     };
-    get_employees_api_api_v1_employees_get: {
+    get_contacts_api_api_v1_contacts_get: {
         parameters: {
             query?: never;
             header?: {
@@ -1048,7 +2082,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ListResponse_Employee_"];
+                    "application/json": components["schemas"]["ListResponse_Contact_"];
                 };
             };
             /** @description Validation Error */
@@ -1062,7 +2096,79 @@ export interface operations {
             };
         };
     };
-    approve_employee_api_api_v1_employees__id__approve_post: {
+    create_contact_api_api_v1_contacts_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Contact"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_contact_api_api_v1_contacts__id__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Contact"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_contact_api_api_v1_contacts__id__delete: {
         parameters: {
             query?: never;
             header?: {
@@ -1082,6 +2188,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_employees_api_api_v1_employees_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponse_Employee_"];
                 };
             };
             /** @description Validation Error */
@@ -1130,7 +2267,7 @@ export interface operations {
             };
         };
     };
-    decline_employee_api_api_v1_employees__id__delete: {
+    approve_employee_api_api_v1_employees__id__approve_post: {
         parameters: {
             query?: never;
             header?: {
@@ -1179,6 +2316,39 @@ export interface operations {
                 "application/json": components["schemas"]["EmployeeBase"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decline_employee_api_api_v1_employees__id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -1270,6 +2440,767 @@ export interface operations {
             };
         };
     };
+    get_plan_api_api_v1_electives_plan_get: {
+        parameters: {
+            query?: {
+                /** @description ไม่ส่ง = เทอมที่กำลังจัดอยู่ */
+                termId?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElectivePlan"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_terms_api_api_v1_electives_terms_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponse_ElectiveTerm_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_term_api_api_v1_electives_terms_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ElectiveTermCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElectiveTerm"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_current_term_api_api_v1_electives_terms_current_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElectiveTerm"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_term_api_api_v1_electives_terms__id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElectiveTerm"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_rooms_api_api_v1_electives_rooms_get: {
+        parameters: {
+            query?: {
+                includeInactive?: boolean;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponse_ElectiveRoom_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_room_api_api_v1_electives_rooms_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ElectiveRoomWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElectiveRoom"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_room_api_api_v1_electives_rooms__id__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ElectiveRoomWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElectiveRoom"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_room_api_api_v1_electives_rooms__id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_room_blocks_api_api_v1_electives_rooms__id__blocks_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ElectiveRoomBlock"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElectiveRoom"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_sessions_api_api_v1_electives_sessions_put: {
+        parameters: {
+            query?: {
+                /** @description ไม่ส่ง = เทอมที่กำลังจัดอยู่ */
+                termId?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ElectiveSessionWrite"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponse_ElectiveSession_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    place_session_api_api_v1_electives_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ElectiveSessionWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElectiveSession"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_session_api_api_v1_electives_sessions__id__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ElectiveSessionWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElectiveSession"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_session_api_api_v1_electives_sessions__id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_electives_api_api_v1_electives_get: {
+        parameters: {
+            query?: {
+                /** @description ไม่ส่ง = เทอมที่กำลังจัดอยู่ */
+                termId?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponse_Elective_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_elective_api_api_v1_electives_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ElectiveWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Elective"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_elective_api_api_v1_electives__id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Elective"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_elective_api_api_v1_electives__id__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ElectiveWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Elective"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_elective_api_api_v1_electives__id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_availability_api_api_v1_electives__id__availability_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ElectiveSlot"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Elective"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_checklist_api_api_v1_electives__id__checklist_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElectiveChecklist"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_checklist_api_api_v1_electives__id__checklist_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ElectiveChecklistUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElectiveChecklist"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_line_groups_api_api_v1_line_groups_get: {
         parameters: {
             query?: never;
@@ -1288,6 +3219,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ListResponse_LineGroup_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_update_logs_api_api_v1_line_update_logs_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponse_UpdateLog_"];
                 };
             };
             /** @description Validation Error */
@@ -1459,6 +3421,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stream_agent_api_api_v1_agent_call_stream_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatAsk"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_chat_histories_api_api_v1_chat_histories_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListResponse_ChatHistory_"];
                 };
             };
             /** @description Validation Error */

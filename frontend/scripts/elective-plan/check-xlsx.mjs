@@ -180,11 +180,10 @@ const course = (over = {}) => ({
   category: "วิศวกรรมซอฟต์แวร์",
   provider: "Soft Square",
   instructor: "อาจารย์กานต์",
-  coordinator: over.coordinator ?? { name: "คุณนลิน", email: "narin@example.com", lineId: "mock_line" },
+  coordinator: over.coordinator ?? { name: "คุณนลิน", email: "narin@example.com", phone: "081-234-5678" },
   deliveryMode: over.deliveryMode ?? "ON_SITE",
   availability: over.availability ?? ["WED_AM", "FRI_AM"],
   sessionsPerWeek: over.sessionsPerWeek ?? 1,
-  minSeats: 40,
   capacity: 40,
   weeks: 10,
   notes: over.notes ?? null,
@@ -273,6 +272,7 @@ check("the checklist sheet asks every step, and says whether the row is done", (
         invitationLetter: "RECEIVED",
         teachingHoursLetter: "RECEIVED",
         mcvInstructorRequest: "DONE",
+        mcvCourseCreated: "DONE",
         mentorAdded: "DONE",
         guestLecturerAdded: "DONE",
         mcvJoinCode: "CP-1234",
@@ -284,7 +284,7 @@ check("the checklist sheet asks every step, and says whether the row is done", (
   const sheet = parts.get("xl/worksheets/sheet1.xml");
   const missing = CHECKLIST_FIELDS.filter((item) => !sheet.includes(item.label));
   if (missing.length) return `no column for ${missing.map((item) => item.label).join(", ")}`;
-  if (!sheet.includes("ยังไม่ครบ (2/7)")) return "an unfinished row does not say how far along it is";
+  if (!sheet.includes("ยังไม่ครบ (2/8)")) return "an unfinished row does not say how far along it is";
   if (!sheet.includes("ครบแล้ว")) return "a finished row does not say so";
   if (!sheet.includes("CP-4821")) return "the join code is missing";
   const about = parts.get("xl/worksheets/sheet2.xml");

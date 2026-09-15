@@ -12,7 +12,10 @@ const socket = createServer(); socket.listen(0, '127.0.0.1'); await once(socket,
 const port = socket.address().port; await new Promise(resolve => socket.close(resolve));
 const base = `http://127.0.0.1:${port}`;
 const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '-H', '127.0.0.1', '-p', String(port)], {
-  env: { ...process.env, NODE_ENV: 'production', API_ORIGIN: 'http://127.0.0.1:18999' }, stdio: ['ignore', 'pipe', 'pipe'],
+  // PLAN_SOURCE=seed keeps the planner on its bundled term, the way
+  // check-browser.mjs runs it: this suite is about navigation, and the shared
+  // plan would need a database behind /api/v1/electives to draw anything.
+  env: { ...process.env, NODE_ENV: 'production', API_ORIGIN: 'http://127.0.0.1:18999', PLAN_SOURCE: 'seed' }, stdio: ['ignore', 'pipe', 'pipe'],
 });
 let logs = ''; server.stdout.on('data', b => { logs += b; }); server.stderr.on('data', b => { logs += b; });
 let browser, page;
@@ -55,7 +58,7 @@ try {
   const paths = ['', '/electives', '/mou', '/internship', '/cooperative', '/capstone', '/friday-activities'];
   const go = async path => { await page.goto(base + '/dashboard' + path); await page.locator('.app-shell[data-ready="true"]').waitFor(); };
   const theme = async value => {
-    await page.getByRole('button', { name: value === 'classic' ? 'สีดั้งเดิม' : 'โหมดมืด', exact: true }).filter({ visible: true }).click();
+    await page.getByRole('radio', { name: value === 'classic' ? 'โหมดสว่าง (สีดั้งเดิม)' : 'โหมดมืด', exact: true }).filter({ visible: true }).click();
     await page.waitForFunction(value => document.documentElement.dataset.theme === value, value);
   };
   const login = async () => {

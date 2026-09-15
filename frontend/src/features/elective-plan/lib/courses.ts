@@ -68,8 +68,22 @@ export const DELIVERY_LABELS: Record<DeliveryMode, string> = {
   ONLINE: "ออนไลน์ (ไม่ใช้ห้อง)",
 };
 
+export const COURSE_CATEGORIES = [
+  "วิศวกรรมซอฟต์แวร์",
+  "ปัญญาประดิษฐ์และข้อมูล",
+  "ความมั่นคงปลอดภัยไซเบอร์",
+  "การวิเคราะห์ข้อมูล",
+  "คลาวด์และ DevOps",
+  "ผลิตภัณฑ์และ UX",
+  "ธุรกิจและการจัดการ",
+  "ระบบฝังตัวและ IoT",
+] as const;
+
+export type CourseCategory = (typeof COURSE_CATEGORIES)[number];
+
 /** The week has 18 periods, so nothing can meet more often than that. */
 const MAX_SESSIONS = 18;
+const MAX_SECTION = 99;
 const MAX_PEOPLE = 10000;
 const MAX_WEEKS = 52;
 
@@ -86,12 +100,13 @@ function readContact(contact: Contact | null | undefined): Contact | null {
   // A coordinator with no name is an email nobody can be asked about, so the
   // whole contact goes rather than half of one.
   if (!name) return null;
-  return { name, email: trimmedOrNull(contact?.email), lineId: trimmedOrNull(contact?.lineId) };
+  return { name, email: trimmedOrNull(contact?.email), phone: trimmedOrNull(contact?.phone) };
 }
 
 export function courseDraftFrom(course: PlanCourse): CourseDraft {
   return {
     courseCode: course.courseCode,
+    section: course.section,
     title: course.title,
     category: course.category,
     provider: course.provider,
@@ -100,7 +115,6 @@ export function courseDraftFrom(course: PlanCourse): CourseDraft {
     deliveryMode: course.deliveryMode,
     availability: [...course.availability],
     sessionsPerWeek: course.sessionsPerWeek,
-    minSeats: course.minSeats,
     capacity: course.capacity,
     weeks: course.weeks,
     notes: course.notes,
@@ -111,6 +125,7 @@ export function courseDraftFrom(course: PlanCourse): CourseDraft {
 export function normalizeCourseDraft(draft: CourseDraft): CourseDraft {
   return {
     courseCode: trimmed(draft.courseCode),
+    section: draft.section,
     title: trimmed(draft.title),
     category: trimmed(draft.category),
     provider: trimmed(draft.provider),
@@ -119,7 +134,6 @@ export function normalizeCourseDraft(draft: CourseDraft): CourseDraft {
     deliveryMode: draft.deliveryMode,
     availability: sortSlots(draft.availability),
     sessionsPerWeek: draft.sessionsPerWeek,
-    minSeats: draft.minSeats,
     capacity: draft.capacity,
     weeks: draft.weeks,
     notes: trimmedOrNull(draft.notes),
@@ -143,10 +157,13 @@ export function validateCourseDraft(draft: CourseDraft, courses: PlanCourse[], e
   const next = normalizeCourseDraft(draft);
   if (!next.courseCode) return "ต้องมีรหัสวิชา";
   if (!next.title) return "ต้องมีชื่อวิชา";
+  // รหัสเดียวกันคนละตอนเรียนคือคนละวิชา - ซ้ำได้เฉพาะรหัส+ตอนพร้อมกัน
   const clash = courses.find(
-    (course) => course.id !== editingId && course.courseCode.trim().toLowerCase() === next.courseCode.toLowerCase(),
+    (course) => course.id !== editingId
+      && course.courseCode.trim().toLowerCase() === next.courseCode.toLowerCase()
+      && course.section === next.section,
   );
-  if (clash) return `มีวิชารหัส ${next.courseCode} อยู่แล้ว (${clash.title})`;
+  if (clash) return `มีวิชารหัส ${next.courseCode} ตอน ${next.section} อยู่แล้ว (${clash.title})`;
   // Company and lecturer are not paperwork: the scheduler refuses to put two
   // courses with the same lecturer, or the same company, in one period. Left
   // blank they would all read as one very busy lecturer called "".
@@ -154,10 +171,10 @@ export function validateCourseDraft(draft: CourseDraft, courses: PlanCourse[], e
   if (!next.instructor) return "ต้องระบุชื่อผู้สอน";
   if (!next.category) return "ต้องระบุหมวดของวิชา";
   if (!DELIVERY_MODES.includes(next.deliveryMode)) return "รูปแบบการสอนไม่ถูกต้อง";
+  if (!whole(next.section, 1, MAX_SECTION)) return `ตอนเรียนต้องเป็นจำนวนเต็ม 1–${MAX_SECTION}`;
   if (!whole(next.sessionsPerWeek, 1, MAX_SESSIONS)) return `จำนวนคาบต่อสัปดาห์ต้องเป็นจำนวนเต็ม 1–${MAX_SESSIONS}`;
   if (!whole(next.weeks, 1, MAX_WEEKS)) return `จำนวนสัปดาห์ต้องเป็นจำนวนเต็ม 1–${MAX_WEEKS}`;
   if (!whole(next.capacity, 0, MAX_PEOPLE)) return `จำนวนที่รับต้องเป็นจำนวนเต็ม 0–${MAX_PEOPLE}`;
-  if (!whole(next.minSeats, 0, MAX_PEOPLE)) return `ที่นั่งขั้นต่ำต้องเป็นจำนวนเต็ม 0–${MAX_PEOPLE}`;
   if (next.availability.some((slot) => !isSlotId(slot))) return "มีช่วงเวลาที่ระบบไม่รู้จัก";
   if (next.availability.length < next.sessionsPerWeek) {
     return `วิชานี้ต้องได้ ${next.sessionsPerWeek} คาบต่อสัปดาห์ จึงต้องเลือกช่วงที่สะดวกอย่างน้อย ${next.sessionsPerWeek} ช่วง (ตอนนี้เลือก ${next.availability.length})`;
@@ -184,7 +201,10 @@ export function makeCourseId(draft: CourseDraft, taken: Iterable<string>): strin
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  const base = ascii ? `plan-${ascii}` : "plan-course";
+  // ตอนเรียนอยู่ในรหัสตั้งแต่ตอนที่สอง: ตอนแรกคือกรณีปกติ และ id ที่ลงท้าย
+  // ด้วย -1 ทุกวิชาอ่านเหมือนเลขรันมากกว่าเลขตอน
+  const suffix = draft.section > 1 ? `-${draft.section}` : "";
+  const base = ascii ? `plan-${ascii}${suffix}` : "plan-course";
   if (!used.has(base)) return base;
   for (let index = 2; ; index += 1) {
     const candidate = `${base}-${index}`;
