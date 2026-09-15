@@ -526,6 +526,11 @@ try {
     const group = { groupId: 'fixture-group', displayName: 'กลุ่มทดสอบ', companyId: 902, companyTh: 'บริษัททดสอบ', companyEn: null, aliases: [], isLinked: true, pictureUrl: null, createdAt: employee.createdAt, updatedAt: employee.updatedAt };
     await page.route('**/api/v1/employees', route => route.fulfill({ json: { items: [employee] } }));
     await page.route('**/api/v1/line/groups', route => route.fulfill({ json: { items: [group] } }));
+    // Current LINE responses are joined with the separate company directory.
+    await page.route('**/api/v1/companies', route => route.fulfill({ json: { items: [{
+      id: group.companyId, groupId: group.groupId, companyTh: group.companyTh,
+      companyEn: group.companyEn, aliases: group.aliases, isLinked: group.isLinked,
+    }] } }));
     let reply;
     const pending = new Promise(resolve => { reply = resolve; });
     await page.route('**/api/v1/employees/901/approve', async route => {
@@ -558,6 +563,10 @@ try {
       createdAt: '2026-09-12T00:00:00Z', updatedAt: '2026-09-12T00:00:00Z' };
     const updates = [];
     await page.route('**/api/v1/line/groups', route => route.fulfill({ json: { items: [group] } }));
+    await page.route('**/api/v1/companies', route => route.fulfill({ json: { items: [{
+      id: group.companyId, groupId: group.groupId, companyTh: group.companyTh,
+      companyEn: group.companyEn, aliases: group.aliases, isLinked: group.isLinked,
+    }] } }));
     await page.route('**/api/v1/notes', route => route.fulfill({ json: { items: [note] } }));
     await page.route('**/api/v1/notes/930', async route => {
       assert.equal(route.request().method(), 'PUT');
