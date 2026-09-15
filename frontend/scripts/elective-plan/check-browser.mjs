@@ -50,21 +50,33 @@ try {
   });
   const page = await context.newPage(); watch(page);
   page.setDefaultTimeout(15000);
+  // The switch is icon-only: the words moved to aria-label, and each half is a
+  // radio inside a radiogroup rather than a plain button.
   const chooseTheme = async (value) => {
-    await page.getByRole('button', { name: value === 'classic' ? 'สีดั้งเดิม' : 'โหมดมืด', exact: true }).filter({ visible: true }).click();
+    await page.getByRole('radio', { name: value === 'classic' ? 'โหมดสว่าง (สีดั้งเดิม)' : 'โหมดมืด', exact: true }).filter({ visible: true }).click();
     await page.waitForFunction(value => document.documentElement.dataset.theme === value, value);
+  };
+  /**
+   * The login page carries no theme control - the switch lives in the signed-in
+   * chrome - so set the palette the way the app stores it and let the server
+   * render decide, which is the path a returning visitor actually takes.
+   */
+  const storedTheme = async (value) => {
+    await page.evaluate(next => { document.cookie = `nextlink-theme=${next}; Path=/; Max-Age=31536000; SameSite=Lax`; }, value);
+    await page.reload();
+    await page.locator('input[name=username]').waitFor();
   };
   const themeIs = async (value) => assert.equal(await page.locator('html').getAttribute('data-theme'), value);
   await check('planner deep links require sign-in and return to the requested page', async () => {
     await page.goto(base + '/elective-plan/courses/list?view=checklist');
     await page.waitForURL('**/login?next=*');
     assert.equal(await page.locator('.elective-planner').count(), 0);
-    await chooseTheme('classic');
-    await page.reload(); await page.locator('input[name=username]').waitFor();
+    await storedTheme('classic');
     await themeIs('classic');
     assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(246, 247, 251)');
     await page.screenshot({ path: 'output/browser/login-classic.png', fullPage: true });
-    await chooseTheme('dark');
+    await storedTheme('dark');
+    await themeIs('dark');
     await page.screenshot({ path: 'output/browser/login-dark.png', fullPage: true });
     await page.locator('input[name=username]').fill('planner-fixture');
     await page.locator('input[name=password]').fill('local-test-only');
