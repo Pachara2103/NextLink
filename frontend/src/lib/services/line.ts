@@ -3,6 +3,7 @@ import { companyService } from "@/lib/services/company";
 import { employeeService } from "@/lib/services/employee";
 import type {
   Company,
+  CompanyLine,
   Employee,
   GroupLine,
   LineGroup,
@@ -18,9 +19,16 @@ import type {
  * returns the LINE half and `GET /companies` the company half.
  *
  * A group with no company row still becomes a `GroupLine` — with `companyId:
- * null`, `isLinked: false` and no names — because that is what the panels read
- * as "ยังไม่ได้ผูกบริษัท". Dropping it here would make unlinked groups vanish
- * off the screen instead.
+ * null`, `hasCompany: false` and no names — because that is what the panels
+ * read as "ยังไม่ได้ผูกบริษัท". Dropping it here would make unlinked groups
+ * vanish off the screen instead.
+ *
+ * `hasCompany` is decided here and nowhere else: it is "some company row has
+ * this group's id in `group_id`", which is exactly the lookup below. There is
+ * no confirmation flag behind it any more (`companies.is_linked` is gone), and
+ * the value computed here is the one posted back as `groupData` on the next
+ * "อัปเดตข้อมูล" — the extraction pass reads it to decide whether to insert a
+ * company row for the group or write its people under the one already there.
  *
  * `createdAt` / `updatedAt` are the **group's**, not the company's: the column
  * the console shows is when the LINE group was seen, and it has to keep meaning
@@ -33,8 +41,9 @@ export function mergeGroupLines(
 ): GroupLine[] {
   const byGroupId = new Map<string, Company>();
   for (const company of companies) {
-    // `GET /companies` filters to `group_id is not null` already; the guard is
-    // for the type, and for the day that filter changes.
+    // `GET /companies` returns every company now, including the ones no group
+    // is bound to — those are a section of their own on กลุ่มไลน์และบริษัท —
+    // so the null check is what keeps them out of a join keyed by group id.
     if (company.groupId) byGroupId.set(company.groupId, company);
   }
 
@@ -49,8 +58,47 @@ export function mergeGroupLines(
       companyTh: company?.companyTh ?? null,
       companyEn: company?.companyEn ?? null,
       aliases: company?.aliases ?? [],
-      isLinked: company?.isLinked ?? false,
+      hasCompany: company !== undefined,
       companyId: company?.id ?? null,
+    };
+  });
+}
+
+/**
+ * The same join, read from the company's end: one `CompanyLine` per company
+ * row, with the LINE group it points at folded in.
+ *
+ * `mergeGroupLines` above cannot serve หน้ากลุ่มไลน์และบริษัท on its own,
+ * because it is keyed by group: a company whose `group_id` is null matches no
+ * group and falls out of the list entirely — and those companies are precisely
+ * what the "บริษัทที่ยังไม่ผูกกลุ่มไลน์" section is. So the page reads both
+ * directions: this one for its two company sections, and the group-keyed one
+ * for "กลุ่มไลน์ที่ยังไม่ได้ผูกบริษัท".
+ *
+ * A `group_id` pointing at a group that is not in `line_groups` should not
+ * happen — but the two tables are in different databases, so nothing enforces
+ * it. Such a company keeps its card with `displayName: null`, which renders as
+ * "ยังไม่ได้ผูกกลุ่มไลน์", rather than disappearing.
+ */
+export function mergeCompanyLines(
+  groups: LineGroup[],
+  companies: Company[],
+): CompanyLine[] {
+  const byGroupId = new Map<string, LineGroup>();
+  for (const group of groups) byGroupId.set(group.groupId, group);
+
+  return companies.map((company) => {
+    const group = company.groupId ? byGroupId.get(company.groupId) : undefined;
+    return {
+      companyId: company.id,
+      groupId: company.groupId,
+      displayName: group?.displayName ?? null,
+      pictureUrl: group?.pictureUrl ?? null,
+      companyTh: company.companyTh ?? null,
+      companyEn: company.companyEn ?? null,
+      aliases: company.aliases ?? [],
+      createdAt: company.createdAt,
+      updatedAt: company.updatedAt,
     };
   });
 }

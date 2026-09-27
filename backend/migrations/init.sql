@@ -38,12 +38,17 @@ CREATE TABLE IF NOT EXISTS companies (
     company_th TEXT NULL,
     company_en TEXT NULL,
     aliases TEXT[] NULL DEFAULT '{}'::text[],  -- NULL ได้ ไม่ใช่ '{}' บังคับ: UPDATE ใช้ COALESCE บนคอลัมน์นี้
-    is_linked BOOLEAN NOT NULL DEFAULT false,
+    -- is_linked BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
     -- create_company_pg / update_company_pg เช็คเงื่อนไขนี้ใน Python อยู่แล้ว
     -- CONSTRAINT ck_companies_has_name CHECK (company_th IS NOT NULL OR company_en IS NOT NULL)
+    CONSTRAINT ck_companies_not_all_null CHECK (
+        group_id IS NOT NULL OR 
+        company_th IS NOT NULL OR 
+        company_en IS NOT NULL
+    )
 );
 
 
@@ -135,7 +140,7 @@ CREATE TABLE IF NOT EXISTS notes (
     type TEXT NOT NULL DEFAULT 'mou',
     sentiment TEXT NOT NULL DEFAULT 'neutral',
     source TEXT NOT NULL DEFAULT 'external',
-    year INTEGER NOT NULL,
+    academic_year INTEGER NOT NULL,
     semester INTEGER NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -143,7 +148,7 @@ CREATE TABLE IF NOT EXISTS notes (
     CONSTRAINT ck_notes_sentiment  CHECK (sentiment IN ('positive', 'neutral', 'warning', 'negative')),
     CONSTRAINT ck_notes_source CHECK (source IN ('internal', 'external')),
     CONSTRAINT ck_notes_semester CHECK (semester IN (1, 2, 3)),
-    CONSTRAINT ck_notes_year CHECK (year BETWEEN 2000 AND 2100),
+    CONSTRAINT ck_notes_academic_year CHECK (academic_year BETWEEN 2000 AND 2100),
     CONSTRAINT ck_notes_content_not_blank CHECK (btrim(content) <> ''),
     CONSTRAINT ck_notes_type CHECK (type IN ('mou', 'elective', 'internship', 'coop', 'friday','person')),
     CONSTRAINT ck_notes_employee_binding CHECK (
@@ -153,7 +158,7 @@ CREATE TABLE IF NOT EXISTS notes (
 
 CREATE INDEX IF NOT EXISTS idx_notes_company_id ON notes(company_id); --   LEFT JOIN companies c ON c.id = n.company_id
 CREATE INDEX IF NOT EXISTS idx_notes_employee_id ON notes(employee_id) WHERE employee_id IS NOT NULL; --   LEFT JOIN employees ON p.id = n.person_id
-CREATE INDEX IF NOT EXISTS idx_notes_listing ON notes (year DESC NULLS LAST, semester DESC NULLS LAST, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notes_listing ON notes (academic_year DESC NULLS LAST, semester DESC NULLS LAST, updated_at DESC);
 
 
 

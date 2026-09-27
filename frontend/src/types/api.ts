@@ -325,8 +325,6 @@ export interface components {
             id: number;
             /** Groupid */
             groupId: string | null;
-            /** Islinked */
-            isLinked: boolean;
         };
         /** CompanyName */
         CompanyName: {
@@ -474,8 +472,8 @@ export interface components {
             groupId: string;
             /** Displayname */
             displayName: string | null;
-            /** Islinked */
-            isLinked: boolean;
+            /** Hascompany */
+            hasCompany: boolean;
             /** Companyid */
             companyId: number | null;
             /** Pictureurl */
@@ -612,8 +610,8 @@ export interface components {
              * @default external
              */
             source: components["schemas"]["NoteSource"];
-            /** Year */
-            year: number;
+            /** Academic Year */
+            academicYear: number;
             /** Semester */
             semester: 1 | 2 | 3;
             /** Companyid */
@@ -663,8 +661,8 @@ export interface components {
              * @default external
              */
             source: components["schemas"]["NoteSource"];
-            /** Year */
-            year: number;
+            /** Academic Year */
+            academicYear: number;
             /** Semester */
             semester: 1 | 2 | 3;
             /** Companyid */

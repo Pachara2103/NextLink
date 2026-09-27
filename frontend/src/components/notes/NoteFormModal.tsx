@@ -20,7 +20,7 @@ import { useConsole } from "@/store/console-store";
 import type { Employee, GroupLine, Note, NoteInput, NoteType } from "@/types";
 
 /**
- * Everything the form holds while it is open. Not NoteInput: semester/year are
+ * Everything the form holds while it is open. Not NoteInput: semester/academicYear are
  * always set here, and the company/employee start out unchosen.
  *
  * `companyId`, not a group id — that is what `notes.company_id` stores. The
@@ -31,7 +31,7 @@ interface Draft {
   type: NoteType;
   source: NoteInput["source"];
   sentiment: NoteInput["sentiment"];
-  year: number;
+  academicYear: number;
   semester: 1 | 2 | 3;
   companyId: number | null;
   employeeId: number | null;
@@ -44,7 +44,7 @@ export function emptyNoteDraft(): Draft {
     type: "mou",
     source: "external",
     sentiment: "neutral",
-    year: current.year,
+    academicYear: current.year,
     semester: current.semester,
     companyId: null,
     employeeId: null,
@@ -58,7 +58,7 @@ function draftFrom(note: Note): Draft {
     type: note.type ?? "mou",
     source: note.source ?? "external",
     sentiment: note.sentiment ?? "neutral",
-    year: note.year ?? current.year,
+    academicYear: note.academicYear ?? current.year,
     semester: (note.semester ?? current.semester) as 1 | 2 | 3,
     companyId: note.companyId,
     employeeId: note.employeeId ?? null,
@@ -152,10 +152,10 @@ export function NoteFormModal({
   const options = useMemo(() => {
     const needle = companyQuery.trim().toLowerCase();
     return groupLines
-      // companyId as well as isLinked: what the pick writes down is the
+      // companyId as well as hasCompany: what the pick writes down is the
       // company id, so a group without one is not offerable even if the flag
       // says otherwise.
-      .filter((g) => g.isLinked && g.companyId !== null)
+      .filter((g) => g.hasCompany && g.companyId !== null)
       .filter((g) =>
         needle === ""
           ? true
@@ -203,7 +203,7 @@ export function NoteFormModal({
         type: draft.type,
         sentiment: draft.sentiment,
         source: draft.source,
-        year: draft.year,
+        academicYear: draft.academicYear,
         semester: draft.semester,
         // Non-null by canSave, which blocks the button until a company is
         // picked — notes.company_id is NOT NULL.
@@ -326,8 +326,8 @@ export function NoteFormModal({
         <div>
           <SelectField
             label="ปีการศึกษา"
-            value={String(draft.year)}
-            onChange={(event) => patch({ year: Number(event.target.value) })}
+            value={String(draft.academicYear)}
+            onChange={(event) => patch({ academicYear: Number(event.target.value) })}
             options={years.map((y) => ({
               value: String(y),
               label: y === current.year ? `${y} (ปัจจุบัน)` : String(y),

@@ -182,6 +182,15 @@ export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "company-en", label: "ชื่อบริษัทภาษาอังกฤษ" },
 ];
 
+/**
+ * The subset that means anything for a list of LINE groups with no company —
+ * "กลุ่มไลน์ที่ยังไม่ได้ผูกบริษัท". Sorting those by company name would leave
+ * the order untouched, since every one of them has none.
+ */
+export const GROUP_ONLY_SORT_OPTIONS = SORT_OPTIONS.filter(
+  (option) => !option.value.startsWith("company-"),
+);
+
 export const ITEMS_PER_PAGE = 5;
 
 /**
@@ -311,10 +320,22 @@ export const MESSAGES = {
   employeeNeedsCompany:
     "ต้องผูกกลุ่มนี้กับบริษัทก่อน จึงจะเพิ่มบุคคลในบริษัทได้",
 
-  // --- company unlink ---
-  companyUnlinked: "ยกเลิกการผูกบริษัทกับกลุ่มไลน์นี้แล้ว",
-  companyUnlinkPrefix: "ยกเลิกการผูกบริษัทไม่สำเร็จ",
-  companyAlreadyUnlinked: "กลุ่มนี้ยังไม่ได้ผูกบริษัท ไม่มีอะไรต้องยกเลิก",
+  // --- link / unlink between a company and a LINE group ---
+  /**
+   * Both of these clear or set `companies.group_id` — nothing is created or
+   * deleted. The company row, its people and its notes all outlive an unlink;
+   * the group simply stops pointing at it.
+   */
+  groupUnlinked: "ยกเลิกการผูกกลุ่มไลน์กับบริษัทนี้แล้ว",
+  groupUnlinkPrefix: "ยกเลิกการผูกกลุ่มไลน์ไม่สำเร็จ",
+  groupAlreadyUnlinked: "บริษัทนี้ยังไม่ได้ผูกกลุ่มไลน์ ไม่มีอะไรต้องยกเลิก",
+  groupLinked: "ผูกกลุ่มไลน์กับบริษัทนี้เรียบร้อยแล้ว",
+  groupLinkPrefix: "ผูกกลุ่มไลน์ไม่สำเร็จ",
+  /** The confirm button is disabled until one is picked, but state can drift. */
+  requireGroupToLink: "กรุณาเลือกกลุ่มไลน์ที่ต้องการผูก",
+  /** Every LINE group already belongs to some company. */
+  noFreeGroupsToLink:
+    "ไม่มีกลุ่มไลน์ที่ยังว่างอยู่ — ทุกกลุ่มถูกผูกกับบริษัทไปแล้ว",
 
   // --- company aliases ---
   /** Fired when a blank alias box is still open at save time. */
@@ -357,4 +378,9 @@ export const MESSAGES = {
   noCompanyName: "<ไม่มีชื่อบริษัท>",
   /** line_groups.display_name is nullable, so a group may genuinely have none. */
   noGroupName: "<ไม่มีชื่อกลุ่ม>",
+  /**
+   * A different thing from `noGroupName`: there is no group here at all, not a
+   * group whose name is missing. `companies.group_id` is null.
+   */
+  noLineGroup: "ยังไม่ได้ผูกกลุ่มไลน์",
 } as const;

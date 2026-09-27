@@ -18,7 +18,7 @@ type Field = keyof NoteFilters;
  */
 function optionsFor(field: Field): { value: string; label: string }[] {
   switch (field) {
-    case "year": {
+    case "academicYear": {
       const current = getCurrentYearSemester().year;
       return [
         { value: "all", label: "ทุกปีการศึกษา" },
@@ -49,7 +49,7 @@ function optionsFor(field: Field): { value: string; label: string }[] {
 }
 
 const ARIA: Record<Field, string> = {
-  year: "กรองตามปีการศึกษา",
+  academicYear: "กรองตามปีการศึกษา",
   semester: "กรองตามภาคเรียน",
   sentiment: "กรองตามระดับของโน้ต",
   source: "กรองตามที่มาของเรื่อง",

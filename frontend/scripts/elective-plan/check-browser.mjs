@@ -459,13 +459,13 @@ try {
   await check('contact action menus close during a request and stay closed when it fails', async () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     const employee = { id: 901, companyId: 902, status: 'pending', nameTh: 'ผู้ประสานงานทดสอบ', nameEn: null, nickname: null, jobTitle: null, relevant: null, email: null, phone: null, createdAt: '2026-09-12T00:00:00Z', updatedAt: '2026-09-12T00:00:00Z' };
-    const group = { groupId: 'fixture-group', displayName: 'กลุ่มทดสอบ', companyId: 902, companyTh: 'บริษัททดสอบ', companyEn: null, aliases: [], isLinked: true, pictureUrl: null, createdAt: employee.createdAt, updatedAt: employee.updatedAt };
+    const group = { groupId: 'fixture-group', displayName: 'กลุ่มทดสอบ', companyId: 902, companyTh: 'บริษัททดสอบ', companyEn: null, aliases: [], hasCompany: true, pictureUrl: null, createdAt: employee.createdAt, updatedAt: employee.updatedAt };
     await page.route('**/api/v1/employees', route => route.fulfill({ json: { items: [employee] } }));
     await page.route('**/api/v1/line/groups', route => route.fulfill({ json: { items: [group] } }));
     // Current LINE responses are joined with the separate company directory.
     await page.route('**/api/v1/companies', route => route.fulfill({ json: { items: [{
       id: group.companyId, groupId: group.groupId, companyTh: group.companyTh,
-      companyEn: group.companyEn, aliases: group.aliases, isLinked: group.isLinked,
+      companyEn: group.companyEn, aliases: group.aliases,
     }] } }));
     let reply;
     const pending = new Promise(resolve => { reply = resolve; });
@@ -492,7 +492,7 @@ try {
   await check('upstream year/semester notes can be filtered and edited in both website themes', async () => {
     const year = new Date().getFullYear() - 1;
     const group = { groupId: 'notes-fixture', displayName: 'กลุ่มทดสอบโน้ต', companyId: 920,
-      companyTh: 'บริษัททดสอบโน้ต', companyEn: null, aliases: [], isLinked: true, pictureUrl: null };
+      companyTh: 'บริษัททดสอบโน้ต', companyEn: null, aliases: [], hasCompany: true, pictureUrl: null };
     let note = { id: 930, companyId: 920, employeeId: null, companyTh: group.companyTh,
       companyEn: null, aliases: [], type: 'elective', sentiment: 'neutral', source: 'external',
       content: 'โน้ตทดสอบ year semester', year, semester: 2,
@@ -501,7 +501,7 @@ try {
     await page.route('**/api/v1/line/groups', route => route.fulfill({ json: { items: [group] } }));
     await page.route('**/api/v1/companies', route => route.fulfill({ json: { items: [{
       id: group.companyId, groupId: group.groupId, companyTh: group.companyTh,
-      companyEn: group.companyEn, aliases: group.aliases, isLinked: group.isLinked,
+      companyEn: group.companyEn, aliases: group.aliases,
     }] } }));
     await page.route('**/api/v1/notes', route => route.fulfill({ json: { items: [note] } }));
     await page.route('**/api/v1/notes/930', async route => {

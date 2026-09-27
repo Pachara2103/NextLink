@@ -5,7 +5,7 @@ from schemas.company import Company, CompanyName
 from schemas.user import AuthUser
 from schemas.base import ListResponse, StatusResponse
 
-from services.company import get_companies, sync_create_company, sync_update_company, sync_delete_company
+from services.company import get_companies, sync_create_company, sync_update_company, sync_unlink_company, sync_link_company
 
 router = APIRouter(prefix="/companies", tags=["company"])
 
@@ -19,12 +19,18 @@ def create_company_api(payload: CompanyName, group_id: str, user: AuthUser = Dep
     sync_create_company(payload, group_id=group_id)
     return StatusResponse()
 
+
 @router.put("/{id}", response_model=StatusResponse)
 def update_company_api(payload: CompanyName, id: int, user: AuthUser = Depends(current_user)):
     sync_update_company(payload, id=id)
     return StatusResponse()
 
-@router.delete("/{id}", response_model=StatusResponse)
-def delete_company_api(id: int, user: AuthUser = Depends(current_user)):
-    sync_delete_company(id)
+@router.post("/{id}/unlink", response_model=StatusResponse)
+def unlink_company_api(id: int, user: AuthUser = Depends(current_user)):
+    sync_unlink_company(id)
+    return StatusResponse()
+
+@router.post("/{id}/link", response_model=StatusResponse)
+def link_company_api(id: int, group_id: str, user: AuthUser = Depends(current_user)):
+    sync_link_company(id=id, group_id=group_id)
     return StatusResponse()

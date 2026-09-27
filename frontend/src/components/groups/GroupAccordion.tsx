@@ -3,7 +3,7 @@
 import { ContactCard } from "@/components/contacts/ContactCard";
 import { CompanyForm } from "@/components/groups/CompanyForm";
 import { GroupChip, GroupIdentity } from "@/components/groups/GroupIdentity";
-import { UnlinkCompanyButton } from "@/components/groups/UnlinkCompanyButton";
+import { UnlinkGroupButton } from "@/components/groups/UnlinkGroupButton";
 import { Icon } from "@/components/icons";
 import { Badge } from "@/components/ui/Badge";
 import { Button, IconButton } from "@/components/ui/Button";
@@ -39,7 +39,7 @@ export function GroupAccordion({
 
   const expanded = viewingGroupId === group.groupId;
   const formOpen = isCompanyFormOpen("contacts", group.groupId);
-  const linked = group.isLinked;
+  const linked = group.hasCompany;
   const pending = employees.length;
   // The company's own contacts — a different thing from `employees` above,
   // which is this group's extracted people.
@@ -87,7 +87,7 @@ export function GroupAccordion({
               >
                 แก้ไขชื่อบริษัท
               </Button>
-              <UnlinkCompanyButton group={group} />
+              <UnlinkGroupButton company={group} />
             </>
           ) : (
             <Button
@@ -159,7 +159,7 @@ export function GroupAccordion({
 
       {/* A dialog, not a swap: the card keeps its place and its expanded
           employee list while the company form is open. */}
-      {formOpen && <CompanyForm group={group} />}
+      {formOpen && <CompanyForm target={group} />}
     </article>
   );
 }

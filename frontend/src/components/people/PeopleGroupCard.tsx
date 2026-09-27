@@ -56,7 +56,7 @@ export function PeopleGroupCard({
     <article className="overflow-hidden rounded-2xl border border-line bg-surface">
       <div className="flex flex-wrap items-center gap-4 p-4 sm:p-5">
         <GroupChip
-          linked={group.isLinked}
+          linked={group.hasCompany}
           pictureUrl={group.pictureUrl}
           alt={groupLabel(group)}
         />

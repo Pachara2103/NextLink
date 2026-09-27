@@ -10,23 +10,47 @@ import { Modal } from "@/components/ui/Modal";
 import { MAX_ALIASES, MESSAGES } from "@/lib/constants";
 import { cn, groupLabel, hasCompanyName } from "@/lib/utils";
 import { useConsole } from "@/store/console-store";
-import type { GroupLine } from "@/types";
 
+/**
+ * What this form needs off whatever opened it.
+ *
+ * A shape rather than `GroupLine`, because two different joins reach this
+ * dialog now: the group-keyed cards on สรุปข้อมูลจากไลน์ pass a `GroupLine`
+ * straight through, and the company-keyed cards on กลุ่มไลน์และบริษัท pass a
+ * `CompanyLine` whose `groupId` they have already checked is not null.
+ *
+ * `groupId` is required and `companyId` is not, and that asymmetry is the
+ * contract: the create is keyed by group (`companies.group_id` is UNIQUE, so
+ * the group is what identifies the row that does not exist yet) and the rename
+ * by company. See `companyService`.
+ */
+export interface CompanyFormTarget {
+  groupId: string;
+  /** Null when no company row points at this group yet — then this is a create. */
+  companyId?: number | null;
+  companyTh?: string | null;
+  companyEn?: string | null;
+  aliases?: string[] | null;
+  /** The LINE group's name, for the dialog's heading. */
+  displayName?: string | null;
+}
 
-export function CompanyForm({ group }: { group: GroupLine }) {
+export function CompanyForm({ target }: { target: CompanyFormTarget }) {
   const { saveCompany, closeCompanyForm, notify } = useConsole();
 
-  const [companyTh, setCompanyTh] = useState(group.companyTh ?? "");
-  const [companyEn, setCompanyEn] = useState(group.companyEn ?? "");
-  
-  const [aliases, setAliases] = useState<string[]>(() => group.aliases ?? []);
+  const [companyTh, setCompanyTh] = useState(target.companyTh ?? "");
+  const [companyEn, setCompanyEn] = useState(target.companyEn ?? "");
+
+  const [aliases, setAliases] = useState<string[]>(() => target.aliases ?? []);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Already bound to a company, so this is a rename, not a binding. The whole
-  // form says so — heading, button and hint all read off this one flag.
-  const linked = group.isLinked;
-  const title = groupLabel(group);
+  // A company row already exists for this group, so this is a rename, not a
+  // binding. The whole form says so — heading, button and hint all read off
+  // this one flag, and it is the same test saveCompany uses to pick its
+  // endpoint, so the wording can never disagree with what the write does.
+  const linked = target.companyId !== null && target.companyId !== undefined;
+  const title = groupLabel(target);
 
   function addAlias() {
     if (aliases.length >= MAX_ALIASES) {
@@ -69,7 +93,7 @@ export function CompanyForm({ group }: { group: GroupLine }) {
     // the failure toast lands on top of a bogus success toast.
     setSaving(true);
     try {
-      const saved = await saveCompany(group, {
+      const saved = await saveCompany(target, {
         companyTh: th,
         companyEn: en,
         // Always sent, never omitted: the whole list is what the user sees, so

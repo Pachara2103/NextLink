@@ -1,5 +1,22 @@
 import { ITEMS_PER_PAGE } from "@/lib/constants";
-import type { Employee, GroupLine, SortOption } from "@/types";
+import type { Employee, SortOption } from "@/types";
+
+/**
+ * What searching and sorting a card actually needs off it.
+ *
+ * Written as a shape rather than as `GroupLine`, because the same two lists
+ * are now fed by two different joins: `GroupLine` (one per LINE group) on
+ * สรุปข้อมูลจากไลน์, and `CompanyLine` (one per company, `groupId` nullable)
+ * on กลุ่มไลน์และบริษัท. Both carry these five fields and neither needs to be
+ * converted into the other to be put in order.
+ */
+export interface GroupSortable {
+  displayName?: string | null;
+  companyTh?: string | null;
+  companyEn?: string | null;
+  aliases?: string[] | null;
+  updatedAt?: string | null;
+}
 
 /**
  * Case-insensitive substring match across the searchable fields: the LINE
@@ -10,7 +27,10 @@ import type { Employee, GroupLine, SortOption } from "@/types";
  * A blank term matches nothing on purpose: the results block stays hidden
  * instead of listing every group.
  */
-export function searchGroups(groups: GroupLine[], term: string): GroupLine[] {
+export function searchGroups<T extends GroupSortable>(
+  groups: T[],
+  term: string,
+): T[] {
   const needle = term.trim().toLowerCase();
   if (!needle) return [];
   return groups.filter((g) =>
@@ -53,13 +73,13 @@ function time(iso: string | null | undefined, fallback: number): number {
  * empty string (blanks first), while rows without updatedAt land last in both
  * time directions.
  */
-export function sortGroups(
-  groups: GroupLine[],
+export function sortGroups<T extends GroupSortable>(
+  groups: T[],
   sortBy: SortOption,
-): GroupLine[] {
+): T[] {
   const byText =
-    (pick: (g: GroupLine) => string | null | undefined) =>
-    (a: GroupLine, b: GroupLine) =>
+    (pick: (g: T) => string | null | undefined) =>
+    (a: T, b: T) =>
       (pick(a) ?? "")
         .toLowerCase()
         .localeCompare((pick(b) ?? "").toLowerCase(), "th");

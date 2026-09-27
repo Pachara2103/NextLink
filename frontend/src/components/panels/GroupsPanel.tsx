@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { FreeGroupSection } from "@/components/groups/FreeGroupSection";
 import { GroupLayoutToggle } from "@/components/groups/GroupLayoutToggle";
 import { GroupList, GroupSection } from "@/components/groups/GroupSection";
 import { Icon } from "@/components/icons";
@@ -19,8 +20,9 @@ import type { GroupLayout } from "@/types";
 
 export function GroupsPanel() {
   const {
-    groupLines,
-    linkedGroups,
+    companyLines,
+    linkedCompanies,
+    unlinkedCompanies,
     unlinkedGroups,
     syncing,
     sync,
@@ -31,7 +33,13 @@ export function GroupsPanel() {
   // One choice for the whole panel — the search results and both sections all
   // read from it, so the page never shows rows and cards at the same time.
   const [layout, setLayout] = useState<GroupLayout>("grid");
-  const results = useMemo(() => searchGroups(groupLines, term), [groupLines, term]);
+  // Searches the company list, which is what the two sections below are made
+  // of. A LINE group with no company is not in it — it has no company name or
+  // short name to match on anyway, and it has its own section at the bottom.
+  const results = useMemo(
+    () => searchGroups(companyLines, term),
+    [companyLines, term],
+  );
   const searching = term.trim() !== "";
 
   return (
@@ -73,7 +81,7 @@ export function GroupsPanel() {
           value={term}
           onValueChange={setTerm}
           onClear={() => setTerm("")}
-          placeholder="ค้นหาด้วยชื่อกลุ่มไลน์ ชื่อบริษัท (TH / EN) หรือชื่อย่อบริษัท..."
+          placeholder="ค้นหาด้วยชื่อบริษัท (TH / EN) ชื่อย่อบริษัท หรือชื่อกลุ่มไลน์..."
         />
 
         {searching && (
@@ -101,7 +109,7 @@ export function GroupsPanel() {
                 />
               ) : (
                 <GroupList
-                  groups={results}
+                  companies={results}
                   scope="groups"
                   layout={layout}
                   highlight={term}
@@ -128,18 +136,27 @@ export function GroupsPanel() {
         )
       ) : (
         <div className="mt-8 space-y-8">
+          {/* Both sections are lists of companies, split on
+              `companies.group_id`: bound above, unbound below. The third is
+              the leftovers seen from the LINE side — groups no company claims
+              — which is a different set, not the complement of the second. */}
           <GroupSection
-            title="กลุ่มไลน์ที่ผูกบริษัทแล้ว"
-            groups={linkedGroups}
+            title="บริษัทที่ผูกกลุ่มไลน์แล้ว"
+            companies={linkedCompanies}
             linked
             scope="groups"
             layout={layout}
           />
           <GroupSection
-            title="กลุ่มไลน์ที่ยังไม่ได้ผูกบริษัท"
-            groups={unlinkedGroups}
+            title="บริษัทที่ยังไม่ผูกกลุ่มไลน์"
+            companies={unlinkedCompanies}
             linked={false}
             scope="groups"
+            layout={layout}
+          />
+          <FreeGroupSection
+            title="กลุ่มไลน์ที่ยังไม่ได้ผูกบริษัท"
+            groups={unlinkedGroups}
             layout={layout}
           />
         </div>

@@ -149,19 +149,19 @@ export function yearOptions(current: number): number[] {
 // --- filtering -----------------------------------------------------------
 
 export interface NoteFilters {
-  year: string;
+  academicYear: string;
   semester: string;
   sentiment: string;
   source: string;
 }
 
-/** Only the two the per-company bar offers; year and semester are set page-wide. */
+/** Only the two the per-company bar offers; academicYear and semester are set page-wide. */
 export const COMPANY_FILTER_FIELDS = ["sentiment", "source"] as const;
 
 export function defaultFilters(): NoteFilters {
   const current = getCurrentYearSemester();
   return {
-    year: String(current.year),
+    academicYear: String(current.year),
     semester: String(current.semester),
     sentiment: "all",
     source: "all",
@@ -169,7 +169,7 @@ export function defaultFilters(): NoteFilters {
 }
 
 export function emptyFilters(): NoteFilters {
-  return { year: "all", semester: "all", sentiment: "all", source: "all" };
+  return { academicYear: "all", semester: "all", sentiment: "all", source: "all" };
 }
 
 /** Covers companyTh · companyEn · aliases · personName · personNickname. */
@@ -203,7 +203,10 @@ export function matchesSearch(
 }
 
 export function matchesFilters(note: Note, filters: NoteFilters): boolean {
-  if (filters.year !== "all" && String(note.year) !== filters.year) {
+  if (
+    filters.academicYear !== "all" &&
+    String(note.academicYear) !== filters.academicYear
+  ) {
     return false;
   }
   if (
@@ -219,13 +222,13 @@ export function matchesFilters(note: Note, filters: NoteFilters): boolean {
   return true;
 }
 
-/** Newest first: year, then semester, then updatedAt. */
+/** Newest first: academicYear, then semester, then updatedAt. */
 export function sortNotes(notes: Note[]): Note[] {
   const at = (iso: string | null | undefined) =>
     iso ? new Date(iso).getTime() : 0;
   return [...notes].sort(
     (a, b) =>
-      (b.year ?? 0) - (a.year ?? 0) ||
+      (b.academicYear ?? 0) - (a.academicYear ?? 0) ||
       (b.semester ?? 0) - (a.semester ?? 0) ||
       at(b.updatedAt) - at(a.updatedAt),
   );
