@@ -11,9 +11,8 @@ from schemas.company import CompanyName, Company
 from schemas.employee import EmployeeBase
 from schemas.enums import ContactStatus
 from schemas.base import ListResponse
-
-
-from services.company import create_company_pg
+from services import outbox
+from services.company import sync_create_company
 from services.employee import create_employee_pg
 
 from typing import Any
@@ -179,9 +178,6 @@ def update_information(user_id: int, group_data: dict[str, GroupInfo]) ->  ListR
 
     if not group_data:
         return ListResponse(items=[], total=0)
-    print(group_data['C46f16841ad21ef734794f7390ab91dd3'])
-    # return ListResponse(items=[], total=0)
-
     error_groups = []
     group_ids = list(group_data.keys())
     
@@ -206,6 +202,7 @@ def update_information(user_id: int, group_data: dict[str, GroupInfo]) ->  ListR
 
           group_name = group_info.display_name or "<ไม่มีชื่อกลุ่ม>"
           company_id = group_info.company_id
+          is_created = False
           try: 
             summary = summarize_line_group_messages(
                 "\n".join(group_messages[group_id]["messages"]), 
@@ -225,19 +222,18 @@ def update_information(user_id: int, group_data: dict[str, GroupInfo]) ->  ListR
                     print(f"{key}: {i.get(key) or '<ไม่มีข้อมูล>'}")
 
            
-            if not group_info.is_linked:
-                company_id = create_company_pg(
+            if not group_info.has_company:
+                is_created = True
+                company_id = sync_create_company(
                     CompanyName(
                         company_th=summary.get("company_th"),
                         company_en=summary.get("company_en"),
                         aliases=summary.get("aliases"),
                     ),
                     group_id=group_id, 
-                    is_linked=False, 
-                    conn=conn,
-                    ignore_name=True
+                    conn=conn
                 )
-                print("Create new unlinked company successfully\n")
+                print("Create new company successfully\n")
             
             if company_id is None:
                 raise NotFoundError( message=f"ไม่พบบริษัทของกลุ่ม {group_name} ในฐานข้อมูล")
@@ -255,6 +251,8 @@ def update_information(user_id: int, group_data: dict[str, GroupInfo]) ->  ListR
 
             _read_group_messages(group_id=group_id, last_read_at=group_messages[group_id]["last_read_at"], conn=conn)
             conn.commit()
+            if is_created:
+              outbox.flush(outbox.COMPANY, company_id)
             print(f"Ectract Information for group: {group_name} successfully\n")
 
           except Exception as e:

@@ -9,10 +9,6 @@ from schemas.company import Company, CompanyName
 from services import outbox
 from utils.mapping import columns_of, rows_to_models
 
-# ทุก sync_* ที่นี่เดินตามแบบเดียวกับ services/employee.py:
-# เขียน postgres + จองงานกราฟลง outbox ใน transaction เดียว commit แล้วค่อย
-# ยิงกราฟ - ดูเหตุผลเต็มที่หัวไฟล์ services/outbox.py
-
 
 def _payload(name: CompanyName, group_id: str | None) -> dict:
     """สิ่งที่ outbox เก็บไว้ทำ MERGE ทีหลัง"""
@@ -38,7 +34,7 @@ def get_company(id: int, conn: Any = None) -> Company:
 
 
 def get_companies() -> ListResponse[Company]:
-    query = f"select {columns_of(Company)} from companies where group_id is not null;"
+    query = f"select {columns_of(Company)} from companies;"
     with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
             cursor.execute(query)
@@ -46,15 +42,15 @@ def get_companies() -> ListResponse[Company]:
             return ListResponse(items=items, total=len(items))
 
 
-def create_company_pg(payload: CompanyName, group_id: str, is_linked: bool = False, conn: Any = None, ignore_name: bool = False):
-    if not ignore_name and not payload.company_th and not payload.company_en:
+def create_company_pg(payload: CompanyName, group_id: str, conn: Any = None):
+    if  not group_id and not payload.company_th and not payload.company_en:
         raise BadRequestError(message="ไม่ระบุชื่อบริษัทที่ต้องการสร้าง")
     if not conn:
         raise BadRequestError()
 
     query = f"""
-        INSERT INTO companies (group_id, company_th, company_en, aliases, is_linked)
-        VALUES (%(group_id)s, %(company_th)s, %(company_en)s, %(aliases)s, %(is_linked)s)
+        INSERT INTO companies (group_id, company_th, company_en, aliases)
+        VALUES (%(group_id)s, %(company_th)s, %(company_en)s, %(aliases)s)
         RETURNING id;
     """
 
@@ -62,8 +58,7 @@ def create_company_pg(payload: CompanyName, group_id: str, is_linked: bool = Fal
         "company_th": payload.company_th,
         "company_en": payload.company_en,
         "aliases": payload.aliases,
-        "group_id": group_id,
-        "is_linked": is_linked
+        "group_id": group_id
     }
 
     try:
@@ -73,10 +68,9 @@ def create_company_pg(payload: CompanyName, group_id: str, is_linked: bool = Fal
             if not row:
                 raise BadRequestError(message="ไม่สามารถสร้างบริษัทได้")
 
-            # คืน id เสมอ ไม่ใช่แค่ตอน is_linked=True: update_information ใช้ id
-            # ที่ได้จากตรงนี้เป็น employees.company_id ซึ่งเป็น NOT NULL
-            # ถ้าคืน None ตอน is_linked=False การ insert employee ทุกแถวของกลุ่ม
-            # นั้นจะล้มทั้งหมด
+            # คืน id เสมอ: update_information ใช้ id ที่ได้จากตรงนี้เป็น
+            # employees.company_id ซึ่งเป็น NOT NULL ถ้าคืน None การ insert
+            # employee ทุกแถวของกลุ่มนั้นจะล้มทั้งหมด
             return row[0]
 
     except ForeignKeyViolation as e:
@@ -89,8 +83,15 @@ def create_company_pg(payload: CompanyName, group_id: str, is_linked: bool = Fal
         raise
 
 
+def _validate(payload: CompanyName):
+    if not payload.company_th and not payload.company_en:
+        raise BadRequestError(message="ไม่ระบุชื่อบริษัทที่ต้องการอัปเดต")
+
 
 def update_company_pg(payload: CompanyName, id: str, conn: Any = None):
+    if payload:
+        _validate(payload)
+        
     if not id:
         raise BadRequestError(message="ไม่เจอบริษัทที่ต้องการอัปเดต")
 
@@ -105,7 +106,6 @@ def update_company_pg(payload: CompanyName, id: str, conn: Any = None):
         SET company_en = COALESCE(%(company_en)s, company_en),
             company_th = COALESCE(%(company_th)s, company_th),
             aliases = COALESCE(%(aliases)s, aliases),
-            is_linked = true,
             updated_at = now()
         WHERE id = %(id)s;
     """
@@ -124,14 +124,8 @@ def update_company_pg(payload: CompanyName, id: str, conn: Any = None):
 
 
 def upsert_company_graph(payload: CompanyName, group_id: str | None, id: int):
-    """MERGE node บริษัท - ทำซ้ำได้ และสร้างให้เองถ้ายังไม่มี
-
-    เดิมชื่อ update_company_graph ซึ่งอ่านแล้วเหมือนแก้ของที่มีอยู่ ทั้งที่
-    query เป็น MERGE มาตลอด ชื่อใหม่ตรงกับสิ่งที่ outbox ต้องการ: งาน upsert
-    หนึ่งงานที่ replay กี่รอบก็ได้ผลเดิม
-    """
     if not id:
-        raise BadRequestError(message="ไม่เจอกลุ่มไลน์ที่ต้องการอัปเดต")
+        raise BadRequestError(message="ไม่เจอบริษัทที่ต้องการอัปเดต")
 
     if not payload.company_th and not payload.company_en:
         raise BadRequestError(message="ไม่ระบุชื่อบริษัทที่ต้องการอัปเดต")
@@ -167,17 +161,11 @@ RETURN c as company;
             raise NotFoundError(message="ไม่พบข้อมูลบริษัทที่ต้องการอัปเดต")
 
 
-#: ชื่อเดิม เผื่อโค้ดที่ยังเรียกอยู่ - เป็นตัวเดียวกัน
-update_company_graph = upsert_company_graph
-
-
 def sync_update_company(payload: CompanyName, id: int):
     with nl_db.get_connection() as conn:
         target = get_company(id, conn=conn)
         update_company_pg(payload, id=id, conn=conn)
-        # อ่านกลับหลัง UPDATE: คอลัมน์ใช้ COALESCE อยู่ ฟิลด์ที่ payload ไม่ได้ส่ง
-        # มาจึงยังเป็นค่าเดิม - outbox ต้องเก็บค่าที่อยู่ในตารางจริง ไม่ใช่
-        # payload ที่อาจเป็น null
+        
         updated = get_company(id, conn=conn)
         outbox.enqueue(
             conn,
@@ -189,45 +177,44 @@ def sync_update_company(payload: CompanyName, id: int):
         conn.commit()
 
     outbox.flush(outbox.COMPANY, id)
+    
 
 
-def sync_create_company(payload: CompanyName, group_id: str):
-    with nl_db.get_connection() as conn:
-        id = create_company_pg(payload, group_id=group_id, is_linked=True, conn=conn)
+def sync_create_company(payload: CompanyName, group_id: str, conn: Any = None):
+    def _execute(connection):
+        company_id = create_company_pg(payload, group_id=group_id, conn=connection)
         outbox.enqueue(
-            conn, outbox.COMPANY, id, outbox.UPSERT, _payload(payload, group_id)
+            connection, outbox.COMPANY, company_id, outbox.UPSERT, _payload(payload, group_id)
         )
-        conn.commit()
+        return company_id
 
-    outbox.flush(outbox.COMPANY, id)
+    if conn:
+        return _execute(conn)
+    with nl_db.get_connection() as connection:
+        company_id = _execute(connection)
+        connection.commit()
+
+    outbox.flush(outbox.COMPANY, company_id)
+    return company_id
 
 
-def delete_company_pg(id: int, conn: Any = None):
+def unlink_company_pg(id: int, conn: Any = None):
     if not id or not conn:
         raise BadRequestError()
 
-    query = f"delete from companies where id = %s;"
+    query = "UPDATE companies SET group_id = null, updated_at = now() WHERE id = %s;"
     with conn.cursor() as cursor:
         cursor.execute(query, (id,))
         if cursor.rowcount == 0:
             raise NotFoundError(message=f"ไม่พบข้อมูลบริษัท id = {id}")
 
-def delete_company_graph(id: int) -> int:
-    """ลบบริษัทพร้อมทุกอย่างที่ห้อยอยู่กับมัน - ไม่เจอก็ถือว่าสำเร็จ
-
-    ฝั่ง postgres `employees.company_id` และ `notes.company_id` เป็น
-    ON DELETE CASCADE การลบบริษัทจึงลบคนกับโน้ตของบริษัทนั้นไปด้วย กราฟต้อง
-    ทำแบบเดียวกัน - รวมถึงโน้ตที่ห้อยอยู่กับ "คน" ของบริษัทนี้อีกชั้นหนึ่ง
-    (ก่อนหน้านี้ตกหล่น กลายเป็น Note ลอยอยู่ในกราฟโดยไม่มีแถวใน pg แล้ว)
-    """
+def unlink_company_graph(id: int) -> int:
     if not id:
         raise BadRequestError()
 
     query = """
     MATCH (c:Company {id: $id})
-    OPTIONAL MATCH (c)-[:HAS_EMPLOYEE|HAS_NOTE]->(x)
-    OPTIONAL MATCH (x)-[:HAS_NOTE]->(y)
-    DETACH DELETE c, x, y
+    SET c.groupId = null
     RETURN count(c) AS removed;
     """
     with graph_db.get_session() as session:
@@ -235,13 +222,61 @@ def delete_company_graph(id: int) -> int:
         return record["removed"] if record else 0
 
 
-def sync_delete_company(id: int):
+def sync_unlink_company(id: int):
     if not id:
         raise BadRequestError()
     with nl_db.get_connection() as conn:
         get_company(id, conn=conn)
-        delete_company_pg(id=id, conn=conn)
-        outbox.enqueue(conn, outbox.COMPANY, id, outbox.DELETE)
+        unlink_company_pg(id=id, conn=conn)
+        outbox.enqueue(conn, outbox.COMPANY, id, outbox.UNLINK)
+        conn.commit()
+
+    outbox.flush(outbox.COMPANY, id)
+
+
+
+def link_company_pg(id: int, group_id: str, conn: Any = None):
+    if not id or not group_id:
+        raise BadRequestError("field id or group_id is empty")
+    if not conn:
+        raise BadRequestError("no connection provided on pg")
+
+    query = (
+        "UPDATE companies SET group_id = %(group_id)s, updated_at = now() "
+        "WHERE id = %(id)s;"
+    )
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(query, {"group_id": group_id, "id": id})
+            if cursor.rowcount == 0:
+                raise NotFoundError(message=f"ไม่พบข้อมูลบริษัท id = {id}")
+    except UniqueViolation as e:
+        # companies.group_id เป็น UNIQUE: กลุ่มนี้มีบริษัทอื่นจองไว้แล้ว
+        # console กรองกลุ่มที่ว่างมาให้อยู่แล้ว เคสนี้คือรายการบนจอเก่า
+        raise BadRequestError(message="กลุ่ม LINE นี้ถูกผูกบริษัทไปแล้ว") from e
+    except ForeignKeyViolation as e:
+        raise BadRequestError(message="ไม่พบกลุ่ม LINE ในระบบ") from e
+
+def link_company_graph(id: int, group_id: str) -> int:
+    if not id or not group_id:
+        raise BadRequestError("field id or group_id is empty")
+
+    query = """
+    MATCH (c:Company {id: $id})
+    SET c.groupId = $group_id
+    RETURN count(c) AS removed;
+    """
+    with graph_db.get_session() as session:
+        record = session.run(query, {"group_id": group_id, "id": id}).single()
+        return record["removed"] if record else 0
+
+def sync_link_company(id: int, group_id: str):
+    if not id or not group_id:
+        raise BadRequestError("field id or group_id is empty")
+    with nl_db.get_connection() as conn:
+        get_company(id, conn=conn)
+        link_company_pg(id=id, group_id=group_id, conn=conn)
+        outbox.enqueue(conn, outbox.COMPANY, id, outbox.LINK, payload={"group_id": group_id})
         conn.commit()
 
     outbox.flush(outbox.COMPANY, id)

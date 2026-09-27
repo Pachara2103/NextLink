@@ -43,6 +43,8 @@ NOTE = "note"
 # op
 UPSERT = "upsert"
 DELETE = "delete"
+UNLINK = "unlink"
+LINK = "link"
 
 _COLUMNS = "id, entity, entity_id, op, payload, tries"
 
@@ -70,7 +72,7 @@ def _appliers() -> dict[tuple[str, str], Callable[[dict | None, int], None]]:
     from schemas.company import CompanyName
     from schemas.employee import Employee
     from schemas.note import NoteCreate
-    from services.company import delete_company_graph, upsert_company_graph
+    from services.company import unlink_company_graph, upsert_company_graph, link_company_graph
     from services.employee import delete_employee_graph, merge_employee_graph
     from services.note import delete_note_graph, merge_note_graph
 
@@ -91,17 +93,28 @@ def _appliers() -> dict[tuple[str, str], Callable[[dict | None, int], None]]:
             group_id=payload.get("group_id"),
             id=entity_id,
         )
+    def company_link(payload: dict | None, entity_id: int) -> None:
+        if not payload:
+            raise ValueError(f"company link {entity_id} ไม่มี payload")
+        group_id = payload.get("group_id")
+        link_company_graph(id=entity_id, group_id=group_id)
 
     def note_upsert(payload: dict | None, entity_id: int) -> None:
         if not payload:
             raise ValueError(f"note upsert {entity_id} ไม่มี payload")
-        merge_note_graph(NoteCreate(**payload), id=entity_id)
 
+        if "year" in payload and "academic_year" not in payload:
+            payload = {**payload, "academic_year": payload["year"]}
+            payload.pop("year")
+            
+        merge_note_graph(NoteCreate(**payload), id=entity_id)
+        
     return {
         (EMPLOYEE, UPSERT): employee_upsert,
         (EMPLOYEE, DELETE): lambda _payload, entity_id: delete_employee_graph(entity_id),
         (COMPANY, UPSERT): company_upsert,
-        (COMPANY, DELETE): lambda _payload, entity_id: delete_company_graph(entity_id),
+        (COMPANY, UNLINK): lambda _payload, entity_id: unlink_company_graph(entity_id),
+        (COMPANY, LINK): company_link,
         (NOTE, UPSERT): note_upsert,
         (NOTE, DELETE): lambda _payload, entity_id: delete_note_graph(entity_id),
     }
@@ -223,6 +236,14 @@ def _run(where: str, params: dict, limit: int) -> dict:
                 break
             # rr
             job = _row_to_job(row)
+    # return {
+    #     "id": row[0],
+    #     "entity": row[1],
+    #     "entity_id": row[2],
+    #     "op": row[3],
+    #     "payload": row[4],
+    #     "tries": row[5],
+    # }
             try:
                 _apply(job)
                 _mark_done(conn, job["id"])

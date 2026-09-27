@@ -15,6 +15,7 @@ import { MESSAGES } from "@/lib/constants";
 import type {
   Company,
   CompanyInput,
+  CompanyLine,
   Contact,
   ContactCreate,
   ContactStatus,
@@ -35,7 +36,11 @@ import { companyService } from "@/lib/services/company";
 import { healthService, type HealthInfo } from "@/lib/services/health";
 import { contactService } from "@/lib/services/contact";
 import { employeeService } from "@/lib/services/employee";
-import { lineService, mergeGroupLines } from "@/lib/services/line";
+import {
+  lineService,
+  mergeCompanyLines,
+  mergeGroupLines,
+} from "@/lib/services/line";
 import { noteService } from "@/lib/services/note";
 import { isNetworkError, serverDetail } from "@/lib/services/errors";
 import { ApiError, setUnreachableHandler } from "@/lib/services/http";
@@ -149,7 +154,13 @@ type Action =
       /** The re-read directory, when the create refreshed it. */
       companies?: Company[];
     }
-  | { type: "company/unlinked"; groupId: string }
+  | { type: "company/unlinked"; companyId: number; groupId: string | null }
+  | {
+      type: "company/linked";
+      companyId: number;
+      groupId: string;
+      at: string;
+    }
   | { type: "sync/failed"; message: string }
   | { type: "server/down" }
   | { type: "server/up"; bootId: string }
@@ -336,8 +347,8 @@ function reducer(state: State, action: Action): State {
       return { ...state, editingCompany: null };
 
     // A blank field does not overwrite an existing name, matching the coalesce
-    // in the UPDATE and the Cypher MERGE. isLinked goes true either way: both
-    // endpoints are only ever reached by a human confirming the company.
+    // in the UPDATE and the Cypher MERGE. hasCompany goes true either way: a
+    // company row now exists for this group, which is all that flag means.
     case "company/save":
       return {
         ...state,
@@ -359,7 +370,7 @@ function reducer(state: State, action: Action): State {
                 // Mirroring that here is what makes re-opening the form show
                 // the aliases that were just saved rather than the old ones.
                 aliases: action.input.aliases ?? group.aliases,
-                isLinked: true,
+                hasCompany: true,
                 updatedAt: action.at,
               }
             : group,
@@ -377,7 +388,6 @@ function reducer(state: State, action: Action): State {
                   companyTh: action.input.companyTh ?? company.companyTh,
                   companyEn: action.input.companyEn ?? company.companyEn,
                   aliases: action.input.aliases ?? company.aliases,
-                  isLinked: true,
                   updatedAt: action.at,
                 }
               : company,
@@ -393,26 +403,70 @@ function reducer(state: State, action: Action): State {
     case "employees/set":
       return { ...state, employees: action.employees, editingContactId: null };
 
-    // The company row is gone, so the group is back to unlinked with no
-    // company names and nothing to point at.
+    /**
+     * The binding is gone, not the company.
+     *
+     * `POST /companies/{id}/unlink` sets `companies.group_id` to null and
+     * stops there, so the row stays — with its people, its notes and its
+     * graph node — and simply moves to "บริษัทที่ยังไม่ผูกกลุ่มไลน์". It used
+     * to be dropped from `companies` here, which read on screen as the
+     * company having been deleted and made it unreachable until a resync.
+     *
+     * The group it was bound to goes back to carrying no company at all.
+     */
     case "company/unlinked":
       return {
         ...state,
         editingCompany: null,
         groupLines: state.groupLines.map((group) =>
-          group.groupId === action.groupId
+          action.groupId !== null && group.groupId === action.groupId
             ? {
                 ...group,
                 companyTh: null,
                 companyEn: null,
                 aliases: [],
                 companyId: null,
-                isLinked: false,
+                hasCompany: false,
               }
             : group,
         ),
-        companies: state.companies.filter((c) => c.groupId !== action.groupId),
+        companies: state.companies.map((company) =>
+          company.id === action.companyId
+            ? { ...company, groupId: null }
+            : company,
+        ),
       };
+
+    /**
+     * The reverse: an existing company now points at a LINE group.
+     *
+     * Both halves are patched from what is already held rather than re-read —
+     * the company's names are the ones the group line has to start showing,
+     * and the group's id is the one the company card has to start showing.
+     */
+    case "company/linked": {
+      const company = state.companies.find((c) => c.id === action.companyId);
+      return {
+        ...state,
+        companies: state.companies.map((c) =>
+          c.id === action.companyId
+            ? { ...c, groupId: action.groupId, updatedAt: action.at }
+            : c,
+        ),
+        groupLines: state.groupLines.map((group) =>
+          group.groupId === action.groupId
+            ? {
+                ...group,
+                companyId: action.companyId,
+                companyTh: company?.companyTh ?? null,
+                companyEn: company?.companyEn ?? null,
+                aliases: company?.aliases ?? [],
+                hasCompany: true,
+              }
+            : group,
+        ),
+      };
+    }
 
     case "sync/failed":
       return pushToast(
@@ -438,9 +492,19 @@ function reducer(state: State, action: Action): State {
 }
 
 interface Store extends State {
-  /** Groups whose company row a human has confirmed (companies.is_linked). */
+  /** LINE groups a company row points at (`companies.group_id` = this group). */
   linkedGroups: GroupLine[];
+  /** LINE groups no company points at — "กลุ่มไลน์ที่ยังไม่ได้ผูกบริษัท". */
   unlinkedGroups: GroupLine[];
+  /**
+   * The same join read company-first, so a company with no group still has a
+   * row. What หน้ากลุ่มไลน์และบริษัท renders — see `mergeCompanyLines`.
+   */
+  companyLines: CompanyLine[];
+  /** Companies with a LINE group bound — "บริษัทที่ผูกกลุ่มไลน์แล้ว". */
+  linkedCompanies: CompanyLine[];
+  /** Companies with none yet — "บริษัทที่ยังไม่ผูกกลุ่มไลน์". */
+  unlinkedCompanies: CompanyLine[];
   pendingCount: number;
   /** Everyone who has been reviewed — the people the directory page lists. */
   staffCount: number;
@@ -494,10 +558,28 @@ interface Store extends State {
    * action for both, because which of the two happens is not the caller's
    * decision — it follows from whether the group already has a company row.
    * True only on success.
+   *
+   * Takes the two ids rather than a whole `GroupLine`, so the company-keyed
+   * cards on กลุ่มไลน์และบริษัท can call it with a `CompanyLine` they have
+   * already checked has a group. See `CompanyFormTarget`.
    */
-  saveCompany: (group: GroupLine, input: CompanyInput) => Promise<boolean>;
-  /** Unlink: deletes the company row the group points at. True only on success. */
-  unlinkCompany: (group: GroupLine) => Promise<boolean>;
+  saveCompany: (
+    group: { groupId: string; companyId?: number | null },
+    input: CompanyInput,
+  ) => Promise<boolean>;
+  /**
+   * Clears `companies.group_id`: the company stays, the LINE group it was
+   * bound to becomes free again. True only on success.
+   */
+  unlinkGroup: (company: {
+    companyId?: number | null;
+    groupId?: string | null;
+  }) => Promise<boolean>;
+  /**
+   * Points an existing company at a free LINE group — the other half of
+   * `unlinkGroup`. True only on success.
+   */
+  linkGroup: (companyId: number, groupId: string) => Promise<boolean>;
   /**
    * Creates or edits one company contact. `id === null` creates. True only on
    * success; on failure the store has already raised the toast and the form
@@ -861,8 +943,15 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<Store>(() => {
-    const linkedGroups = state.groupLines.filter((g) => g.isLinked);
-    const unlinkedGroups = state.groupLines.filter((g) => !g.isLinked);
+    const linkedGroups = state.groupLines.filter((g) => g.hasCompany);
+    const unlinkedGroups = state.groupLines.filter((g) => !g.hasCompany);
+
+    // Company-first view of the same two tables. `groupLines` already is every
+    // row of `line_groups`, so it doubles as the LINE half here and no third
+    // read is needed.
+    const companyLines = mergeCompanyLines(state.groupLines, state.companies);
+    const linkedCompanies = companyLines.filter((c) => c.groupId !== null);
+    const unlinkedCompanies = companyLines.filter((c) => c.groupId === null);
     const everyone = Object.values(state.employees).flat();
     const statusCounts: Record<ContactStatus, number> = {
       pending: 0,
@@ -893,6 +982,9 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       ...state,
       linkedGroups,
       unlinkedGroups,
+      companyLines,
+      linkedCompanies,
+      unlinkedCompanies,
       pendingCount: statusCounts.pending,
       staffCount: everyone.length - statusCounts.pending,
       statusCounts,
@@ -1121,31 +1213,74 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
         }
       },
 
-      unlinkCompany: async (group) => {
+      unlinkGroup: async (company) => {
         if (refuseWhileDown()) return false;
-        if (group.companyId === null || group.companyId === undefined) {
+        if (company.companyId === null || company.companyId === undefined) {
           dispatch({
             type: "toast/set",
-            toast: { kind: "error", message: MESSAGES.companyAlreadyUnlinked },
+            toast: { kind: "error", message: MESSAGES.groupAlreadyUnlinked },
           });
           return false;
         }
 
         try {
-          await companyService.remove(group.companyId);
-          dispatch({ type: "company/unlinked", groupId: group.groupId });
+          await companyService.unlink(company.companyId);
+          dispatch({
+            type: "company/unlinked",
+            companyId: company.companyId,
+            groupId: company.groupId ?? null,
+          });
           dispatch({
             type: "toast/set",
-            toast: { kind: "success", message: MESSAGES.companyUnlinked },
+            toast: { kind: "success", message: MESSAGES.groupUnlinked },
           });
           return true;
         } catch (error) {
-          console.error("unlinkCompany failed", error);
+          console.error("unlinkGroup failed", error);
           dispatch({
             type: "toast/set",
             toast: {
               kind: "error",
-              message: noteErrorMessage(error, MESSAGES.companyUnlinkPrefix),
+              message: noteErrorMessage(error, MESSAGES.groupUnlinkPrefix),
+            },
+          });
+          return false;
+        }
+      },
+
+      linkGroup: async (companyId, groupId) => {
+        if (refuseWhileDown()) return false;
+        if (!groupId) {
+          dispatch({
+            type: "toast/set",
+            toast: { kind: "error", message: MESSAGES.requireGroupToLink },
+          });
+          return false;
+        }
+
+        try {
+          await companyService.link(companyId, groupId);
+          dispatch({
+            type: "company/linked",
+            companyId,
+            groupId,
+            at: new Date().toISOString(),
+          });
+          dispatch({
+            type: "toast/set",
+            toast: { kind: "success", message: MESSAGES.groupLinked },
+          });
+          return true;
+        } catch (error) {
+          // `companies.group_id` is UNIQUE, so the realistic failure is a group
+          // that someone else bound while this dialog was open — the API says
+          // so in Thai and that message is worth more than a generic one.
+          console.error("linkGroup failed", error);
+          dispatch({
+            type: "toast/set",
+            toast: {
+              kind: "error",
+              message: noteErrorMessage(error, MESSAGES.groupLinkPrefix),
             },
           });
           return false;

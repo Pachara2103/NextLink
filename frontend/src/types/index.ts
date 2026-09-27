@@ -24,6 +24,14 @@ type Schemas = components["schemas"];
  */
 export type { GroupLine, LineGroup } from "./line";
 
+/**
+ * The same join read company-first: one entry per **company**, with the LINE
+ * group it points at folded in and `groupId` nullable. What the cards on
+ * กลุ่มไลน์และบริษัท render, so that a company with no group yet still has a
+ * card there. See `./line.ts`.
+ */
+export type { CompanyLine } from "./line";
+
 /** A company row as `GET /companies` returns it. */
 export type Company = Schemas["Company"];
 

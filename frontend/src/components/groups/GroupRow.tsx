@@ -1,33 +1,45 @@
 "use client";
 
+import { useState } from "react";
+
 import { CompanyForm } from "@/components/groups/CompanyForm";
-import { GroupChip, GroupIdentity } from "@/components/groups/GroupIdentity";
-import { UnlinkCompanyButton } from "@/components/groups/UnlinkCompanyButton";
+import {
+  CompanyIdentity,
+  GroupChip,
+  LINE_GROUP_ICON,
+} from "@/components/groups/GroupIdentity";
+import { LinkGroupModal } from "@/components/groups/LinkGroupModal";
+import { UnlinkGroupButton } from "@/components/groups/UnlinkGroupButton";
 import { Button } from "@/components/ui/Button";
-import { cn, groupLabel } from "@/lib/utils";
+import { cn, lineGroupLabel } from "@/lib/utils";
 import { useConsole } from "@/store/console-store";
-import type { GroupLine, PanelKey } from "@/types";
+import type { CompanyLine, PanelKey } from "@/types";
 
 /**
- * Compact directory row. Same identity block as the accordion card, but no
- * expansion: this list is about the company link, not the employees.
+ * Compact directory row — the list-layout twin of GroupCard, one company per
+ * row. Same content and the same actions; see GroupCard for why the company
+ * and its LINE group swapped places.
  */
 export function GroupRow({
-  group,
+  company,
   scope,
   highlight,
 }: {
-  group: GroupLine;
+  company: CompanyLine;
   scope: PanelKey;
-  /** Search term, marked inside the name and company line. */
+  /** Search term, marked inside the names. */
   highlight?: string;
 }) {
   const { openCompanyForm, isCompanyFormOpen, companyContacts } = useConsole();
-  const formOpen = isCompanyFormOpen(scope, group.groupId);
-  const linked = group.isLinked;
-  // Keyed by company id, so a group with no company row simply has none.
-  const contacts =
-    group.companyId != null ? (companyContacts[group.companyId] ?? []) : [];
+  const [linking, setLinking] = useState(false);
+
+  const linked = company.groupId !== null;
+  const formOpen =
+    company.groupId !== null && isCompanyFormOpen(scope, company.groupId);
+  // Keyed by company id, so every company has its own list whether or not a
+  // group points at it.
+  const contacts = companyContacts[company.companyId] ?? [];
+  const { label: groupName } = lineGroupLabel(company);
 
   return (
     <div
@@ -41,15 +53,18 @@ export function GroupRow({
       <GroupChip
         linked={linked}
         size="sm"
-        pictureUrl={group.pictureUrl}
-        alt={groupLabel(group)}
+        pictureUrl={company.pictureUrl}
+        alt={groupName}
+        icon={linked ? LINE_GROUP_ICON : "unlink"}
       />
-      <GroupIdentity
-        group={group}
+      <CompanyIdentity
+        company={company}
         titleSize="sm"
         contacts={contacts}
         highlight={highlight}
-        onCompanyClick={() => openCompanyForm(scope, group.groupId)}
+        onCompanyClick={
+          linked ? () => openCompanyForm(scope, company.groupId!) : undefined
+        }
       />
 
       {/* จัดการผู้ติดต่อ lives on ผู้ติดต่อและบุคคลในบริษัท now — see the
@@ -59,26 +74,40 @@ export function GroupRow({
           <Button
             icon="pencil"
             size="sm"
-            onClick={() => openCompanyForm(scope, group.groupId)}
+            onClick={() => openCompanyForm(scope, company.groupId!)}
           >
             แก้ไขชื่อบริษัท
           </Button>
-          <UnlinkCompanyButton group={group} />
+          <UnlinkGroupButton company={company} />
         </div>
       ) : (
         <Button
           variant="warn"
-          icon="plus"
+          icon="link"
           size="sm"
-          onClick={() => openCompanyForm(scope, group.groupId)}
+          onClick={() => setLinking(true)}
         >
-          เพิ่มบริษัท
+          ผูกกลุ่มไลน์
         </Button>
       )}
 
-      {/* A dialog, not a swap: the row keeps its place in the list while the
-          form is open, so nothing below it shifts under the cursor. */}
-      {formOpen && <CompanyForm group={group} />}
+      {/* A dialog, not a swap: the row keeps its place in the list while one
+          is open, so nothing below it shifts under the cursor. */}
+      {formOpen && company.groupId !== null && (
+        <CompanyForm
+          target={{
+            groupId: company.groupId,
+            companyId: company.companyId,
+            companyTh: company.companyTh,
+            companyEn: company.companyEn,
+            aliases: company.aliases,
+            displayName: company.displayName,
+          }}
+        />
+      )}
+      {linking && (
+        <LinkGroupModal company={company} onClose={() => setLinking(false)} />
+      )}
     </div>
   );
 }

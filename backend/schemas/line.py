@@ -14,7 +14,7 @@ class LineGroup(BaseTimestamp):
 class GroupInfo(BaseTimestamp, CompanyName):
     group_id: str
     display_name: str | None
-    is_linked: bool
+    has_company: bool
     company_id: int | None
     picture_url: str | None
 

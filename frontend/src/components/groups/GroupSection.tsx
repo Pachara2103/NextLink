@@ -8,26 +8,30 @@ import { CountChip } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SortSelect } from "@/components/ui/Field";
 import { Pagination } from "@/components/ui/Pagination";
-import { GRID_ITEMS_PER_PAGE, ITEMS_PER_PAGE, SORT_OPTIONS } from "@/lib/constants";
+import {
+  GRID_ITEMS_PER_PAGE,
+  ITEMS_PER_PAGE,
+  SORT_OPTIONS,
+} from "@/lib/constants";
 import { paginate, sortGroups } from "@/lib/filters";
-import type { GroupLayout, GroupLine, PanelKey, SortOption } from "@/types";
+import type { CompanyLine, GroupLayout, PanelKey, SortOption } from "@/types";
 
 /**
- * A titled, sorted, paginated list of groups. Sort choice and page number are
- * local, so the matched and unmatched sections never affect one another.
+ * A titled, sorted, paginated list of companies. Sort choice and page number
+ * are local, so the bound and unbound sections never affect one another.
  *
  * `layout` only changes how a page is drawn and how many fit on it — the rows
- * and the cards render the same group with the same three actions.
+ * and the cards render the same company with the same actions.
  */
 export function GroupSection({
   title,
-  groups,
+  companies,
   linked,
   scope,
   layout = "list",
 }: {
   title: string;
-  groups: GroupLine[];
+  companies: CompanyLine[];
   /** Which of the two sections this is — drives the count chip and the empty state. */
   linked: boolean;
   scope: PanelKey;
@@ -47,7 +51,7 @@ export function GroupSection({
     setPage(1);
   }
 
-  const sorted = useMemo(() => sortGroups(groups, sortBy), [groups, sortBy]);
+  const sorted = useMemo(() => sortGroups(companies, sortBy), [companies, sortBy]);
   const view = paginate(
     sorted,
     page,
@@ -62,7 +66,7 @@ export function GroupSection({
             {title}
           </h2>
           <CountChip tone={linked ? "matched" : "unmatched"}>
-            {groups.length}
+            {companies.length}
           </CountChip>
         </div>
         <SortSelect
@@ -76,27 +80,27 @@ export function GroupSection({
         />
       </div>
 
-      {groups.length === 0 ? (
+      {companies.length === 0 ? (
         <div className="mt-3.5">
           {linked ? (
             <EmptyState
               icon="unlink"
-              title="ยังไม่มีกลุ่มไลน์ที่ผูกบริษัท"
-              detail="เริ่มจากผูกบริษัทให้กลุ่มในรายการด้านล่าง"
+              title="ยังไม่มีบริษัทที่ผูกกลุ่มไลน์"
+              detail="เริ่มจากกดผูกกลุ่มไลน์ให้บริษัทในรายการด้านล่าง"
             />
           ) : (
             <EmptyState
               icon="check-circle"
               tone="success"
-              title="ผูกบริษัทครบทุกกลุ่มไลน์แล้ว"
-              detail="ไม่มีกลุ่มที่ค้างอยู่ในคิว"
+              title="ทุกบริษัทผูกกลุ่มไลน์แล้ว"
+              detail="ไม่มีบริษัทที่ค้างรอผูกกลุ่มไลน์อยู่"
             />
           )}
         </div>
       ) : (
         <>
           <GroupList
-            groups={view.items}
+            companies={view.items}
             scope={scope}
             layout={layout}
             className="mt-3.5"
@@ -121,13 +125,13 @@ export function GroupSection({
  * the grid stops being scannable.
  */
 export function GroupList({
-  groups,
+  companies,
   scope,
   layout,
   highlight,
   className,
 }: {
-  groups: GroupLine[];
+  companies: CompanyLine[];
   scope: PanelKey;
   layout: GroupLayout;
   highlight?: string;
@@ -142,10 +146,10 @@ export function GroupList({
             : "grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3"
         }
       >
-        {groups.map((group) => (
+        {companies.map((company) => (
           <GroupCard
-            key={group.groupId}
-            group={group}
+            key={company.companyId}
+            company={company}
             scope={scope}
             highlight={highlight}
           />
@@ -156,10 +160,10 @@ export function GroupList({
 
   return (
     <div className={className ? `${className} space-y-2.5` : "space-y-2.5"}>
-      {groups.map((group) => (
+      {companies.map((company) => (
         <GroupRow
-          key={group.groupId}
-          group={group}
+          key={company.companyId}
+          company={company}
           scope={scope}
           highlight={highlight}
         />

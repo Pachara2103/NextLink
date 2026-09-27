@@ -67,6 +67,18 @@ class Neo4jConnection:
         """ยิงเช็คว่าต่อได้จริง ใช้ตอน startup เพื่อรู้เร็วกว่ารอ request แรก"""
         self.driver.verify_connectivity()
 
+    def ping(self) -> bool:
+        """ยิง query จริงหนึ่งครั้ง - ใช้เป็น keepalive ของ Neo4j Aura
+
+        ต่างจาก check() ตรงที่ตัวนั้นแค่จับมือกับ server (verify_connectivity)
+        ซึ่ง Aura ไม่นับเป็น "การใช้งาน" instance ที่ไม่มี query เลยติดกัน
+        3 วันจะถูกพักเอง แล้วต้องเข้าไปกดปลุกใน console ถึงจะกลับมา - RETURN 1
+        หนึ่งครั้งก็พอให้ตัวนับนั้นเริ่มใหม่ ดู app.py::graph_keepalive_api
+        """
+        with self.get_session() as session:
+            record = session.run("RETURN 1 AS ok;").single()
+            return bool(record and record["ok"] == 1)
+
     def close(self):
         if self._driver is not None:
             self._driver.close()

@@ -95,12 +95,12 @@ export function NoteCard({
           </div>
           <span
             className="mt-auto inline-flex items-center gap-1.5 rounded-full border border-line bg-sunken px-2.5 py-1 font-mono text-[11px] tabular-nums text-text-2"
-            title={`ปีการศึกษา ${note.year ?? "-"} · ${
+            title={`ปีการศึกษา ${note.academicYear ?? "-"} · ${
               SEMESTER_LABEL[note.semester ?? 0] ?? "ไม่ระบุภาคเรียน"
             }`}
           >
             <Icon name="calendar" className="size-3.5" />
-            {note.year ?? "-"} · เทอม {note.semester ?? "-"}
+            {note.academicYear ?? "-"} · เทอม {note.semester ?? "-"}
           </span>
         </div>
       </div>

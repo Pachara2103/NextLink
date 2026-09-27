@@ -1,4 +1,4 @@
-import { deleteJson, getJson, postJson, putJson } from "@/lib/services/http";
+import { getJson, postJson, putJson } from "@/lib/services/http";
 import type {
   Company,
   CompanyInput,
@@ -32,10 +32,25 @@ export const companyService = {
     putJson<StatusResponse>(`/api/v1/companies/${companyId}`, payload),
 
   /**
-   * Unlink: drops the company row, so the group's LEFT JOIN gives companyId =
-   * null and isLinked = false and it moves back to "ยังไม่ได้ผูกบริษัท". Keyed
-   * by company id, like update.
+   * Clears `companies.group_id` — the company row stays, so it moves to
+   * "บริษัทที่ยังไม่ผูกกลุ่มไลน์" and its LINE group becomes free to bind
+   * somewhere else. It is not a delete: the people and notes filed under this
+   * company are all keyed by company id and survive it.
    */
-  remove: (companyId: number) =>
-    deleteJson<StatusResponse>(`/api/v1/companies/${companyId}`),
+  unlink: (companyId: number) =>
+    postJson<StatusResponse>(`/api/v1/companies/${companyId}/unlink`, {}),
+
+  /**
+   * The reverse: points an existing company at a LINE group.
+   *
+   * `group_id` goes in the **query string**, not the body — `link_company_api`
+   * declares it as a bare `str` parameter, which FastAPI reads as a query
+   * param. Sent as a JSON body (as it was) the route never sees it and answers
+   * 422.
+   */
+  link: (companyId: number, groupId: string) =>
+    postJson<StatusResponse>(
+      `/api/v1/companies/${companyId}/link?group_id=${encodeURIComponent(groupId)}`,
+      {},
+    ),
 };

@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -196,6 +197,49 @@ def health_api():
         "bootId": BOOT_ID,
         "startedAt": STARTED_AT,
     }
+
+
+@app.get("/api/v1/health/graph", tags=["health"])
+async def graph_keepalive_api():
+    """ยิง Neo4j หนึ่งครั้งเพื่อกันไม่ให้ Aura พัก instance ทิ้ง
+
+    Aura พัก instance ที่ไม่มี query เลยติดกัน 3 วัน แล้วต้องเข้าไปกดปลุกเอง
+    ที่ console ตัวนี้จึงมีไว้ให้ cron ข้างนอกยิงทุกวัน - ดู
+    .github/workflows/graph-keepalive.yml - หนึ่ง RETURN 1 ต่อวันก็พอให้ตัวนับ
+    เริ่มใหม่ตลอด
+
+    แยกจาก /api/v1/health เพราะตัวนั้นตั้งใจไม่ให้แตะฐานข้อมูลเลย (frontend
+    poll ทุก 2 วินาทีตอนเซิร์ฟเวอร์ล่ม) ส่วนตัวนี้ถูกยิงวันละครั้งและ "แตะ
+    ฐานข้อมูลจริง" คือหน้าที่ของมัน
+
+    ไม่บังคับล็อกอิน เพราะ cron ข้างนอกไม่มี token และสิ่งที่ตอบกลับมีแค่
+    สถานะการเชื่อมต่อ ไม่มีข้อมูลในฐานหลุดออกไป ตอบ 503 เมื่อต่อไม่ติด เพื่อ
+    ให้ cron ที่ยิงมาเห็นเป็น failure แทนที่จะเงียบไปเฉย ๆ
+    """
+    started = time.perf_counter()
+    try:
+        await asyncio.to_thread(graph_db.ping)
+    except Exception as exc:
+        logger.exception("graph keepalive ล้มเหลว")
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "error",
+                "graph": False,
+                "detail": str(exc),
+                "checkedAt": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+
+    took = round((time.perf_counter() - started) * 1000)
+    logger.info("graph keepalive ok (%d ms)", took)
+    return {
+        "status": "ok",
+        "graph": True,
+        "tookMs": took,
+        "checkedAt": datetime.now(timezone.utc).isoformat(),
+    }
+
 
 app.include_router(api_router)
 

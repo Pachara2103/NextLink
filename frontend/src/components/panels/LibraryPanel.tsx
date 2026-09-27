@@ -55,14 +55,14 @@ export function LibraryPanel() {
           />
           <EmptyState
             icon="unlink"
-            title="ยังไม่มีกลุ่มไลน์ที่ผูกบริษัท"
-            detail="เริ่มจากผูกบริษัทให้กลุ่มในรายการด้านล่าง"
+            title="ยังไม่มีบริษัทที่ผูกกลุ่มไลน์"
+            detail="เริ่มจากกดผูกกลุ่มไลน์ให้บริษัทในรายการด้านล่าง"
           />
           <EmptyState
             icon="check-circle"
             tone="success"
-            title="ผูกบริษัทครบทุกกลุ่มไลน์แล้ว"
-            detail="ไม่มีกลุ่มที่ค้างอยู่ในคิว"
+            title="ทุกบริษัทผูกกลุ่มไลน์แล้ว"
+            detail="ไม่มีบริษัทที่ค้างรอผูกกลุ่มไลน์อยู่"
           />
         </div>
       </Group>
@@ -100,10 +100,10 @@ export function LibraryPanel() {
         <Panel>
           <div className="flex flex-wrap gap-2.5">
             <Badge tone="matched" dot>
-              ผูกบริษัทแล้ว
+              ผูกกลุ่มไลน์แล้ว
             </Badge>
             <Badge tone="unmatched" dot>
-              ยังไม่ได้ผูกบริษัท
+              ยังไม่ผูกกลุ่มไลน์
             </Badge>
             <Badge tone="pending">รอยืนยัน</Badge>
             <Badge tone="completed">บันทึกแล้ว</Badge>

@@ -8,19 +8,31 @@ import {
 } from "react";
 
 import { GroupAvatar } from "@/components/groups/GroupAvatar";
-import { Icon } from "@/components/icons";
+import { Icon, type IconName } from "@/components/icons";
 import { MESSAGES } from "@/lib/constants";
-import { cn, companyLabel, groupLabel } from "@/lib/utils";
-import type { Contact, GroupLine } from "@/types";
+import { cn, companyLabel, groupLabel, lineGroupLabel } from "@/lib/utils";
+import type { CompanyLine, Contact, GroupLine } from "@/types";
+
+/**
+ * The glyph that stands for a LINE group when there is no picture to show.
+ *
+ * A chat bubble, not the link/unlink pair: the avatar is the *group's*, so
+ * what it should read as is "this is a LINE group", and whether a company is
+ * bound to it is already said by the chip's border colour and by the row
+ * underneath. The link glyphs stay as the fallback on the group-keyed cards
+ * (สรุปข้อมูลจากไลน์), where matched state is the only thing the chip carries.
+ */
+export const LINE_GROUP_ICON: IconName = "message";
 
 /**
  * The group's avatar: its LINE profile picture when line_groups.picture_url has
  * one, and the link / unlink glyph when it does not (or when the picture fails
  * to load — see GroupAvatar).
  *
- * The border stays tied to is_linked either way. It is the only thing left
- * carrying matched state on a card now that the status pill is gone, and a
- * photo says nothing about whether a company is bound to the group.
+ * The border stays tied to whether a company is bound to the group either
+ * way. It is the only thing left carrying matched state on a card now that the
+ * status pill is gone, and a photo says nothing about whether a company points
+ * at the group.
  */
 export function GroupChip({
   linked,
@@ -28,8 +40,9 @@ export function GroupChip({
   dim = false,
   pictureUrl,
   alt,
+  icon,
 }: {
-  /** companies.is_linked for this group: a human confirmed the company. */
+  /** A company row points at this group (`companies.group_id`). */
   linked: boolean;
   size?: "sm" | "md";
   /** Used for groups where nothing is pending any more. */
@@ -38,6 +51,12 @@ export function GroupChip({
   pictureUrl?: string | null;
   /** The group's name, for the image's alt text. */
   alt?: string;
+  /**
+   * Overrides the glyph shown when there is no picture. The company-keyed
+   * cards pass LINE_GROUP_ICON for a bound group, because there the chip is
+   * the group's face rather than a matched-state badge.
+   */
+  icon?: IconName;
 }) {
   const box = size === "md" ? "size-11 rounded-xl" : "size-10 rounded-lg";
   const glyph = size === "md" ? "size-5" : "size-[18px]";
@@ -48,7 +67,8 @@ export function GroupChip({
       ? "border-ok-line bg-ok-soft"
       : "border-warn-line bg-warn-soft";
 
-  const fallbackIcon = dim ? "check-circle" : linked ? "link" : "unlink";
+  const fallbackIcon: IconName =
+    icon ?? (dim ? "check-circle" : linked ? "link" : "unlink");
   const fallbackColor = dim
     ? "text-text-3"
     : linked
@@ -400,7 +420,7 @@ export function GroupIdentity({
           <button
             type="button"
             onClick={onCompanyClick}
-            title={group.isLinked ? "แก้ไขชื่อบริษัท" : "เพิ่มชื่อบริษัท"}
+            title={group.hasCompany ? "แก้ไขชื่อบริษัท" : "เพิ่มชื่อบริษัท"}
             className={cn(
               "cursor-pointer truncate text-left font-display font-semibold underline-offset-4 transition hover:text-accent",
               titleSize === "md" ? "text-[17px]" : "text-[15px]",
@@ -431,6 +451,100 @@ export function GroupIdentity({
       <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
         <p className={companyClass}>{companyLine}</p>
         <AliasTags aliases={group.aliases} highlight={highlight} />
+        <ContactTags contacts={contacts} highlight={highlight} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * GroupIdentity read from the other end: the **company** on top, the LINE
+ * group it is bound to underneath.
+ *
+ * The two were the other way round until now — group name as the heading,
+ * company as the caption — which was right while the page was a list of LINE
+ * groups. It is a list of companies now, split by whether a group is bound, so
+ * the company is what a reader scans for and the group is the detail.
+ *
+ * Both halves can be missing, and they mean different things when they are: a
+ * company with no name is a row the extraction pass wrote and nobody has
+ * filled in, while a company with no group is the normal state of everything
+ * in the "ยังไม่ผูกกลุ่มไลน์" section. Neither is an error, so neither is
+ * shown in red — the first is the noCompanyName placeholder, the second is
+ * plain muted text.
+ */
+export function CompanyIdentity({
+  company,
+  contacts = [],
+  titleSize = "md",
+  highlight,
+  onCompanyClick,
+}: {
+  company: CompanyLine;
+  /** This company's contacts, for the tag row under the names. */
+  contacts?: Contact[];
+  titleSize?: "sm" | "md";
+  /** Search term, marked inside both names. */
+  highlight?: string;
+  /** Opens the rename form. Omit to render the name as plain text. */
+  onCompanyClick?: () => void;
+}) {
+  const { primary, secondary } = companyLabel(company);
+  const { label: groupName, linked } = lineGroupLabel(company);
+
+  const title = primary ?? MESSAGES.noCompanyName;
+  const titleClass = cn(
+    "truncate text-left font-display font-semibold",
+    titleSize === "md" ? "text-[16px]" : "text-[15px]",
+    primary ? "text-text" : "italic text-text-4",
+  );
+
+  return (
+    <div className="min-w-0 flex-1">
+      {onCompanyClick ? (
+        <button
+          type="button"
+          onClick={onCompanyClick}
+          title="แก้ไขชื่อบริษัท"
+          className={cn(
+            titleClass,
+            "block w-full cursor-pointer underline-offset-4 transition hover:text-accent",
+          )}
+        >
+          <Highlight text={title} term={highlight} />
+        </button>
+      ) : (
+        <h3 className={titleClass}>
+          <Highlight text={title} term={highlight} />
+        </h3>
+      )}
+
+      {/* The English name sits on the heading's own line rather than becoming
+          a second caption: it is the same name, not another fact. */}
+      {secondary && (
+        <p className="truncate text-[12px] text-text-4">
+          <Highlight text={secondary} term={highlight} />
+        </p>
+      )}
+
+      <p
+        className={cn(
+          "mt-1 flex min-w-0 items-center gap-1.5 truncate",
+          titleSize === "md" ? "text-[12.5px]" : "text-[12px]",
+          linked ? "text-text-2" : "text-text-4 italic",
+        )}
+      >
+        <Icon
+          name={linked ? LINE_GROUP_ICON : "unlink"}
+          className="size-3.5 shrink-0 text-text-4"
+        />
+        <span className="truncate">
+          <Highlight text={groupName} term={highlight} />
+        </span>
+      </p>
+
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+        <AliasTags aliases={company.aliases} highlight={highlight} />
         <ContactTags contacts={contacts} highlight={highlight} />
       </div>
     </div>

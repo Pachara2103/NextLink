@@ -7,12 +7,7 @@ import {
   type EmployeeDraft,
   type JobTitlePreset,
 } from "@/lib/constants";
-import type {
-  ContactStatus,
-  Employee,
-  EmployeeUpdate,
-  GroupLine,
-} from "@/types";
+import type { ContactStatus, Employee, EmployeeUpdate } from "@/types";
 
 /** Tiny classnames joiner. Drops falsy entries. */
 export function cn(...parts: Array<string | false | null | undefined>): string {
@@ -47,11 +42,34 @@ export function companyLabel(company: {
   return { primary: th ?? en, secondary: null };
 }
 
-/** line_groups.display_name is nullable, so every render needs a fallback. */
-export function groupLabel(group: GroupLine): string {
+/**
+ * line_groups.display_name is nullable, so every render needs a fallback.
+ *
+ * Takes the field rather than a `GroupLine`, so the company-keyed cards
+ * (`CompanyLine`) can use it too. Those pass `null` for a company with no
+ * group at all, which is a different thing from a group with no name — see
+ * `lineGroupLabel` below.
+ */
+export function groupLabel(group: { displayName?: string | null }): string {
   return isBlank(group.displayName)
     ? MESSAGES.noGroupName
     : group.displayName!;
+}
+
+/**
+ * The LINE group line on a company card: its name, "ยังไม่ได้ผูกกลุ่มไลน์"
+ * when the company has no group, and "<ไม่มีชื่อกลุ่ม>" when it has one that
+ * LINE never gave a name.
+ *
+ * The two nulls mean opposite things and used to render the same — a company
+ * waiting to be bound read as one whose group is nameless.
+ */
+export function lineGroupLabel(company: {
+  groupId?: string | null;
+  displayName?: string | null;
+}): { label: string; linked: boolean } {
+  if (!company.groupId) return { label: MESSAGES.noLineGroup, linked: false };
+  return { label: groupLabel(company), linked: true };
 }
 
 export function employeeName(person: Employee): {

@@ -1,0 +1,62 @@
+# กัน Neo4j Aura พักตัวเอง
+#
+# Aura พัก instance ที่ไม่มี query เลยติดกัน 3 วัน แล้วต้องเข้าไปกดปลุกเองที่
+# console - ซึ่งคืออาการ "จู่ ๆ graph_db ก็ดับ" ที่เจอกันอยู่ งานนี้ยิง
+# GET /api/v1/health/graph วันละครั้ง ซึ่งฝั่ง backend จะรัน `RETURN 1` ลง
+# Neo4j จริง หนึ่งครั้งต่อวันก็พอให้ตัวนับ 3 วันเริ่มใหม่ตลอด
+#
+# ตั้งค่าก่อนใช้: เพิ่ม repository variable ชื่อ API_BASE_URL ชี้ไปที่ backend
+# ที่ deploy แล้ว เช่น https://nextlink-api.vercel.app
+# (Settings → Secrets and variables → Actions → Variables)
+name: Neo4j keepalive
+
+on:
+  schedule:
+    # ทุกวัน 03:17 UTC (10:17 ตามเวลาไทย) - เลือกนาทีแปลก ๆ เพราะคิวของ GitHub
+    # ตอนต้นชั่วโมงแน่นและงานอาจถูกเลื่อนออกไปเป็นสิบ ๆ นาที
+    - cron: '17 3 * * *'
+  # กดยิงเองได้ เวลาเพิ่งปลุก instance กลับมาแล้วอยากเช็กว่าต่อติดจริง
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: graph-keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Ping /api/v1/health/graph
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${API_BASE_URL}" ]; then
+            echo "::error::ยังไม่ได้ตั้ง repository variable API_BASE_URL (Settings → Secrets and variables → Actions → Variables)"
+            exit 1
+          fi
+
+          url="${API_BASE_URL%/}/api/v1/health/graph"
+
+          # ลองสามรอบ ห่างกันรอบละ 30 วินาที: ยิงนัดแรกมักไปโดนจังหวะที่ทั้ง
+          # serverless function และ Aura กำลังตื่น ซึ่งช้าพอจะ timeout ได้
+          for attempt in 1 2 3; do
+            echo "ครั้งที่ ${attempt}: GET ${url}"
+            code=$(curl -sS --max-time 90 -o response.json -w '%{http_code}' "${url}") && rc=0 || rc=$?
+
+            if [ "${rc}" -eq 0 ] && [ "${code}" = "200" ]; then
+              echo "ok: $(cat response.json)"
+              exit 0
+            fi
+
+            echo "ยังไม่ผ่าน (curl rc=${rc}, http=${code:-none}): $(cat response.json 2>/dev/null || true)"
+            [ "${attempt}" -lt 3 ] && sleep 30
+          done
+
+          echo "::error::ยิง keepalive ไม่สำเร็จหลังลอง 3 ครั้ง - Neo4j อาจถูกพักอยู่ ให้เข้าไปปลุกที่ Aura console"
+          exit 1
