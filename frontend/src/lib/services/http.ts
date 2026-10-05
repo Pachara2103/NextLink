@@ -194,6 +194,25 @@ export async function putJson<T>(
   );
 }
 
+/**
+ * A multipart POST — file uploads. No Content-Type header on purpose: the
+ * browser has to write it itself, because only it knows the boundary string.
+ */
+export async function postForm<T>(
+  path: string,
+  body: FormData,
+  options?: RequestOptions,
+): Promise<T> {
+  return parse<T>(
+    path,
+    await send(
+      path,
+      { method: "POST", headers: authHeaders(), body },
+      options,
+    ),
+  );
+}
+
 export async function deleteJson<T>(
   path: string,
   options?: RequestOptions,

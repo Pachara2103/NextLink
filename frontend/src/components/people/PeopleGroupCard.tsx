@@ -3,66 +3,70 @@
 import { useState } from "react";
 
 import { ContactCard } from "@/components/contacts/ContactCard";
-import { GroupChip, GroupIdentity } from "@/components/groups/GroupIdentity";
+import {
+  CompanyIdentity,
+  GroupChip,
+  LINE_GROUP_ICON,
+} from "@/components/groups/GroupIdentity";
 import { ManageContactsButton } from "@/components/groups/ManageContactsButton";
 import { Icon } from "@/components/icons";
 import { AddPersonButton } from "@/components/people/AddPersonButton";
 import { CountChip } from "@/components/ui/Badge";
 import { Button, IconButton } from "@/components/ui/Button";
+import { MESSAGES } from "@/lib/constants";
+import { companyLabel, lineGroupLabel } from "@/lib/utils";
 import { useConsole } from "@/store/console-store";
-import { groupLabel } from "@/lib/utils";
-import type { Employee, GroupLine } from "@/types";
+import type { CompanyLine, Employee } from "@/types";
 
 /**
- * One company's people, behind the same show/hide control the summary page
- * uses — and closed to begin with.
+ * One company's people, behind a show/hide control — closed to begin with.
+ *
+ * Keyed by **company**, not by LINE group: every company is listed, whether a
+ * group is bound to it or not (a company imported from the MoU sheet has no
+ * group at all, and still has staff). The header therefore reads the same way
+ * as the cards on กลุ่มไลน์และบริษัท — company name as the title, the LINE
+ * group under it ("ยังไม่ได้ผูกกลุ่มไลน์" when there is none), and the same
+ * avatar chip and glyphs.
  *
  * Closed by default because a company's staff list is much taller than its
- * header, and this page lists every company at once: left open, five
- * companies of four people each is a page you have to scroll past rather than
- * read. Shut, the page is a directory of companies you open the one you want
- * from.
- *
- * Each card keeps its own open state rather than sharing the store's
- * single `viewingGroupId`, so several companies can be compared side by side
- * — and so opening one here does not quietly expand the same group over on
- * the summary page.
+ * header, and this page lists every company at once. Each card keeps its own
+ * open state, so several companies can be compared side by side.
  *
  * The two buttons in the header are the two kinds of person a company has —
  * `employees`, the staff in the cards below, and `contacts`, the people *we*
- * know there. They are separate tables and separate dialogs, but they are the
- * same question, so they belong on the same header rather than on two
- * different pages.
+ * know there.
  */
 export function PeopleGroupCard({
-  group,
-  companyId,
+  company,
   employees,
   highlight,
 }: {
-  group: GroupLine;
-  /** Non-null: the panel only builds a card for a group that has a company row. */
-  companyId: number;
+  company: CompanyLine;
   /** This company's reviewed staff, already ordered newest-first. */
   employees: Employee[];
-  /** Search term to mark inside the group and company names. */
+  /** Search term to mark inside the company and group names. */
   highlight?: string;
 }) {
   const { companyContacts } = useConsole();
+  const companyId = company.companyId;
   const companyPeople = companyContacts[companyId] ?? [];
   const [expanded, setExpanded] = useState(false);
+
+  const { label: groupName, linked } = lineGroupLabel(company);
+  const name = companyLabel(company).primary ?? MESSAGES.noCompanyName;
 
   return (
     <article className="overflow-hidden rounded-2xl border border-line bg-surface">
       <div className="flex flex-wrap items-center gap-4 p-4 sm:p-5">
         <GroupChip
-          linked={group.hasCompany}
-          pictureUrl={group.pictureUrl}
-          alt={groupLabel(group)}
+          linked={linked}
+          pictureUrl={company.pictureUrl}
+          alt={groupName}
+          icon={linked ? LINE_GROUP_ICON : "unlink"}
         />
 
-        <GroupIdentity
-          group={group}
+        <CompanyIdentity
+          company={company}
           contacts={companyPeople}
           highlight={highlight}
           badges={
@@ -73,14 +77,14 @@ export function PeopleGroupCard({
         />
 
         <div className="flex flex-wrap items-center gap-2">
-          <ManageContactsButton group={group} />
-          <AddPersonButton group={group} companyId={companyId} />
+          <ManageContactsButton group={company} />
+          <AddPersonButton group={company} companyId={companyId} />
           <IconButton
             icon={expanded ? "chevrons-up" : "chevrons-down"}
             label={
               expanded
-                ? `ซ่อนรายชื่อบุคคลของ ${groupLabel(group)}`
-                : `แสดงรายชื่อบุคคลของ ${groupLabel(group)}`
+                ? `ซ่อนรายชื่อบุคคลของ ${name}`
+                : `แสดงรายชื่อบุคคลของ ${name}`
             }
             aria-expanded={expanded}
             onClick={() => setExpanded((open) => !open)}

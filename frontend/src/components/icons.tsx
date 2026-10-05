@@ -70,6 +70,8 @@ export const ICON_NAMES = [
   "stop",
   "copy",
   "history",
+  // นำเข้าข้อมูลจาก excel (components/groups/ImportDataButton.tsx)
+  "upload",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
@@ -127,6 +129,11 @@ export function IconSprite() {
         <rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5" />
         <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5" />
         <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5" />
+      </symbol>
+      <symbol {...STROKE} id="i-upload" viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <path d="m17 8-5-5-5 5" />
+        <path d="M12 3v12" />
       </symbol>
       <symbol {...STROKE} id="i-search" viewBox="0 0 24 24">
         <circle cx="11" cy="11" r="8" />

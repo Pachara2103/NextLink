@@ -10,7 +10,7 @@ import { CountChip } from "@/components/ui/Badge";
 import { ConfirmModal, Modal } from "@/components/ui/Modal";
 import { companyLabel, groupLabel } from "@/lib/utils";
 import { useConsole } from "@/store/console-store";
-import type { Contact, GroupLine } from "@/types";
+import type { CompanyRef, Contact } from "@/types";
 
 /**
  * "จัดการผู้ติดต่อ" for one company.
@@ -29,7 +29,8 @@ export function CompanyContactsModal({
   open,
   onClose,
 }: {
-  group: GroupLine;
+  /** Only the names are read (for the subtitle) — a GroupLine or a CompanyLine both fit. */
+  group: CompanyRef;
   companyId: number;
   open: boolean;
   onClose: () => void;

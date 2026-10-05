@@ -5,7 +5,7 @@ import { useState } from "react";
 import { CompanyContactsModal } from "@/components/company-contacts/CompanyContactsModal";
 import { Button } from "@/components/ui/Button";
 import { useConsole } from "@/store/console-store";
-import type { GroupLine } from "@/types";
+import type { CompanyRef } from "@/types";
 
 
 export function ManageContactsButton({
@@ -13,7 +13,8 @@ export function ManageContactsButton({
   size = "sm",
   className,
 }: {
-  group: GroupLine;
+  /** A GroupLine or a CompanyLine — only companyId and the names are read. */
+  group: CompanyRef;
   size?: "sm" | "md";
   /** Lets a card footer stretch the button across the row it shares. */
   className?: string;

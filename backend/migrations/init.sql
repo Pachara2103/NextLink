@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS companies (
         company_th IS NOT NULL OR 
         company_en IS NOT NULL
     )
+    CONSTRAINT uq_company_th UNIQUE (company_th),
+    CONSTRAINT uq_company_en UNIQUE (company_en)
 );
 
 
@@ -111,24 +113,53 @@ CREATE TABLE IF NOT EXISTS mous (
     -- ถ้าบริษัทเดียวมี 2 แถว แถวหลังจะทับแถวแรกแบบไม่มีใครรู้
     company_id BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     document_status TEXT NOT NULL,
-    is_authorized BOOLEAN NOT NULL DEFAULT false,
+    is_authorized BOOLEAN NULL DEFAULT NULL,             -- มอบอำนาจแล้ว = true, โดนยกเลิก = false, ไม่มีข้อมูล = null
+
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    
+    -----
+
+    -- ข้อมูล/เอกสารหลัก
+    is_edited BOOLEAN,                                     -- 'แก้ไข'
+    mou_template TEXT,                                     -- 'อว. (Template MoU)'
+    
+    -- บันทึกขอตรวจแก้ MoU (คพ.)
+    company_revision_doc TEXT,                             -- 'คพ.บันทึกขอตรวจแก้ MoU'
+    company_revision_date DATE,                            -- 'วันที่ บันทึกขอตรวจแก้ MoU'
+    
+    -- ผลการพิจารณาจากศูนย์กฎหมาย (อว.)
+    legal_review_result TEXT,                              -- 'อว.ผลพิจารณาจากศูนย์กฎหมาย'
+    legal_review_date DATE,                                -- 'วันที่ อว.ผลพิจารณาจากศูนย์กฎหมาย'
+    
+    -- บันทึกส่งอนุมัติก่อนมอบอำนาจ (คพ.)
+    pre_auth_approval_doc TEXT,                            -- 'คพ.บันทึกส่งอนุมัติก่อนมอบอำนาจ'
+    pre_auth_approval_date DATE,                           -- 'วันที่ บันทึกส่งอนุมัติก่อนมอบอำนาจ'
+    
+    -- อนุมัติก่อนมอบอำนาจ (อว.)
+    pre_auth_status TEXT,                                  -- 'อว.อนุมัติก่อนมอบอำนาจ'
+    pre_auth_status_date DATE,                             -- 'วันที่ อว.อนุมัติก่อนมอบอำนาจ'
+    
+    -- ขอมอบอำนาจ (คพ.)
+    power_of_attorney_doc TEXT,                            -- 'คพ.ขอมอบอำนาจ' (ปรับ doc_no -> doc ให้ตรงกัน)
+    power_of_attorney_date DATE,                           -- 'วันที่ บันทึกขอมอบอำนาจ'
+
+    ----
     CONSTRAINT uq_mous_company_id UNIQUE (company_id),
     CONSTRAINT ck_mous_document_status CHECK (
-        document_status IN (
-            'legal_revision_chula',
-            'company_legal_review',
-            'authorization',
-            'pending_signature',
-            'signed',
-            'signed_with_university',
-            'signed_subsidiary',
-            'chula_department_review',
-            'rejected',
-            'unsigned'
-        )
+    document_status IN (
+        'under_revision_by_chula_legal_counsel',
+        'under_review_by_company_legal_counsel',
+        'authorization',
+        'awaiting_mou_signing',
+        'signed',
+        'signed_at_university_level',
+        'signed_affiliated_company',
+        'internal_chula_unit',
+        'declined_to_sign',
+        'not_yet_signed'
     )
+)
 );
 
 

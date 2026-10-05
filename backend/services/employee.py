@@ -167,18 +167,32 @@ def create_employee_pg(payload: EmployeeBase, user_id: int, conn: Any = None) ->
         return rows[0]
 
 
-def sync_create_employee(payload: EmployeeBase, user_id: int):
+def sync_create_employee(payload: EmployeeBase, user_id: int, conn: Any = None) -> Employee:
+    """สร้างคน + จองงาน upsert กราฟใน transaction เดียวกัน
+
+    ส่ง conn มา = caller คุม transaction เอง (เหมือน sync_create_company):
+    ที่นี่ไม่ commit และไม่ flush - caller ต้อง commit แล้วค่อย
+    outbox.flush(outbox.EMPLOYEE, employee.id) เอง หลัง flush บริษัทของคนนั้นแล้ว
+    """
     if not user_id:
         raise BadRequestError()
 
-    with nl_db.get_connection() as conn:
-        employee = create_employee_pg(payload, user_id=user_id, conn=conn)
+    def _execute(connection) -> Employee:
+        employee = create_employee_pg(payload, user_id=user_id, conn=connection)
         outbox.enqueue(
-            conn, outbox.EMPLOYEE, employee.id, outbox.UPSERT, _payload(employee)
+            connection, outbox.EMPLOYEE, employee.id, outbox.UPSERT, _payload(employee)
         )
-        conn.commit()
+        return employee
+
+    if conn:
+        return _execute(conn)
+
+    with nl_db.get_connection() as connection:
+        employee = _execute(connection)
+        connection.commit()
 
     outbox.flush(outbox.EMPLOYEE, employee.id)
+    return employee
 
 
 def update_employee_pg(payload: EmployeeBase, id: int, user_id: int, conn: Any = None):

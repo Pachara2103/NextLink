@@ -39,6 +39,37 @@ export type Company = Schemas["Company"];
 export type CompanyInput = Schemas["CompanyName"];
 
 /**
+ * What a company-scoped button needs to know about the card it sits on — the
+ * company id and the names for its dialog's subtitle. Both `GroupLine` and
+ * `CompanyLine` satisfy it, so the same buttons serve group-keyed and
+ * company-keyed cards.
+ */
+export interface CompanyRef {
+  companyId?: number | null;
+  companyTh?: string | null;
+  companyEn?: string | null;
+  displayName?: string | null;
+}
+
+/**
+ * คำตอบของ `POST /companies/import` (backend/schemas/mou.py::ImportResult)
+ *
+ * เขียนมือไว้ก่อน เพราะ api.ts ยังไม่ได้ gen ใหม่ — รัน `npm run gen:api`
+ * ตอน backend เปิดอยู่ แล้วเปลี่ยนสองตัวนี้เป็น Schemas["ImportResult"] /
+ * Schemas["ImportRowError"] ได้เลย
+ */
+export interface ImportRowError {
+  /** ค่าในคอลัมน์ No ของไฟล์ (ไม่มีก็เป็น "(แถว N ใน excel)") */
+  no: string;
+  message: string;
+}
+export interface ImportResult {
+  total: number;
+  success: number;
+  failed: ImportRowError[];
+}
+
+/**
  * A employee row as `GET /employees` returns it.
  *
  * Keyed to a **company**, not to a LINE group: `employees.company_id` is the FK

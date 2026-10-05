@@ -6,7 +6,7 @@ import { ContactForm } from "@/components/contacts/ContactForm";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { companyLabel, groupLabel } from "@/lib/utils";
-import type { GroupLine } from "@/types";
+import type { CompanyRef } from "@/types";
 
 /**
  * "เพิ่มบุคคลในบริษัท" for one company.
@@ -27,7 +27,7 @@ export function AddPersonButton({
   size = "sm",
   className,
 }: {
-  group: GroupLine;
+  group: CompanyRef;
   companyId: number;
   size?: "sm" | "md";
   className?: string;

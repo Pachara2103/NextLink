@@ -1,7 +1,8 @@
-import { getJson, postJson, putJson } from "@/lib/services/http";
+import { getJson, postForm, postJson, putJson } from "@/lib/services/http";
 import type {
   Company,
   CompanyInput,
+  ImportResult,
   ListResponse,
   StatusResponse,
 } from "@/types";
@@ -48,6 +49,22 @@ export const companyService = {
    * param. Sent as a JSON body (as it was) the route never sees it and answers
    * 422.
    */
+  /**
+   * นำเข้าไฟล์ MoU (.xlsx) -> companies + mous + employees ทีละแถว
+   *
+   * แถวที่พังถูก rollback ทั้งแถวฝั่ง server และกลับมาใน `failed` พร้อม No
+   * ของแถวนั้น — ไม่ throw เพราะมีบางแถวพัง throw เฉพาะตอนไฟล์ทั้งไฟล์ใช้
+   * ไม่ได้ (ไม่ใช่ .xlsx, หัวคอลัมน์ไม่ครบ) หรือ server ไม่ตอบ
+   */
+  importXlsx: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    // ไฟล์หลักร้อยแถว เขียนทีละแถว — 15s ปกติไม่พอ
+    return postForm<ImportResult>("/api/v1/companies/import", form, {
+      timeoutMs: 5 * 60 * 1000,
+    });
+  },
+
   link: (companyId: number, groupId: string) =>
     postJson<StatusResponse>(
       `/api/v1/companies/${companyId}/link?group_id=${encodeURIComponent(groupId)}`,
