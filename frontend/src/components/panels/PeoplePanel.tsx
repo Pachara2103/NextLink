@@ -19,7 +19,7 @@ import {
   sortByUpdatedDesc,
 } from "@/lib/filters";
 import { useConsole } from "@/store/console-store";
-import type { Employee, GroupLine, PeopleSearchMode } from "@/types";
+import type { PeopleSearchMode } from "@/types";
 
 const MODE_OPTIONS: { value: PeopleSearchMode; label: string }[] = [
   { value: "person", label: "ค้นหาชื่อบุคคล" },
@@ -48,7 +48,7 @@ const PLACEHOLDERS: Record<PeopleSearchMode, string> = {
  * timestamp. See `sortByLatestPerson`.
  */
 export function PeoplePanel() {
-  const { groupLines, employeesOf, staffCount, syncing } = useConsole();
+  const { companyLines, employeesOf, staffCount, syncing } = useConsole();
 
   const [mode, setMode] = useState<PeopleSearchMode>("person");
   const [term, setTerm] = useState("");
@@ -61,40 +61,32 @@ export function PeoplePanel() {
    * newest person. Built before the search narrows it, so switching modes or
    * clearing the box costs nothing.
    *
-   * A group with no company row is left out entirely rather than shown empty:
-   * every write on this page is keyed by company id, so a card without one
-   * could not add, edit or delete anybody — it would be a row of dead
-   * buttons.
+   * Built from the **company** list, so every company is here — bound to a
+   * LINE group or not. A LINE group with no company row has nothing to file
+   * people under (every write on this page is keyed by company id), so it
+   * is not a card here; it lives on กลุ่มไลน์และบริษัท instead.
    */
   const rows = useMemo(() => {
-    const withStaff = groupLines
-      .filter(
-        (group): group is GroupLine & { companyId: number } =>
-          group.companyId !== null && group.companyId !== undefined,
-      )
-      .map((group) => ({
-        group,
-        people: sortByUpdatedDesc(
-          employeesOf(group.companyId).filter((p) => p.status !== "pending"),
-        ),
-      }));
+    const withStaff = companyLines.map((company) => ({
+      company,
+      people: sortByUpdatedDesc(
+        employeesOf(company.companyId).filter((p) => p.status !== "pending"),
+      ),
+    }));
 
-    return sortByLatestPerson(withStaff) as {
-      group: GroupLine & { companyId: number };
-      people: Employee[];
-    }[];
-  }, [groupLines, employeesOf]);
+    return sortByLatestPerson(withStaff, (row) => row.company.updatedAt);
+  }, [companyLines, employeesOf]);
 
   /** In group mode the search narrows the directory; in person mode it does not. */
   const visible = useMemo(() => {
     if (mode !== "group" || !searching) return rows;
     const matched = new Set(
       searchGroups(
-        rows.map((row) => row.group),
+        rows.map((row) => row.company),
         term,
-      ).map((group) => group.groupId),
+      ).map((company) => company.companyId),
     );
-    return rows.filter((row) => matched.has(row.group.groupId));
+    return rows.filter((row) => matched.has(row.company.companyId));
   }, [rows, mode, term, searching]);
 
   /** In person mode the search answers with people, from every company at once. */
@@ -130,7 +122,7 @@ export function PeoplePanel() {
             ผู้ติดต่อและบุคคลในบริษัท
           </h1>
           <p className="mt-1 text-sm text-text-2">
-            รายชื่อบุคคลที่ตรวจและบันทึกเข้าฐานข้อมูลแล้ว แยกตามบริษัทของแต่ละกลุ่มไลน์
+            รายชื่อบุคคลที่ตรวจและบันทึกเข้าฐานข้อมูลแล้ว แยกตามบริษัท (ทั้งที่ผูกและยังไม่ผูกกลุ่มไลน์)
           </p>
         </div>
       </header>
@@ -189,7 +181,7 @@ export function PeoplePanel() {
           <EmptyState
             icon="building"
             title="ยังไม่มีบริษัทในรายการ"
-            detail="ผูกบริษัทให้กลุ่มไลน์ในหน้า กลุ่มไลน์และบริษัท ก่อน แล้วบุคคลของบริษัทนั้นจะมาแสดงที่นี่"
+            detail="เพิ่มบริษัทในหน้า กลุ่มไลน์และบริษัท ก่อน (ผูกกลุ่มไลน์หรือนำเข้าข้อมูล) แล้วบุคคลของบริษัทนั้นจะมาแสดงที่นี่"
           />
         </div>
       ) : visible.length === 0 ? (
@@ -203,11 +195,10 @@ export function PeoplePanel() {
         </div>
       ) : (
         <div className="mt-8 space-y-3.5">
-          {view.items.map(({ group, people }) => (
+          {view.items.map(({ company, people }) => (
             <PeopleGroupCard
-              key={group.groupId}
-              group={group}
-              companyId={group.companyId}
+              key={company.companyId}
+              company={company}
               employees={people}
               highlight={mode === "group" ? term : undefined}
             />

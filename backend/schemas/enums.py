@@ -62,13 +62,13 @@ class QuestionCategory(StrEnum):
     OTHER = "other"
     
 class DocumentStatus(StrEnum):
-    LEGAL_REVISION_CHULA = "legal_revision_chula"
-    COMPANY_LEGAL_REVIEW = "company_legal_review"
-    AUTHORIZATION = "authorization"
-    PENDING_SIGNATURE = "pending_signature"
-    SIGNED = "signed"
-    SIGNED_WITH_UNIVERSITY = "signed_with_university"
-    SIGNED_SUBSIDIARY = "signed_subsidiary"
-    CHULA_DEPARTMENT_REVIEW = "chula_department_review"
-    REJECTED = "rejected"
-    UNSIGNED = "unsigned"
+    UNDER_REVISION_BY_CHULA_LEGAL_COUNSEL = "under_revision_by_chula_legal_counsel"  # แก้ไขที่นิติกรจุฬาฯ
+    UNDER_REVIEW_BY_COMPANY_LEGAL_COUNSEL = "under_review_by_company_legal_counsel"  # นิติกรบริษัท
+    AUTHORIZATION = "authorization"                                                  # มอบอำนาจ
+    AWAITING_MOU_SIGNING = "awaiting_mou_signing"                                    # รอลงนาม MoU
+    SIGNED = "signed"                                                                # ลงนามแล้ว
+    SIGNED_AT_UNIVERSITY_LEVEL = "signed_at_university_level"                        # ลงนามมหาวิทยาลัย
+    SIGNED_AFFILIATED_COMPANY = "signed_affiliated_company"                          # ลงนามแล้ว (บริษัทในเครือ)
+    INTERNAL_CHULA_UNIT = "internal_chula_unit"                                      # หน่วยงานภายในจุฬา
+    DECLINED_TO_SIGN = "declined_to_sign"                                            # ปฏิเสธการลงนาม
+    NOT_YET_SIGNED = "not_yet_signed"                                                # ยังไม่ได้ลงนาม

@@ -479,8 +479,11 @@ export function CompanyIdentity({
   titleSize = "md",
   highlight,
   onCompanyClick,
+  badges,
 }: {
   company: CompanyLine;
+  /** Chips beside the company name, e.g. the head count on ผู้ติดต่อและบุคคลในบริษัท. */
+  badges?: ReactNode;
   /** This company's contacts, for the tag row under the names. */
   contacts?: Contact[];
   titleSize?: "sm" | "md";
@@ -499,24 +502,34 @@ export function CompanyIdentity({
     primary ? "text-text" : "italic text-text-4",
   );
 
+  const heading = onCompanyClick ? (
+    <button
+      type="button"
+      onClick={onCompanyClick}
+      title="แก้ไขชื่อบริษัท"
+      className={cn(
+        titleClass,
+        "block cursor-pointer underline-offset-4 transition hover:text-accent",
+        !badges && "w-full",
+      )}
+    >
+      <Highlight text={title} term={highlight} />
+    </button>
+  ) : (
+    <h3 className={titleClass}>
+      <Highlight text={title} term={highlight} />
+    </h3>
+  );
+
   return (
     <div className="min-w-0 flex-1">
-      {onCompanyClick ? (
-        <button
-          type="button"
-          onClick={onCompanyClick}
-          title="แก้ไขชื่อบริษัท"
-          className={cn(
-            titleClass,
-            "block w-full cursor-pointer underline-offset-4 transition hover:text-accent",
-          )}
-        >
-          <Highlight text={title} term={highlight} />
-        </button>
+      {badges ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {heading}
+          {badges}
+        </div>
       ) : (
-        <h3 className={titleClass}>
-          <Highlight text={title} term={highlight} />
-        </h3>
+        heading
       )}
 
       {/* The English name sits on the heading's own line rather than becoming

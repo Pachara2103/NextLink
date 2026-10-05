@@ -13,8 +13,9 @@ import {
   EMPLOYEE_STATUS_LABELS,
   EMPLOYEE_STATUS_TONES,
 } from "@/lib/constants";
-import { companyLabel, employeeName, groupLabel } from "@/lib/utils";
-import type { Employee, EmployeeStatus, GroupLine } from "@/types";
+import { MESSAGES } from "@/lib/constants";
+import { companyLabel, employeeName } from "@/lib/utils";
+import type { CompanyLine, Employee, EmployeeStatus } from "@/types";
 
 /**
  * What "ค้นหาชื่อบุคคล" answers with.
@@ -36,7 +37,7 @@ export function PersonSearchResults({
   highlight,
 }: {
   /** Every company card the panel built, for looking a person's group back up. */
-  rows: { group: GroupLine & { companyId: number }; people: Employee[] }[];
+  rows: { company: CompanyLine; people: Employee[] }[];
   /** The people that matched, in the order the search returned them. */
   people: Employee[];
   highlight?: string;
@@ -54,8 +55,8 @@ export function PersonSearchResults({
   }
 
   /** Which company a hit belongs to. Built per render — the list is short. */
-  const groupOf = new Map(
-    rows.map((row) => [row.group.companyId, row.group] as const),
+  const companyOf = new Map(
+    rows.map((row) => [row.company.companyId, row.company] as const),
   );
 
   return (
@@ -63,9 +64,9 @@ export function PersonSearchResults({
       <ul className="divide-y divide-line-soft overflow-hidden rounded-xl border border-line bg-sunken">
         {people.map((person) => {
           const { primary, secondary } = employeeName(person);
-          const group = groupOf.get(person.companyId);
-          const company = group
-            ? (companyLabel(group).primary ?? groupLabel(group))
+          const found = companyOf.get(person.companyId);
+          const company = found
+            ? (companyLabel(found).primary ?? MESSAGES.noCompanyName)
             : null;
           const statusKey = person.status as EmployeeStatus;
 
@@ -140,7 +141,7 @@ export function PersonSearchResults({
           maxWidth="640px"
           title="แก้ไขข้อมูลบุคคลในบริษัท"
           subtitle={
-            companyLabel(groupOf.get(editing.companyId) ?? {}).primary ??
+            companyLabel(companyOf.get(editing.companyId) ?? {}).primary ??
             undefined
           }
           onClose={() => setEditing(null)}

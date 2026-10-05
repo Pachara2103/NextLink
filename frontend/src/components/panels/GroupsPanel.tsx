@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { FreeGroupSection } from "@/components/groups/FreeGroupSection";
 import { GroupLayoutToggle } from "@/components/groups/GroupLayoutToggle";
+import { ImportDataButton } from "@/components/groups/ImportDataButton";
 import { GroupList, GroupSection } from "@/components/groups/GroupSection";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
@@ -73,6 +74,7 @@ export function GroupsPanel() {
           >
             รีเฟรชกลุ่มไลน์
           </Button>
+          <ImportDataButton />
         </div>
       </header>
 

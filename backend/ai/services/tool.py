@@ -14,16 +14,16 @@ def _json_to_string(json_data: dict) -> str:
 
 
 MOU_STATUS_MAPPING = {
-  'legal_revision_chula': 'แก้ไขที่นิติกรจุฬา',
-  'company_legal_review': 'นิติกรบริษัท',
+  'under_revision_by_chula_legal_counsel': 'แก้ไขที่นิติกรจุฬา',
+  'under_review_by_company_legal_counsel': 'นิติกรบริษัท',
   'authorization': 'มอบอำนาจ',
-  'pending_signature': 'รอลงนาม',
+  'awaiting_mou_signing': 'รอลงนาม',
   'signed': 'ลงนามแล้ว',
-  'signed_with_university': 'ลงนามกับมหาวิทยาลัย',
-  'signed_subsidiary': 'ลงนามแล้ว (บ.ในเครือ)',
-  'chula_department_review': 'หน่วยงานจุฬาฯ',
-  'rejected': 'ปฏิเสธการลงนาม',
-  'unsigned': 'ยังไม่ได้ลงนาม'
+  'signed_at_university_level': 'ลงนามกับมหาวิทยาลัย',
+  'signed_affiliated_company': 'ลงนามแล้ว (บ.ในเครือ)',
+  'internal_chula_unit': 'หน่วยงานจุฬาฯ',
+  'declined_to_sign': 'ปฏิเสธการลงนาม',
+  'not_yet_signed': 'ยังไม่ได้ลงนาม'
 }
 
 
@@ -47,7 +47,10 @@ def get_mou_status(company_name: str) -> list:
                 rows = cursor.fetchall()
                 for row in rows:
                     status = MOU_STATUS_MAPPING.get(row[1], row[1])
-                    is_authorized = "มอบอำนาจแล้ว" if row[2] else "ยังไม่มอบอำนาจ"
+                    is_authorized = (
+                        "ไม่มีข้อมูล" if row[2] is None
+                        else "มอบอำนาจแล้ว" if row[2] else "ยังไม่มอบอำนาจ"
+                    )
                     db_map[row[0]] = {
                         "company_id": row[0],
                         "document_status": status,

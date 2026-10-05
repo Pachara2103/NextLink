@@ -6,10 +6,11 @@ line_service.py
 line.ts
 package-lock.json
 package.json
-note
+note.txt
 test
 design
 
 .env.example
 run.py
 test.ipynb
+*.xlsx

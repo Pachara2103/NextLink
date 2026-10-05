@@ -6,8 +6,9 @@ from core.db import graph_db, nl_db
 from core.exceptions import BadRequestError, NotFoundError
 from schemas.base import ListResponse
 from schemas.company import Company, CompanyName
+from schemas.mou import MouBase
 from services import outbox
-from utils.mapping import columns_of, rows_to_models
+from utils.mapping import columns_of, placeholders_of, rows_to_models
 
 
 def _payload(name: CompanyName, group_id: str | None) -> dict:
@@ -77,7 +78,7 @@ def create_company_pg(payload: CompanyName, group_id: str, conn: Any = None):
         raise BadRequestError( message=f"ไม่พบกลุ่ม LINE ในระบบ") from e
 
     except UniqueViolation as e:
-        raise BadRequestError(message="กลุ่ม LINE นี้ถูกผูกบริษัทไปแล้ว") from e
+        raise BadRequestError(message="บริษัทนี้มีอยู่ในระบบแล้ว") from e
 
     except BadRequestError:
         raise
@@ -278,5 +279,40 @@ def sync_link_company(id: int, group_id: str):
         link_company_pg(id=id, group_id=group_id, conn=conn)
         outbox.enqueue(conn, outbox.COMPANY, id, outbox.LINK, payload={"group_id": group_id})
         conn.commit()
-
     outbox.flush(outbox.COMPANY, id)
+
+
+# --------------------------------------------------------------------------- #
+# mous - เขียนเฉพาะ postgres ไม่มี node ในกราฟ จึงไม่ต้องผ่าน outbox
+# --------------------------------------------------------------------------- #
+
+def create_mou_pg(payload: MouBase, conn: Any = None) -> int:
+    """เพิ่ม MoU ของบริษัทหนึ่งแถว - ไม่ commit เอง ให้ caller คุม transaction
+
+    ใช้ใน services/import_data.py ที่ต้องเขียน companies + mous + employees
+    ใน transaction เดียวกัน พังตัวไหนก็ rollback ทั้งแถว
+    """
+    if not conn:
+        raise BadRequestError(message="no connection provided on pg")
+    if not payload.company_id:
+        raise BadRequestError(message="ไม่ระบุบริษัทของ MoU")
+
+    query = f"""
+        INSERT INTO mous ({columns_of(MouBase)})
+        VALUES ({placeholders_of(MouBase)})
+        RETURNING id;
+    """
+    try:
+        with conn.cursor() as cursor:
+            params = payload.model_dump(mode="python", by_alias=False)
+            # StrEnum -> str ตรง ๆ ไม่ฝากชะตาไว้กับ adapter ของ psycopg2
+            params["document_status"] = payload.document_status.value
+            cursor.execute(query, params)
+            row = cursor.fetchone()
+            if not row:
+                raise BadRequestError(message="ไม่สามารถสร้างข้อมูล MoU ได้")
+            return row[0]
+    except UniqueViolation as e:
+        raise BadRequestError(message="บริษัทนี้มีข้อมูล MoU อยู่แล้ว") from e
+    except ForeignKeyViolation as e:
+        raise BadRequestError(message="ไม่พบบริษัทของ MoU ในระบบ") from e

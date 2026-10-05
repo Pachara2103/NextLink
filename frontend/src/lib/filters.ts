@@ -150,17 +150,17 @@ export function sortByUpdatedDesc<
  * with nobody in it has no employee to rank by, so it falls back to its own
  * timestamp and naturally sinks below the ones being worked on.
  */
-export function sortByLatestPerson<T extends { updatedAt: string | null }>(
-  rows: { group: T; people: { updatedAt: string | null }[] }[],
-): { group: T; people: { updatedAt: string | null }[] }[] {
-  const rank = (row: { group: T; people: { updatedAt: string | null }[] }) =>
+export function sortByLatestPerson<
+  R extends { people: { updatedAt: string | null }[] },
+>(rows: R[], fallback: (row: R) => string | null): R[] {
+  const rank = (row: R) =>
     row.people.length > 0
       ? Math.max(
           ...row.people.map((person) =>
             time(person.updatedAt, Number.NEGATIVE_INFINITY),
           ),
         )
-      : time(row.group.updatedAt, Number.NEGATIVE_INFINITY);
+      : time(fallback(row), Number.NEGATIVE_INFINITY);
 
   return [...rows].sort((a, b) => rank(b) - rank(a));
 }
