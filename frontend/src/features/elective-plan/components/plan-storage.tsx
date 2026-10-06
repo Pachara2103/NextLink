@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { usePathname } from "next/navigation";
-import { StatusToast, useStatusToast } from "@/features/elective-plan/components/status-toast";
 import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
 
 /** The overview — the one page that is about the plan as a whole. */
@@ -48,21 +47,14 @@ export function PlanStorage() {
   const wholePlan = !shared && (pathname === OVERVIEW || pathname === `${OVERVIEW}/`);
 
   /**
-   * "เลิกทำ" moved into the message that says the change was saved.
+   * No "บันทึกแล้ว — เลิกทำ" toast on the shared plan any more.
    *
-   * A permanent button was right when the plan was one person's document with
-   * a revision history behind it. On a shared plan there is no history to walk
-   * back — only the one step just taken, and only while nobody has built on
-   * it. A toast is exactly that offer, and it says so where the change
-   * happened rather than in a toolbar.
+   * It existed because every press was a request: the change was already
+   * everyone's before the person could look at it, so the only honest offer
+   * was a five-second window to take it back. A press now only draws, so the
+   * offer is permanent and lives in the header beside บันทึก — which is also
+   * where the person is looking when they wonder whether it went in.
    */
-  const { toast, show, dismiss, holdTimer, resumeTimer } = useStatusToast();
-  const undoable = useRef(false);
-  useEffect(() => {
-    if (!shared) return;
-    if (plan.canUndo && !undoable.current) show("บันทึกแล้ว", () => void plan.undo());
-    undoable.current = plan.canUndo;
-  }, [shared, plan.canUndo, plan.undo, show]);
 
   return (
     <section className="plan-storage" aria-label="การบันทึกแผน">
@@ -71,8 +63,10 @@ export function PlanStorage() {
           แผน {plan.term.shortLabel} · {" "}
           {plan.planning
             ? "กำลังจัดตาราง…"
-            : STATUS[plan.status] ??
-              (shared ? "บันทึกแล้ว" : plan.editedAt ? "บันทึกแล้วในเบราว์เซอร์นี้" : "ยังไม่มีการแก้ไขแผน")}
+            : plan.status === "draft"
+              ? `แก้ไว้ ${plan.unsaved} รายการ ยังไม่ได้บันทึก`
+              : STATUS[plan.status] ??
+                (shared ? "บันทึกแล้ว" : plan.editedAt ? "บันทึกแล้วในเบราว์เซอร์นี้" : "ยังไม่มีการแก้ไขแผน")}
         </span>
         {plan.planning ? <button type="button" className="secondary-button" onClick={plan.cancelPlanning}>ยกเลิกการจัดตาราง</button> : null}
         {wholePlan ? (
@@ -82,7 +76,12 @@ export function PlanStorage() {
           </>
         ) : null}
         {shared ? (
-          <button type="button" className="secondary-button" disabled={plan.status === "saving"} onClick={() => plan.reload()}>โหลดแผนล่าสุด</button>
+          // A re-read replaces the screen with what the server has, which is
+          // exactly what a draft is not — so ask first when there is one.
+          <button type="button" className="secondary-button" disabled={plan.status === "saving"} onClick={() => {
+            if (plan.unsaved && !window.confirm(`โหลดแผนล่าสุด? การแก้ไข ${plan.unsaved} รายการที่ยังไม่บันทึกจะหายไป`)) return;
+            void plan.discard();
+          }}>โหลดแผนล่าสุด</button>
         ) : (
           <button type="button" className="secondary-button" disabled={!plan.canUndo || plan.status === "saving"} onClick={() => void plan.undo()}>เลิกทำรายการล่าสุด</button>
         )}
@@ -102,9 +101,18 @@ export function PlanStorage() {
       {plan.error ? (
         <div className="plan-storage-error" role="alert">
           <p>{plan.error}</p>
-          {shared ? (
-            // Nothing local was lost: the command that failed was rolled back,
-            // so the only thing to offer is another look at what the server has.
+          {shared && plan.unsaved > 0 ? (
+            // The draft is still on screen and still the person's work; the
+            // way out is to send it again, and only then to throw it away.
+            <>
+              <button type="button" className="secondary-button" disabled={plan.status === "saving"} onClick={() => void plan.save()}>ลองบันทึกอีกครั้ง</button>
+              <button type="button" className="secondary-button" onClick={() => {
+                if (!window.confirm(`ยกเลิกการแก้ไข ${plan.unsaved} รายการที่ยังไม่บันทึก และโหลดแผนล่าสุด?`)) return;
+                void plan.discard();
+              }}>ยกเลิกการแก้ไขและโหลดใหม่</button>
+            </>
+          ) : shared ? (
+            // Nothing was queued, so this was a read that failed: ask again.
             <button type="button" className="secondary-button" onClick={() => void plan.retry()}>ลองอีกครั้ง</button>
           ) : plan.recoveryRaw !== null ? (
             <>
@@ -129,9 +137,6 @@ export function PlanStorage() {
             }}>สำรองและโหลดแผนล่าสุด</button>
           )}
         </div>
-      ) : null}
-      {shared ? (
-        <StatusToast toast={toast} onDismiss={dismiss} onHold={holdTimer} onResume={resumeTimer} />
       ) : null}
     </section>
   );

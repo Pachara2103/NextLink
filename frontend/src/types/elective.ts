@@ -22,8 +22,8 @@
 /** `electives.delivery_mode`. Same three words the planner's own types use. */
 export type DeliveryMode = "ON_SITE" | "HYBRID" | "ONLINE";
 
-/** `elective_rooms.tier` — a department room, or one that needs a request. */
-export type RoomTier = "ready" | "needs_approval";
+/** `elective_rooms.type` — a department room, or one that needs a request. */
+export type RoomType = "ready" | "needs_approval";
 
 /** `elective_terms.status` — exactly one term is `current` at a time. */
 export type TermStatus = "current" | "archived";
@@ -75,7 +75,7 @@ export interface ElectiveRoomWrite {
   floor: string;
   seats: number;
   seatsIsEstimated?: boolean;
-  tier?: RoomTier;
+  type?: RoomType;
   isActive?: boolean;
   blockedSlots?: ElectiveRoomBlock[];
 }
@@ -87,7 +87,7 @@ export interface ElectiveRoom {
   floor: string;
   seats: number;
   seatsIsEstimated: boolean;
-  tier: RoomTier;
+  type: RoomType;
   isActive: boolean;
   blockedSlots?: ElectiveRoomBlock[];
   createdAt: string | null;

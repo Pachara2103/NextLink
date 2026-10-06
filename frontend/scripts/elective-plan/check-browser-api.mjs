@@ -2,14 +2,16 @@
  * The planner against the shared plan, in a real browser.
  *
  * check-browser.mjs drives the bundled plan in localStorage; this drives the
- * other store. The two halves worth proving here cannot be shown by a unit
- * test, because they are about what a person sees between pressing something
- * and the server answering:
+ * other store. What is worth proving here cannot be shown by a unit test,
+ * because it is about the gap between pressing something and the database
+ * hearing about it — and about where that gap is and is not:
  *
- *   - the screen moves first, and the request that follows carries what the
- *     screen already shows;
- *   - a request the server refuses puts the screen back, says why in the
- *     backend's own words, and leaves nothing half-applied.
+ *   - the board draws moves and sends nothing; บันทึก on the board sends them
+ *     in order, and ยกเลิก throws them away without asking the server;
+ *   - everything outside the board is one press, one request, at the press;
+ *   - a period placed and then locked before บันทึก is locked under the id the
+ *     server gave it, not the one it was drawn under;
+ *   - a refusal keeps the work on screen and says why in the backend's words.
  *
  * The API is a fixture rather than a live backend: the point is the browser's
  * behaviour around the request, and a fixture can refuse on demand.
@@ -44,8 +46,8 @@ const TERM = { id: 7, year: 2569, semester: 1, status: 'current', createdAt: '20
 /** The term that was closed to open the one above — 1/2569 in the report. */
 const PAST_TERM = { id: 6, year: 2568, semester: 2, status: 'archived', createdAt: null, updatedAt: '2026-01-01T03:00:00Z' };
 const ROOMS = [
-  { id: 4, name: '301', building: 'จุฬาพัฒน์ 14', floor: '3', seats: 40, seatsIsEstimated: false, tier: 'ready', isActive: true, blockedSlots: [], createdAt: null, updatedAt: null },
-  { id: 5, name: '302', building: 'จุฬาพัฒน์ 14', floor: '3', seats: 60, seatsIsEstimated: false, tier: 'ready', isActive: true, blockedSlots: [], createdAt: null, updatedAt: null },
+  { id: 4, name: '301', building: 'จุฬาพัฒน์ 14', floor: '3', seats: 40, seatsIsEstimated: false, type: 'ready', isActive: true, blockedSlots: [], createdAt: null, updatedAt: null },
+  { id: 5, name: '302', building: 'จุฬาพัฒน์ 14', floor: '3', seats: 60, seatsIsEstimated: false, type: 'ready', isActive: true, blockedSlots: [], createdAt: null, updatedAt: null },
 ];
 const course = (id, code, name) => ({
   id, termId: 7, companyId: 3, companyTh: 'บริษัททดสอบ', companyEn: null,
@@ -173,8 +175,10 @@ try {
       return route.fulfill({ json: plan.sessions.find((item) => item.id === id) });
     }
     if (path.endsWith('/checklist') && method === 'PATCH') {
+      // Either term's, now that a term that ended can be written to as well.
       const id = Number(path.split('/').at(-2));
-      const row = plan.checklists.find((item) => item.electiveId === id);
+      const row = [...plan.checklists, ...pastPlan.checklists].find((item) => item.electiveId === id);
+      assert.ok(row, `no checklist row for elective ${id}`);
       Object.assign(row, body);
       return route.fulfill({ json: row });
     }
@@ -210,79 +214,202 @@ try {
   };
   const since = () => { calls = []; };
   const sent = (method, path) => calls.filter((c) => c.method === method && c.path.startsWith(path));
+  /** The board's own save button — on the overview, in the board's heading. */
+  const saveButton = () => page.locator('.timetable-save-now');
+  const save = async () => {
+    await saveButton().click();
+    await page.waitForFunction(() => {
+      const button = document.querySelector('.timetable-save-now');
+      return button && !button.classList.contains('is-dirty');
+    });
+  };
+  /** Wait until the board has something to save — a queued move is not instant. */
+  const waitDirty = () => page.locator('.timetable-save-now.is-dirty').waitFor();
+  /** How many board moves are waiting, read off the button's own label. */
+  const unsaved = async () => {
+    const label = (await saveButton().textContent()) ?? '';
+    const found = label.match(/\d+/);
+    return found ? Number(found[0]) : 0;
+  };
 
   await check('the plan on screen is the one the API answered with, not a bundled file', async () => {
     await go('/courses/list');
     await page.getByText('2110123', { exact: false }).first().waitFor();
-    // One read for the plan itself — not one per section of the page. The
-    // closed terms behind the switcher are read separately, in the background.
+    // One read for the plan itself — not one per section of the page, and not
+    // one per finished term either: a past term is read when somebody asks for
+    // it, which is what makes twenty terms of history cost nothing on load.
     const reads = sent('GET', '/api/v1/electives/plan');
-    assert.equal(reads.filter((call) => !call.path.includes('termId')).length, 1, 'one read of the plan');
+    assert.equal(reads.length, 1, 'one read, and only for the term on screen');
     // The bundled seed's courses must be nowhere near this page.
     assert.equal(await page.getByText('21105801', { exact: false }).count(), 0);
     assert.ok(await page.getByText('ภาคต้น ปีการศึกษา 2569').count() >= 0);
   });
 
-  await check('placing a class shows it at once and sends one request carrying it', async () => {
+  await check('a timetable is drawn at once and written only when บันทึก is pressed', async () => {
+    resetPlan();
     await go('/');
     since();
     await page.getByRole('button', { name: 'จัดตารางอัตโนมัติ', exact: true }).click();
     await page.waitForFunction(() => document.querySelectorAll('.matrix-chip, .course-chip').length > 0, undefined, { timeout: 10000 });
+    // The board is full and the database has heard nothing.
+    assert.equal(sent('PUT', '/api/v1/electives/sessions').length, 0, 'nothing is sent on the press');
+    assert.equal(await unsaved(), 1, 'one thing waiting');
+
+    await save();
     const writes = sent('PUT', '/api/v1/electives/sessions');
     assert.equal(writes.length, 1, 'one transaction for the whole timetable');
     assert.ok(Array.isArray(writes[0].body) && writes[0].body.length > 0);
     assert.ok(writes[0].body.every((item) => typeof item.electiveId === 'number' && typeof item.slot === 'string'));
     // And what stays on screen is what the server wrote back, ids included —
-    // not the optimistic drawing that was there a moment earlier.
+    // not the drawing that was there a moment earlier.
     await page.waitForFunction(
       (ids) => [...document.querySelectorAll('.matrix-chip')].length === ids.length,
       plan.sessions.map((item) => item.id),
     );
   });
 
-  await check('a refused write puts the screen back and says why in the backend\'s words', async () => {
+  await check('the board refuses a save in the backend\'s own words, and keeps the moves', async () => {
     resetPlan();
-    await go('/courses/list?view=checklist');
-    const box = page.locator('select.checklist-select').first();
-    await box.waitFor();
-    refuse = { method: 'PATCH', path: '/api/v1/electives/', status: 400, detail: 'เทอมนี้ปิดไปแล้ว แก้ไขไม่ได้' };
+    await go('/');
     since();
-    await box.selectOption({ index: 1 });
-    await page.getByRole('alert').filter({ hasText: 'เทอมนี้ปิดไปแล้ว' }).waitFor();
-    assert.equal(sent('PATCH', '/api/v1/electives/').length, 1);
-    // Rolled back: the control shows what the server still has, not the press.
-    await page.waitForFunction(() => {
-      const select = document.querySelector('select.checklist-select');
-      return select && select.selectedIndex === 0;
-    });
+    await page.getByRole('button', { name: 'จัดตารางอัตโนมัติ', exact: true }).click();
+    await page.waitForFunction(() => document.querySelectorAll('.matrix-chip').length > 0, undefined, { timeout: 10000 });
+    assert.equal(await unsaved(), 1);
+
+    refuse = { method: 'PUT', path: '/api/v1/electives/sessions', status: 400, detail: 'ห้องนี้มีคลาสอยู่แล้วในคาบนี้ กรุณาเลือกห้องอื่นหรือคาบอื่น' };
+    await saveButton().click();
+    await page.getByRole('alert').filter({ hasText: 'ห้องนี้มีคลาสอยู่แล้ว' }).waitFor();
+    // Nothing is thrown away: the board still shows the timetable that was
+    // refused, so the person can fix the one thing that was wrong with it.
+    assert.ok((await page.locator('.matrix-chip').count()) > 0);
+    assert.equal(await unsaved(), 1, 'still waiting to be saved');
+    // And it goes in on the next try, because nothing was thrown away.
+    await save();
+    assert.equal(sent('PUT', '/api/v1/electives/sessions').length, 2);
   });
 
-  await check('a saved change offers one step back, and taking it calls the inverse', async () => {
+  await check('ยกเลิก puts the board back, and asks the server nothing', async () => {
+    resetPlan();
+    await go('/');
+    await page.waitForFunction(() => document.querySelectorAll('td.matrix-cell').length > 0);
+    const before = await page.locator('.matrix-chip').count();
+
+    await page.getByRole('button', { name: 'จัดตารางอัตโนมัติ', exact: true }).click();
+    await page.waitForFunction((was) => document.querySelectorAll('.matrix-chip').length > was, before, { timeout: 10000 });
+    assert.equal(await unsaved(), 1);
+
+    since();
+    await page.locator('.timetable-save-cancel').click();
+    await page.waitForFunction((was) => document.querySelectorAll('.matrix-chip').length === was, before);
+    // Not a re-read: the timetable it puts back is the one this browser was
+    // showing before the first drag, which it still has.
+    assert.equal(calls.length, 0, 'ยกเลิก costs no requests at all');
+    assert.equal(await unsaved(), 0);
+  });
+
+  await check('everything outside the board is one press, one request, at the press', async () => {
     resetPlan();
     await go('/courses/list?view=checklist');
     const box = page.locator('select.checklist-select').first();
     await box.waitFor();
     since();
     await box.selectOption({ index: 1 });
+    // Ticking a box is a decision on its own, not a step towards one — so it
+    // does not wait for a save button, and there is none on this page to wait
+    // for. The pages that are not the board have no unsaved state at all.
     await page.waitForFunction(() => document.querySelectorAll('[role="status"]').length > 0);
-    const undo = page.locator('.toast-undo');
-    await undo.waitFor();
-    assert.equal(sent('PATCH', '/api/v1/electives/').length, 1);
+    assert.equal(sent('PATCH', '/api/v1/electives/').length, 1, 'sent at the press');
+    assert.equal(await page.locator('.timetable-save-now').count(), 0, 'no save button off the board');
+  });
+
+  await check('a refused press outside the board puts the control back', async () => {
+    resetPlan();
+    await go('/courses/list?view=checklist');
+    const box = page.locator('select.checklist-select').first();
+    await box.waitFor();
+    refuse = { method: 'PATCH', path: '/api/v1/electives/', status: 400, detail: 'ไม่พบวิชา id = 12' };
     since();
-    await undo.click();
-    await page.waitForFunction(() => {
-      const select = document.querySelector('select.checklist-select');
-      return select && select.selectedIndex === 0;
-    });
-    assert.equal(sent('PATCH', '/api/v1/electives/').length, 1, 'undo is a request of its own');
+    await box.selectOption({ index: 1 });
+    await page.getByRole('alert').filter({ hasText: 'ไม่พบวิชา' }).waitFor();
+    assert.equal(sent('PATCH', '/api/v1/electives/').length, 1);
+    // It went out and came back refused, so the control has to show what the
+    // server still has — the opposite of the board, where nothing went out.
+    await page.waitForFunction(() => document.querySelector('select.checklist-select')?.selectedIndex === 0);
+  });
+
+  await check('board moves survive walking to another planner page and back', async () => {
+    resetPlan();
+    await go('/');
+    await page.getByRole('button', { name: 'จัดตารางอัตโนมัติ', exact: true }).click();
+    await page.waitForFunction(() => document.querySelectorAll('.matrix-chip').length > 0, undefined, { timeout: 10000 });
+    assert.equal(await unsaved(), 1);
+
+    // Through the nav, not `page.goto`: the store lives above the router, so
+    // in-app navigation must not drop what is waiting. A full reload is a
+    // different matter — the queue is in memory, which is what the
+    // `beforeunload` prompt in PlanShell exists to warn about.
+    await page.getByRole('link', { name: 'รายวิชา', exact: true }).click();
+    await page.waitForURL((url) => url.pathname.endsWith('/courses/list'));
+    await page.getByRole('link', { name: 'ภาพรวมแผน', exact: true }).click();
+    await page.waitForURL((url) => url.pathname === '/elective-plan');
+    assert.equal(await unsaved(), 1, 'the board keeps its moves');
+    await save();
   });
 
   await check('the shared plan hides the controls that would replace everybody\'s work', async () => {
+    resetPlan();
     await go('/');
     assert.equal(await page.getByRole('button', { name: 'สำรองแผน JSON', exact: true }).count(), 0);
     assert.equal(await page.getByRole('button', { name: 'นำเข้าแผน', exact: true }).count(), 0);
     assert.equal(await page.getByRole('button', { name: 'เลิกทำรายการล่าสุด', exact: true }).count(), 0);
     await page.getByRole('button', { name: 'โหลดแผนล่าสุด', exact: true }).waitFor();
+    // บันทึก is in the board's own heading, and quiet while the board has
+    // nothing waiting. ยกเลิก is not there at all until it would do something.
+    await saveButton().waitFor();
+    assert.equal((await saveButton().textContent())?.trim(), 'บันทึกแล้ว');
+    assert.equal(await page.locator('.timetable-save-cancel').count(), 0);
+  });
+
+  await check('ช่วงที่สะดวก is read until แก้ไข, and one request when บันทึก', async () => {
+    resetPlan();
+    await page.goto(base + '/elective-plan/courses');
+    await page.getByRole('region', { name: 'การบันทึกแผน', exact: true }).waitFor();
+    const card = page.locator('.course-availability-card').first();
+    await card.waitFor();
+
+    // A card nobody is editing has no pressable periods at all — the grid is a
+    // record of what the company said, not a row of switches to brush past.
+    assert.equal(await card.locator('button.availability-slot').count(), 0);
+    assert.equal(await card.locator('.availability-slot.is-static').count(), 18);
+
+    since();
+    await card.getByRole('button', { name: 'แก้ไข', exact: true }).click();
+    await card.locator('button.availability-slot').first().waitFor();
+    // While one card is open the others cannot be: two half-finished answers
+    // on screen is two chances to press บันทึก on the wrong one.
+    assert.equal(await page.locator('.course-availability-card button.availability-slot').count(), 18);
+
+    const on = () => card.locator('.availability-slot.is-on').count();
+    const before = await on();
+    await card.locator('button.availability-slot').nth(4).click();
+    await card.locator('button.availability-slot').nth(5).click();
+    assert.notEqual(await on(), before, 'the grid moves as it is ticked');
+    // ...and none of it has been sent. The company's answer is one answer.
+    assert.equal(calls.length, 0, 'ticking is not saving');
+
+    // ยกเลิก puts the card back exactly as it was, still without a request.
+    await card.getByRole('button', { name: 'ยกเลิก', exact: true }).click();
+    await card.locator('.availability-slot.is-static').first().waitFor();
+    assert.equal(await on(), before);
+    assert.equal(calls.length, 0);
+
+    await card.getByRole('button', { name: 'แก้ไข', exact: true }).click();
+    await card.locator('button.availability-slot').nth(4).click();
+    await card.getByRole('button', { name: 'บันทึก', exact: true }).click();
+    await card.locator('.availability-slot.is-static').first().waitFor();
+    const put = calls.filter((call) => call.method === 'PUT' && call.path.endsWith('/availability'));
+    assert.equal(put.length, 1, 'one request for the whole answer');
+    assert.ok(Array.isArray(put[0].body));
   });
 
   await check('a new course picks its company from the directory rather than typing one', async () => {
@@ -311,6 +438,9 @@ try {
     since();
     await dialog.getByRole('button', { name: 'เพิ่มรายวิชา', exact: true }).click();
     await page.waitForFunction(() => document.querySelector('dialog.course-dialog') === null);
+    await page.getByText('2110999', { exact: false }).first().waitFor();
+    // Filling in a form and pressing เพิ่มรายวิชา is as deliberate as a press
+    // gets: it goes to the database now, not when some other page is saved.
     const posted = sent('POST', '/api/v1/electives');
     assert.equal(posted.length, 1);
     assert.equal(posted[0].body.companyId, 3);
@@ -322,43 +452,95 @@ try {
     await page.getByText('2110999', { exact: false }).first().waitFor();
   });
 
-  await check('a closed term shows its own courses, and offers nothing to add to it', async () => {
+  await check('a closed term shows its own courses, and can still be added to', async () => {
     resetPlan();
-    // 2/2569 is the term being planned and has two courses; 2/2568 is closed
+    // 1/2569 is the term being planned and has two courses; 2/2568 is closed
     // and ran one. Reading either must not show the other's.
     await go('/courses/list');
     await page.getByText('2110123', { exact: false }).first().waitFor();
     await page.getByRole('button', { name: /เพิ่มรายวิชา/ }).waitFor();
+    since();
 
-    await page.locator('select').first().selectOption('2568-2');
+    await page.locator('.term-switcher select').first().selectOption('2568-2');
 
     await page.getByText('2110001', { exact: false }).first().waitFor();
     assert.equal(await page.getByText('2110123', { exact: false }).count(), 0,
       'the term being planned must not appear under a closed term\'s name');
-    assert.equal(await page.getByRole('button', { name: /เพิ่มรายวิชา/ }).count(), 0,
-      'there is nothing to add to a term that ended');
-    // ...and the only reason it could show them is that it asked for that term
-    // by name. A request without `termId` is answered with the plan, which is
-    // how a closed term used to end up displaying the current term's courses.
+    // The point of the change: entering a term after the fact is a real job,
+    // so a term that ended keeps every control the current one has.
+    await page.getByRole('button', { name: /เพิ่มรายวิชา/ }).waitFor();
+    // ...and the only reason it could show that term at all is that it asked
+    // for it by id. A request without `termId` is answered with the plan,
+    // which is how a closed term used to show the current term's courses.
     assert.ok(
       sent('GET', '/api/v1/electives/plan').some((call) => call.path.includes(`termId=${PAST_TERM.id}`)),
       'the closed term is read by id',
     );
   });
 
-  await check('switching back to the term being planned brings the add button back', async () => {
-    await page.locator('select').first().selectOption('2569-1');
+  await check('switching terms is refused while the board has unsaved moves', async () => {
+    // The moves were made against the term on screen; carrying them across
+    // would write one term's timetable into another's rows.
+    await page.getByRole('link', { name: 'ภาพรวมแผน', exact: true }).click();
+    await page.waitForURL((url) => url.pathname === '/elective-plan');
+    await page.getByRole('button', { name: 'จัดตารางอัตโนมัติ', exact: true }).click();
+    await waitDirty();
+    assert.equal(await unsaved(), 1);
+
+    await page.getByRole('link', { name: 'รายวิชา', exact: true }).click();
+    await page.waitForURL((url) => url.pathname.endsWith('/courses/list'));
+    await page.locator('.term-switcher select').first().selectOption('2569-1');
+    await page.getByRole('alert').filter({ hasText: 'ยังมีการแก้ไขที่ไม่ได้บันทึก' }).waitFor();
+    // Still on the term those moves belong to.
+    assert.equal(await page.locator('.term-switcher select').first().inputValue(), '2568-2');
+
+    await page.getByRole('link', { name: 'ภาพรวมแผน', exact: true }).click();
+    await page.waitForURL((url) => url.pathname === '/elective-plan');
+    await save();
+    await page.getByRole('link', { name: 'รายวิชา', exact: true }).click();
+    await page.waitForURL((url) => url.pathname.endsWith('/courses/list'));
+    await page.locator('.term-switcher select').first().selectOption('2569-1');
     await page.getByText('2110123', { exact: false }).first().waitFor();
-    await page.getByRole('button', { name: /เพิ่มรายวิชา/ }).waitFor();
-    assert.equal(await page.getByText('2110001', { exact: false }).count(), 0);
   });
 
   await check('a link straight to a closed term opens on that term, not on the plan', async () => {
+    resetPlan();
     await page.goto(base + '/elective-plan/courses/list?term=2568-2');
     await page.getByRole('region', { name: 'การบันทึกแผน', exact: true }).waitFor();
     await page.getByText('2110001', { exact: false }).first().waitFor();
-    assert.equal(await page.getByRole('button', { name: /เพิ่มรายวิชา/ }).count(), 0);
     assert.equal(await page.getByText('2110123', { exact: false }).count(), 0);
+  });
+
+  await check('a period placed and then locked before บันทึก is locked by its real id', async () => {
+    resetPlan();
+    await go('/');
+    await page.waitForFunction(() => document.querySelectorAll('td.matrix-cell').length > 0);
+    since();
+
+    // Place: the card is drawn with an id this browser made up, because the
+    // row it stands for does not exist yet.
+    await page.getByRole('button', { name: 'จัดตารางอัตโนมัติ', exact: true }).click();
+    await page.waitForFunction(() => document.querySelectorAll('.matrix-chip').length > 0, undefined, { timeout: 10000 });
+    // Lock it: a second queued move, naming the period by that made-up id.
+    await page.locator('.matrix-chip .chip-action').first().click();
+    await page.waitForFunction(() => document.querySelector('.matrix-chip.is-locked') !== null);
+    assert.equal(await unsaved(), 2, 'the timetable and the lock, both waiting');
+    assert.equal(calls.length, 0, 'and neither has been sent');
+
+    await save();
+    // `sent` matches by prefix, and the lock's path starts with the replace
+    // route's — so the two are told apart by whether an id follows.
+    const written = calls.filter((call) => call.method === 'PUT' && call.path === '/api/v1/electives/sessions');
+    const locked = calls.filter((call) => call.method === 'PUT' && /\/sessions\/\d+$/.test(call.path));
+    assert.equal(written.length, 1, 'the timetable went as one transaction');
+    assert.equal(locked.length, 1, 'and the lock as a request about one row');
+    assert.ok(calls.indexOf(written[0]) < calls.indexOf(locked[0]), 'in the order they were made');
+    // The id in the path is one the server issued, not the one drawn here:
+    // `serverId` refuses anything else, so a placeholder would have thrown
+    // rather than reached the wire at all.
+    const id = Number(locked[0].path.split('/').pop());
+    assert.ok(plan.sessions.some((item) => item.id === id), 'locked the row the server made');
+    assert.equal(locked[0].body.isLocked, true);
   });
 
   assert.deepEqual(errors, [], 'no uncaught page errors');

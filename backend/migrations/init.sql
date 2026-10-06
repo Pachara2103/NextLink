@@ -40,10 +40,9 @@ CREATE TABLE IF NOT EXISTS companies (
     aliases TEXT[] NULL DEFAULT '{}'::text[],  -- NULL ได้ ไม่ใช่ '{}' บังคับ: UPDATE ใช้ COALESCE บนคอลัมน์นี้
     is_linked BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-
     -- create_company_pg / update_company_pg เช็คเงื่อนไขนี้ใน Python อยู่แล้ว
     -- CONSTRAINT ck_companies_has_name CHECK (company_th IS NOT NULL OR company_en IS NOT NULL)
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 

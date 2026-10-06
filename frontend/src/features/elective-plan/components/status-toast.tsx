@@ -2,16 +2,22 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type Toast = { message: string; undo?: () => void };
+type Toast = { message: string };
 
 /**
- * Undo sits ~30 tab stops from the table control that triggers it, so a short
- * timer made it mouse-only. Ten seconds plus a hold while the toast is hovered
- * or focused gives keyboard and screen-reader users a usable window.
+ * Long enough to read a sentence, held while the toast is hovered or focused
+ * so a screen reader is not racing it.
+ *
+ * It used to carry a "เลิกทำ" button, which is why it is held at all. The
+ * button is gone: everything it offered to take back is now either saved the
+ * moment it is pressed — where a five-second window to change your mind is a
+ * worse answer than the confirmation the control already asks for — or held on
+ * the board, where ยกเลิก sits permanently beside บันทึก instead of vanishing
+ * after five seconds.
  */
 const TOAST_MS = 5000;
 
-/** Confirms an inline status change and offers a way back for a few seconds. */
+/** Confirms an inline status change. */
 export function useStatusToast() {
   const [toast, setToast] = useState<Toast | null>(null);
   const timerRef = useRef<number | null>(null);
@@ -26,8 +32,8 @@ export function useStatusToast() {
     timerRef.current = window.setTimeout(() => setToast(null), TOAST_MS);
   }, []);
 
-  const show = useCallback((message: string, undo?: () => void) => {
-    setToast({ message, undo });
+  const show = useCallback((message: string) => {
+    setToast({ message });
     startTimer();
   }, [startTimer]);
 
@@ -67,18 +73,6 @@ export function StatusToast({
       {toast ? (
         <>
           <span className="toast-message">{toast.message}</span>
-          {toast.undo ? (
-            <button
-              className="toast-undo"
-              type="button"
-              onClick={() => {
-                toast.undo?.();
-                onDismiss();
-              }}
-            >
-              เลิกทำ
-            </button>
-          ) : null}
           <button className="toast-dismiss" type="button" onClick={onDismiss} aria-label="ปิดข้อความแจ้งเตือน">
             ×
           </button>

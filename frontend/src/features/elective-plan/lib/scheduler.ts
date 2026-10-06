@@ -185,8 +185,8 @@ function candidatesFor(course: PlanCourse, placed: Assignment[], ctx: Ctx): Cand
   return found.sort((a, b) => {
     // The fallback pass may rehouse an earlier course. Keep READY a hard
     // priority for those moves too, ahead of every preference score.
-    const tier = Number(a.room?.tier === "NEEDS_APPROVAL") - Number(b.room?.tier === "NEEDS_APPROVAL");
-    if (tier) return tier;
+    const byType = Number(a.room?.type === "NEEDS_APPROVAL") - Number(b.room?.type === "NEEDS_APPROVAL");
+    if (byType) return byType;
     if (b.score !== a.score) return b.score - a.score;
     if (a.slotId !== b.slotId) return slotRank(a.slotId) - slotRank(b.slotId);
     return (roomRank.get(a.room?.id ?? "") ?? 0) - (roomRank.get(b.room?.id ?? "") ?? 0);
@@ -477,7 +477,7 @@ export function planSchedule(input: {
   locked?: Assignment[];
   options?: SchedulerOptions;
 }): ScheduleResult {
-  const ready = input.rooms.filter((room) => room.tier === "READY");
+  const ready = input.rooms.filter((room) => room.type === "READY");
   const first = autoAssign({ ...input, rooms: ready });
   if (first.unassigned.length === 0 || ready.length === input.rooms.length) return first;
 

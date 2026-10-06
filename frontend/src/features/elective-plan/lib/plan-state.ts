@@ -98,45 +98,68 @@ export const reconcileSession =
     });
   };
 
+/**
+ * A course, and everything in the draft that was pointed at the id it was
+ * drawn under.
+ *
+ * A row created in a draft is named by a placeholder until บันทึก reaches it,
+ * and by then the person may well have given it periods and ticked boxes
+ * against it — all of which name the placeholder. Rewriting them here, in the
+ * one place that learns the real id, is what keeps the rest of the save
+ * talking about the same course the database now has.
+ */
 export const reconcileCourse =
   (created: Elective): Reconcile =>
   (state) => {
     const real = readCourse(created);
-    const courses = state.payload.courses.map((item) =>
-      item.courseCode === real.courseCode && item.section === real.section ? real : item,
+    const previous = state.payload.courses.find(
+      (item) => item.courseCode === real.courseCode && item.section === real.section,
     );
-    const index: PlanIndex = {
-      ...state.index,
-      courses: new Map(state.index.courses).set(real.id, {
-        companyId: created.companyId,
-        lecturerId: created.lecturerId,
-        coordinatorId: created.coordinatorId ?? null,
-      }),
-    };
-    // A course drawn a moment ago under a placeholder id may already have
-    // paperwork pointed at that id by the same click; move it across.
+    const wasId = previous?.id ?? real.id;
+    const courses = state.payload.courses.map((item) => (item.id === wasId ? real : item));
+
+    const links = new Map(state.index.courses);
+    links.delete(wasId);
+    links.set(real.id, {
+      companyId: created.companyId,
+      lecturerId: created.lecturerId,
+      coordinatorId: created.coordinatorId ?? null,
+    });
+    const index: PlanIndex = { ...state.index, courses: links };
+
     const checklists = { ...state.document.checklists };
-    for (const course of state.payload.courses) {
-      if (course.courseCode === real.courseCode && course.section === real.section && course.id !== real.id) {
-        if (checklists[course.id]) {
-          checklists[real.id] = checklists[course.id];
-          delete checklists[course.id];
-        }
-      }
+    if (wasId !== real.id && checklists[wasId]) {
+      checklists[real.id] = checklists[wasId];
+      delete checklists[wasId];
     }
-    return { ...withDocument(withCourses(state, courses), { checklists }), index };
+    const assignments =
+      wasId === real.id
+        ? state.document.assignments
+        : state.document.assignments.map((item) =>
+            item.courseId === wasId ? { ...item, courseId: real.id } : item,
+          );
+
+    return { ...withDocument(withCourses(state, courses), { checklists, assignments }), index };
   };
 
 export const reconcileRoom =
   (created: ElectiveRoom): Reconcile =>
   (state) => {
     const real = readRoom(created);
-    return withRooms(
-      state,
-      state.payload.rooms.map((item) =>
-        item.building === real.building && item.name === real.name ? real : item,
-      ),
+    const previous = state.payload.rooms.find(
+      (item) => item.building === real.building && item.name === real.name,
     );
+    const wasId = previous?.id ?? real.id;
+    const rooms = state.payload.rooms.map((item) => (item.id === wasId ? real : item));
+    // Periods already dropped into a room that was itself only drawn a moment
+    // ago still name it by its placeholder — see `reconcileCourse`.
+    const assignments =
+      wasId === real.id
+        ? state.document.assignments
+        : state.document.assignments.map((item) =>
+            item.roomId === wasId ? { ...item, roomId: real.id } : item,
+          );
+    return withDocument(withRooms(state, rooms), { assignments });
   };
 
 /**

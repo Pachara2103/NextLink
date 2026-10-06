@@ -88,8 +88,11 @@ class TermStatus(StrEnum):
     ARCHIVED = "archived"
 
 
-class RoomTier(StrEnum):
-    """ห้องภาคจัดได้เลย ห้องคณะต้องยื่นขอก่อน ตัวจัดตารางจึงเลือกห้องภาคก่อนเสมอ"""
+class RoomType(StrEnum):
+    """ห้องภาคจัดได้เลย ห้องคณะต้องยื่นขอก่อน ตัวจัดตารางจึงเลือกห้องภาคก่อนเสมอ
+
+    ตรงกับคอลัมน์ elective_rooms.type (ชื่อเดิมคือ tier)
+    """
 
     READY = "ready"
     NEEDS_APPROVAL = "needs_approval"

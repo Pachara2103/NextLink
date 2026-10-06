@@ -20,7 +20,7 @@ const NEW_ROOM: RoomDraft = {
   // The cautious half of the pair: a room wrongly marked READY gets filled by
   // the scheduler before anyone has asked the faculty for it, while a room
   // wrongly marked NEEDS_APPROVAL only goes unused until someone fixes it.
-  tier: "NEEDS_APPROVAL",
+  type: "NEEDS_APPROVAL",
 };
 
 /**
@@ -28,7 +28,7 @@ const NEW_ROOM: RoomDraft = {
  *
  * One form for all three because they are one question — "what rooms does the
  * department have" — and a separate "add room" page would be a second place
- * for the tier wording to drift out of step with the room list's two headings.
+ * for the wording to drift out of step with the room list's two headings.
  *
  * Deleting asks twice, and the second ask counts the classes that will fall
  * out of the plan with the room. That number is the whole reason to hesitate,
@@ -165,18 +165,18 @@ function RoomDialogForm({
             </span>
           </label>
 
-          {/* Radios, not a dropdown: the two tiers are not two values of one
+          {/* Radios, not a dropdown: the two kinds are not two values of one
               property — one is a room the department can use this afternoon and
               the other is a request someone has to file — and a closed select
               shows only the one already chosen. */}
-          <fieldset className="tier-choice room-form-wide">
+          <fieldset className="room-type-choice room-form-wide">
             <legend>หมวดของห้อง</legend>
             <label>
               <input
                 type="radio"
-                name="room-tier"
-                checked={draft.tier === "READY"}
-                onChange={() => setDraft({ ...draft, tier: "READY" })}
+                name="room-type"
+                checked={draft.type === "READY"}
+                onChange={() => setDraft({ ...draft, type: "READY" })}
               />
               <span>
                 ใช้ได้ทันที
@@ -186,9 +186,9 @@ function RoomDialogForm({
             <label>
               <input
                 type="radio"
-                name="room-tier"
-                checked={draft.tier === "NEEDS_APPROVAL"}
-                onChange={() => setDraft({ ...draft, tier: "NEEDS_APPROVAL" })}
+                name="room-type"
+                checked={draft.type === "NEEDS_APPROVAL"}
+                onChange={() => setDraft({ ...draft, type: "NEEDS_APPROVAL" })}
               />
               <span>
                 ต้องขออนุมัติก่อนใช้

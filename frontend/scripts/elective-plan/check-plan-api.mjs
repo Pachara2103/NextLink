@@ -35,7 +35,7 @@ const elective = (over = {}) => ({
 
 const room = (over = {}) => ({
   id: 4, name: '301', building: 'จุฬาพัฒน์ 14', floor: '3', seats: 40,
-  seatsIsEstimated: false, tier: 'ready', isActive: true,
+  seatsIsEstimated: false, type: 'ready', isActive: true,
   blockedSlots: [{ slot: 'FRI_PM', reason: 'สอบ' }, { slot: 'TUE_AM', reason: 'งานคณะ' }],
   createdAt: null, updatedAt: null, ...over,
 });
@@ -62,6 +62,9 @@ check('a term becomes the id, labels and status the planner already speaks', () 
   assert.deepEqual(readTerm(term()), {
     id: '2569-1', academicYear: 2569, season: 'FIRST',
     label: 'ภาคต้น ปีการศึกษา 2569', shortLabel: '1/2569', status: 'CURRENT',
+    // The row's own id travels with it: the switcher has to ask for a term by
+    // the id the API takes, and '2569-1' is a label, not that.
+    serverId: 7,
   });
   assert.equal(readTerm(term({ semester: 2, status: 'archived' })).status, 'ARCHIVED');
   assert.equal(readTerm(term({ semester: 2 })).label, 'ภาคปลาย ปีการศึกษา 2569');
@@ -91,13 +94,13 @@ check('a company with only an English name still renders as something', () => {
   assert.equal(neither.provider, '');
 });
 
-check('a room keeps its tier and lists the periods it is taken for in week order', () => {
+check('a room keeps its type and lists the periods it is taken for in week order', () => {
   const mapped = readPlan(plan()).payload.rooms[0];
   assert.equal(mapped.id, '4');
-  assert.equal(mapped.tier, 'READY');
+  assert.equal(mapped.type, 'READY');
   assert.deepEqual(mapped.blockedSlots.map((block) => block.slotId), ['TUE_AM', 'FRI_PM']);
-  const other = readPlan(plan({ rooms: [room({ tier: 'needs_approval', blockedSlots: undefined })] })).payload.rooms[0];
-  assert.equal(other.tier, 'NEEDS_APPROVAL');
+  const other = readPlan(plan({ rooms: [room({ type: 'needs_approval', blockedSlots: undefined })] })).payload.rooms[0];
+  assert.equal(other.type, 'NEEDS_APPROVAL');
   assert.deepEqual(other.blockedSlots, []);
 });
 
@@ -195,7 +198,7 @@ check('a course with no coordinator sends null, and a new one sends no ids', () 
 check('a room form is sent without touching the periods it is taken for', () => {
   const mapped = readPlan(plan()).payload.rooms[0];
   const full = roomWrite(mapped);
-  assert.equal(full.tier, 'ready');
+  assert.equal(full.type, 'ready');
   assert.deepEqual(full.blockedSlots, [
     { slot: 'TUE_AM', reason: 'งานคณะ' }, { slot: 'FRI_PM', reason: 'สอบ' },
   ]);
@@ -203,7 +206,7 @@ check('a room form is sent without touching the periods it is taken for', () => 
   const fromForm = roomWrite(roomDraftFrom(mapped));
   assert.deepEqual(fromForm.blockedSlots, []);
   assert.equal(fromForm.seats, 40);
-  assert.equal(roomWrite({ ...roomDraftFrom(mapped), tier: 'NEEDS_APPROVAL' }).tier, 'needs_approval');
+  assert.equal(roomWrite({ ...roomDraftFrom(mapped), type: 'NEEDS_APPROVAL' }).type, 'needs_approval');
 });
 
 check('placing a period asks for the period bounds; a retime sends the times', () => {

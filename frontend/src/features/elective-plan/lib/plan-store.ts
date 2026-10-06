@@ -15,14 +15,29 @@ export type PlanSnapshot = {
   payload: PlanPayload;
   document: PlanDocument;
   ready: boolean;
-  status: "loading" | "saved" | "saving" | "error";
+  /** `draft` = edits are on screen and not yet on the server. Only the shared
+   *  plan can be in it; this store writes as it goes. */
+  status: "loading" | "saved" | "saving" | "error" | "draft";
   error: string | null;
   recoveryRaw: string | null;
   canUndo: boolean;
   /** Every term the switcher offers. Read from the API; bundled in seed mode. */
   terms: TermMeta[];
   archives: ArchivedTerm[];
+  /**
+   * The save button's four facts. Constant here — a plan in this browser is
+   * written the moment it changes, so there is never anything waiting — and
+   * real state on the shared plan (`plan-remote.ts`).
+   */
+  unsaved: number;
+  canRedo: boolean;
+  unsavedLabels: string[];
+  blocked: boolean;
 };
+
+/** What a store that saves as it goes reports about a save button it has not got. */
+export const NOTHING_UNSAVED: Pick<PlanSnapshot, "unsaved" | "canRedo" | "unsavedLabels" | "blocked"> =
+  { unsaved: 0, canRedo: false, unsavedLabels: [], blocked: false };
 type Mutation = (document: PlanDocument) => PlanData | Promise<PlanData>;
 
 /** One store per app layout. Commands read fresh state inside the shared lock. */
@@ -41,7 +56,7 @@ export class PlanStore {
     this.payload = payload;
     this.persistence = persistence;
     this.key = storageKeyFor(payload.term.id);
-    this.snapshot = { payload, document: emptyDocument(payload), ready: false, status: "loading", error: null, recoveryRaw: null, canUndo: false, terms: [], archives: [] };
+    this.snapshot = { payload, document: emptyDocument(payload), ready: false, status: "loading", error: null, recoveryRaw: null, canUndo: false, terms: [], archives: [], ...NOTHING_UNSAVED };
   }
   getSnapshot = () => this.snapshot;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };

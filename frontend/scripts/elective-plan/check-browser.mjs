@@ -13,7 +13,7 @@ let logs = ''; server.stdout.on('data', (data) => { logs += data; }); server.std
 let browser;
 const results = [];
 const errors = [], failedAssets = [];
-const key = 'nextlink.plan.v4.2569-1';
+const key = 'nextlink.plan.v5.2569-1';
 const courseId = 'plan-21105801';
 await mkdir('output/browser', { recursive: true });
 const check = async (name, fn) => { await fn(); results.push(name); console.log('  ✓ ' + name); };
@@ -255,7 +255,8 @@ try {
     // The new course is on the last page of the list, and the list went there.
     await page.getByText('Prompt Engineering for Teams', { exact: true }).first().waitFor();
     assert.equal(await listed(), before + 1);
-    assert.equal(await page.locator('.local-course-tag').count(), 1);
+    // The row's own แก้ไข, in the last column — one per course typed in here.
+    assert.equal(await page.locator('.row-action-button').count(), 1);
     assert.equal(await page.locator('.course-link strong').last().innerText(), 'Prompt Engineering for Teams');
     const added = await read();
     assert.equal(added.courseEdits.added.length, 1);
@@ -364,7 +365,9 @@ try {
     await page.locator('tbody tr').first().waitFor();
     assert.deepEqual(
       (await page.locator('thead th').allInnerTexts()).map((text) => text.trim()),
-      ['วิชา', 'ผู้สอน', 'ช่วงที่สะดวก', 'คาบที่ได้', 'ห้อง'],
+      // The last column holds the row's own แก้ไข and is headed for screen
+      // readers only, so it reads as empty here.
+      ['วิชา', 'ผู้สอน', 'ช่วงที่สะดวก', 'คาบที่ได้', 'ห้อง', 'การแก้ไข'],
     );
     const cell = page.locator('tbody tr').first().locator('td').first();
     // ชื่อวิชาและชื่อบริษัทยังเป็นลิงก์คนละที่ แม้อยู่ในเซลล์เดียวกัน
@@ -372,8 +375,8 @@ try {
     assert.match(await cell.innerText(), /SW Dev for CMMI Standard[\s\S]*Soft Square[\s\S]*21105801/);
     await go('/courses/list?view=checklist');
     await page.locator('select.checklist-select').first().waitFor();
-    // หนึ่งคอลัมน์วิชา + แปดขั้นของเช็กลิสต์
-    assert.equal(await page.locator('thead th').count(), 9);
+    // หนึ่งคอลัมน์วิชา + แปดขั้นของเช็กลิสต์ + คอลัมน์ปุ่มแก้ไขท้ายแถว
+    assert.equal(await page.locator('thead th').count(), 10);
     assert.equal((await page.locator('thead th').first().innerText()).trim(), 'วิชา');
     assert.equal(await page.locator('thead th').filter({ hasText: 'สร้างคอร์ส MCV' }).count(), 1);
   });

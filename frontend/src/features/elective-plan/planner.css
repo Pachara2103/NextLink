@@ -223,8 +223,6 @@ the thing overflowing. The last fields and the save button were unreachable. */
    little higher, which costs nothing. */
 .elective-planner .toast { position: fixed; right: 18px; bottom: 84px; z-index: 40; display: flex; align-items: center; gap: 14px; max-width: min(420px, calc(100vw - 36px)); padding: 12px 14px; border-radius: 10px; color: #fff; background: var(--ep-navy, #1d2c45); box-shadow: 0 14px 38px rgba(14, 27, 53, .28); font-size: 14px; line-height: 1.5; animation: ep-toast-in .18s ease-out; }
 .elective-planner .toast-message { min-width: 0; }
-.elective-planner .toast-undo { flex: 0 0 auto; min-height: 32px; padding: 5px 11px; border: 1px solid rgba(255,255,255,.28); border-radius: 7px; color: #fff; background: var(--ep-overlay, rgba(255,255,255,.08)); font-size: 13px; font-weight: 800; }
-.elective-planner .toast-undo:hover { border-color: rgba(255,255,255,.55); background: var(--ep-overlay, rgba(255,255,255,.16)); }
 .elective-planner .toast-dismiss { flex: 0 0 auto; width: 28px; height: 28px; border: 0; border-radius: 7px; color: #c7d2e4; background: transparent; font-size: 20px; line-height: 1; }
 .elective-planner .toast-dismiss:hover { color: #fff; background: var(--ep-overlay, rgba(255,255,255,.12)); }
 @keyframes ep-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -667,11 +665,11 @@ out — but it should never happen without the reader seeing it. */
 .elective-planner .room-form .room-form-check { display: flex; align-items: flex-start; gap: 10px; grid-column: 1 / -1; color: var(--ep-ink, #38445b); font-size: 14px; font-weight: 700; }
 .elective-planner .room-form-check input { width: 18px; height: 18px; margin-top: 3px; }
 .elective-planner .room-form-check small { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; font-weight: 650; line-height: 1.45; }
-.elective-planner .tier-choice { display: grid; gap: 10px; margin: 0; padding: 13px 14px; border: 1px solid var(--line); border-radius: 12px; }
-.elective-planner .tier-choice legend { padding: 0 6px; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-.elective-planner .tier-choice label { display: flex; align-items: flex-start; gap: 10px; color: var(--ep-ink, #38445b); font-size: 14px; font-weight: 700; }
-.elective-planner .tier-choice input { width: 18px; height: 18px; margin-top: 3px; }
-.elective-planner .tier-choice small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; font-weight: 650; line-height: 1.45; }
+.elective-planner .room-type-choice { display: grid; gap: 10px; margin: 0; padding: 13px 14px; border: 1px solid var(--line); border-radius: 12px; }
+.elective-planner .room-type-choice legend { padding: 0 6px; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.elective-planner .room-type-choice label { display: flex; align-items: flex-start; gap: 10px; color: var(--ep-ink, #38445b); font-size: 14px; font-weight: 700; }
+.elective-planner .room-type-choice input { width: 18px; height: 18px; margin-top: 3px; }
+.elective-planner .room-type-choice small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; font-weight: 650; line-height: 1.45; }
 .elective-planner .room-form-error { grid-column: 1 / -1; margin: 0; padding: 10px 12px; border-radius: 9px; color: var(--ep-red, #a3313c); background: var(--ep-pink-soft, #ffe9ed); font-size: 13px; line-height: 1.5; }
 .elective-planner .dialog-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 4px; padding-top: 16px; border-top: 1px solid var(--line); }
 .elective-planner .dialog-actions-end { display: flex; align-items: center; gap: 10px; margin-left: auto; }
@@ -873,10 +871,6 @@ html[data-theme="dark"] .elective-planner .brand-mark { color: var(--color-accen
 .elective-planner .course-cell .course-provider.is-static,
 .elective-planner .course-cell .course-link.is-static { color: var(--ep-ink, #38445b); cursor: default; }
 .elective-planner .course-cell .course-code { color: var(--muted); font-size: 12px; font-weight: 600; }
-.elective-planner .course-row-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
-.elective-planner .local-course-tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; color: var(--ep-blue, #3568c4); background: var(--ep-blue-soft, #edf3ff); font-size: 11px; font-weight: 800; }
-.elective-planner .course-row-edit { padding: 0; border: 0; color: var(--blue); background: none; font-size: 12px; font-weight: 800; cursor: pointer; }
-.elective-planner .course-row-edit:hover { text-decoration: underline; }
 
 /* The view switch and the one control that acts on the whole list share a row;
    the button goes to the end so it is never mistaken for a third view. */
@@ -889,3 +883,100 @@ html[data-theme="dark"] .elective-planner .brand-mark { color: var(--color-accen
   .elective-planner .view-switch-row { align-items: stretch; flex-direction: column; }
   .elective-planner .view-switch-row .primary-button { margin-left: 0; }
 }
+
+/* ------------------------------------------------------------------------ *
+ * บันทึก, and the controls that only exist because of it
+ *
+ * The header is dark and everything in it is small, so the one control that
+ * changes the database is the only filled thing there — and it is filled only
+ * while it would do something. "บันทึกแล้ว" is deliberately quiet: a button
+ * that shouts when there is nothing to save teaches people to ignore it.
+ * ------------------------------------------------------------------------ */
+.elective-planner .save-bar { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.elective-planner .save-now { min-height: 34px; padding: 6px 15px; border: 1px solid rgba(255,255,255,.28); border-radius: 999px; color: #fff; background: var(--ep-overlay, rgba(255,255,255,.08)); font-size: 13px; font-weight: 800; white-space: nowrap; cursor: pointer; }
+.elective-planner .save-now:hover:not(:disabled) { border-color: rgba(255,255,255,.6); background: var(--ep-overlay, rgba(255,255,255,.18)); }
+.elective-planner .save-now:disabled { color: var(--ep-muted, #b6c2d6); background: none; cursor: default; }
+/* Unsaved work is the one state in this header worth a colour of its own. */
+.elective-planner .save-now.is-dirty { border-color: transparent; color: #0d2a1f; background: var(--ep-green, #62d3a7); box-shadow: 0 0 0 4px rgba(98,211,167,.14); }
+.elective-planner .save-now.is-dirty:hover:not(:disabled) { background: #7ce0ba; }
+.elective-planner .save-step { display: inline-flex; align-items: center; justify-content: center; width: 32px; min-height: 32px; padding: 0; border: 1px solid rgba(255,255,255,.22); border-radius: 50%; color: #fff; background: var(--ep-overlay, rgba(255,255,255,.08)); font-size: 15px; line-height: 1; cursor: pointer; }
+.elective-planner .save-step:hover:not(:disabled) { border-color: rgba(255,255,255,.6); }
+.elective-planner .save-step:disabled { color: var(--ep-muted, #b6c2d6); opacity: .45; cursor: default; }
+.elective-planner .save-discard { min-height: 32px; padding: 4px 11px; border: 1px solid rgba(255,255,255,.22); border-radius: 999px; color: #ffd9a8; background: none; font-size: 12px; font-weight: 800; white-space: nowrap; cursor: pointer; }
+.elective-planner .save-discard:hover:not(:disabled) { border-color: #ffd9a8; }
+.elective-planner .save-blocked { color: #ffd9a8; font-size: 12px; font-weight: 700; }
+
+@media (max-width: 760px) {
+  /* The count is the part that has to survive: three icon buttons and a
+     sentence do not fit beside the term name on a phone. */
+  .elective-planner .save-discard, .elective-planner .save-blocked { display: none; }
+}
+
+/* The row's own action, in the last column: right-aligned so a column of them
+   reads as one edge rather than a ragged line of links. */
+.elective-planner .row-action-cell { width: 1%; text-align: right; white-space: nowrap; }
+.elective-planner .row-action-button { min-height: 30px; padding: 4px 11px; border: 1px solid var(--line); border-radius: 999px; color: var(--blue); background: none; font-size: 12px; font-weight: 800; cursor: pointer; }
+.elective-planner .row-action-button:hover { border-color: var(--blue); }
+
+/* ------------------------------------------------------------------------ *
+ * ช่วงที่สะดวก: read, then edit
+ *
+ * A card is a record until แก้ไข is pressed, so the grid it shows has to read
+ * as a record — same marks, same colours, no press affordance. `is-static` is
+ * the whole difference: no cursor, no hover, no focus ring.
+ * ------------------------------------------------------------------------ */
+.elective-planner .availability-slot.is-static { cursor: default; }
+.elective-planner .availability-slot.is-static:hover { border-color: var(--ep-line, #dfe5ee); background: var(--ep-blue-soft, #fbfcfe); }
+.elective-planner .availability-slot.is-static.is-on:hover { border-color: var(--ep-green-line, #7fc9ab); background: var(--ep-green-soft, #e8f8f1); }
+.elective-planner .availability-slot.is-static.is-used:hover { border-color: var(--ep-blue-line, #3b70dc); background: var(--ep-blue-soft, #edf3ff); }
+.elective-planner .availability-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.elective-planner .availability-count { margin-right: auto; color: var(--muted); font-size: 13px; font-weight: 700; }
+
+/* ------------------------------------------------------------------------ *
+ * บันทึก for the board, in the board's own heading
+ * ------------------------------------------------------------------------ */
+.elective-planner .timetable-save { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.elective-planner .timetable-save-note { color: var(--orange, #c06a1b); font-size: 12px; font-weight: 700; }
+.elective-planner .timetable-save-cancel { min-height: 34px; padding: 5px 13px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: none; font-size: 13px; font-weight: 800; white-space: nowrap; cursor: pointer; }
+.elective-planner .timetable-save-cancel:hover:not(:disabled) { border-color: var(--ink, currentColor); color: var(--ink, currentColor); }
+.elective-planner .timetable-save-now { min-height: 34px; padding: 5px 15px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: none; font-size: 13px; font-weight: 800; white-space: nowrap; cursor: default; }
+/* Filled only while it would do something. A button that shouts when there is
+   nothing to save teaches people to stop reading it. */
+.elective-planner .timetable-save-now.is-dirty { border-color: transparent; color: #08301f; background: var(--ep-green, #62d3a7); cursor: pointer; }
+.elective-planner .timetable-save-now.is-dirty:hover:not(:disabled) { background: #7ce0ba; }
+
+/* ------------------------------------------------------------------------ *
+ * The board in dark mode: cards that read as cards
+ *
+ * Both the cell and the card were painted `--ep-surface`, which in dark mode is
+ * one colour (#101418) — so a class in a period was the same shade as the empty
+ * period beside it, separated only by a 1px line two steps off the background.
+ * The board is the one screen that is read by scanning for filled cells, and it
+ * was the one screen where filled and empty looked alike.
+ *
+ * So the three layers are pulled apart: the grid sinks to the page background,
+ * the card rises well above it, and the line around the card is bright enough
+ * to survive at 12px. The soft state colours (locked, conflict, held) keep
+ * their hue but are lifted the same way, so a locked card still reads as a card
+ * first and green second.
+ * ------------------------------------------------------------------------ */
+html[data-theme="dark"] .elective-planner .matrix-cell { background: var(--color-bg); }
+html[data-theme="dark"] .elective-planner .matrix-cell.is-blocked {
+  background: repeating-linear-gradient(135deg, #12171c, #12171c 6px, #0d1114 6px, #0d1114 12px);
+}
+html[data-theme="dark"] .elective-planner .matrix-chip {
+  border-color: #3b4652;
+  background: #1c242d;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+}
+html[data-theme="dark"] .elective-planner .matrix-chip:hover { border-color: #55636f; background: #222c36; }
+html[data-theme="dark"] .elective-planner .matrix-chip.is-locked { border-color: var(--color-ok-line); background: #17281f; }
+html[data-theme="dark"] .elective-planner .matrix-chip.is-conflict { border-color: var(--color-danger-line); background: #2a191b; }
+html[data-theme="dark"] .elective-planner .matrix-chip.is-held { border-color: var(--color-accent); background: #16263d; }
+/* The room names and the period column are the board's frame, not its content:
+   one step up from the grid, well below a card. */
+html[data-theme="dark"] .elective-planner .matrix-corner,
+html[data-theme="dark"] .elective-planner .matrix-room,
+html[data-theme="dark"] .elective-planner .matrix-day th { background: #12171c; }
+html[data-theme="dark"] .elective-planner .matrix-slot { background: #12171c; }
+html[data-theme="dark"] .elective-planner .matrix-blocked { border-color: #2e3740; background: #171e24; }

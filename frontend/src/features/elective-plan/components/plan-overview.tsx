@@ -8,6 +8,7 @@ import { ConflictPanel } from "@/features/elective-plan/components/conflict-pane
 import { PlanMatrix } from "@/features/elective-plan/components/plan-matrix";
 import { RoomDialog, type RoomFormTarget } from "@/features/elective-plan/components/room-dialog";
 import { PlanShell } from "@/features/elective-plan/components/plan-shell";
+import { TimetableSave } from "@/features/elective-plan/components/timetable-save";
 import { Pager } from "@/features/elective-plan/components/pager";
 import { StatusToast, useStatusToast } from "@/features/elective-plan/components/status-toast";
 import { BLOCKER_LABELS } from "@/features/elective-plan/lib/blocker-labels.ts";
@@ -49,7 +50,7 @@ export function PlanOverview() {
   /** Companies that have not answered yet — nothing can be planned for these. */
   const awaitingAvailability = plan.courses.filter((course) => course.availability.length === 0).length;
   const needsApproval = plan.assignments.filter(
-    (item) => item.roomId && roomsById.get(item.roomId)?.tier === "NEEDS_APPROVAL",
+    (item) => item.roomId && roomsById.get(item.roomId)?.type === "NEEDS_APPROVAL",
   ).length;
 
   const { readyCapacity, roomSlotsUsed, utilisation, flaggedCourses } = planMetrics(plan.rooms, plan.assignments, plan.conflicts);
@@ -65,12 +66,12 @@ export function PlanOverview() {
   const applySuggestion = async (suggestion: Suggestion) => {
     if (suggestion.kind === "UNLOCK_COURSE") {
       if (!await plan.unlockCourse(suggestion.courseId)) return;
-      show(`ปลดล็อก ${coursesById.get(suggestion.courseId)?.title ?? ""} แล้ว — กดจัดตารางอัตโนมัติอีกครั้ง`, plan.undo);
+      show(`ปลดล็อก ${coursesById.get(suggestion.courseId)?.title ?? ""} แล้ว — กดจัดตารางอัตโนมัติอีกครั้ง`);
       return;
     }
     if (suggestion.kind === "REDUCE_CAPACITY") {
       if (!await plan.setCourseField(suggestion.courseId, { capacity: suggestion.seats })) return;
-      show(`ปรับจำนวนที่รับเป็น ${suggestion.seats} คนแล้ว`, plan.undo);
+      show(`ปรับจำนวนที่รับเป็น ${suggestion.seats} คนแล้ว`);
       return;
     }
     if (suggestion.kind === "ASK_MORE_AVAILABILITY") {
@@ -114,9 +115,7 @@ export function PlanOverview() {
     show(
       result.unassigned.length
         ? `ยังหาแผนให้ ${formatNumber(new Set(result.unassigned.map((item) => item.courseId)).size)} วิชาไม่พบภายในขอบเขตค้นหา`
-        : `จัดตารางครบทั้ง ${formatNumber(result.assignments.length)} คาบแล้ว`,
-      plan.undo,
-    );
+        : `จัดตารางครบทั้ง ${formatNumber(result.assignments.length)} คาบแล้ว`);
   };
 
   const handleCreateTerm = async (newTermPayload: ElectiveTermCreate) => {
@@ -251,13 +250,17 @@ export function PlanOverview() {
             <button
               className="secondary-button"
               type="button"
-              onClick={async () => { if (!await plan.clearUnlocked()) return; show("ล้างคาบที่ยังไม่ล็อกแล้ว", plan.undo); }}
+              onClick={async () => { if (!await plan.clearUnlocked()) return; show("ล้างคาบที่ยังไม่ล็อกแล้ว"); }}
             >
               ล้างที่ยังไม่ล็อก
             </button>
             <button className="primary-button" type="button" disabled={plan.status === "saving"} onClick={runPlan}>
               จัดตารางอัตโนมัติ
             </button>
+            {/* Last in the row, and the only filled control here while there is
+                anything to save: what these buttons do to the board is held
+                until this one is pressed. */}
+            <TimetableSave />
           </div>
         </div>
         <PlanMatrix
@@ -269,7 +272,7 @@ export function PlanOverview() {
           onPlace={plan.place}
           onMove={plan.move}
           onToggleLock={plan.toggleLock}
-          onRemove={async (id) => { if (!await plan.remove(id)) return; show("เอาวิชาออกจากตารางแล้ว", plan.undo); }}
+          onRemove={async (id) => { if (!await plan.remove(id)) return; show("เอาวิชาออกจากตารางแล้ว"); }}
           onBlockedDrop={(title, slotId, blockers, roomIgnored) =>
             show(
               // An online class has no room to give, so the room it was dropped on
@@ -281,7 +284,6 @@ export function PlanOverview() {
                   }`
                 : `${title} ${blockers.map((code) => BLOCKER_LABELS[code]).join(" · ")}`,
                 // ลง${slotLabel(slotId)}แล้ว แต่
-              plan.undo,
             )
           }
           onHeldChange={onHeldChange}
@@ -319,10 +321,10 @@ export function PlanOverview() {
         onSave={async (draft) => {
           if (roomForm?.room) {
             if (!await plan.updateRoom(roomForm.room.id, draft)) return;
-            show(`บันทึก ${draft.name} แล้ว`, plan.undo);
+            show(`แก้ ${draft.name} แล้ว`);
           } else {
             if (!await plan.addRoom(draft)) return;
-            show(`เพิ่ม ${draft.name} เข้าตารางแล้ว`, plan.undo);
+            show(`เพิ่ม ${draft.name} เข้าตารางแล้ว`);
           }
           setRoomForm(null);
         }}
@@ -334,9 +336,7 @@ export function PlanOverview() {
           show(
             losing > 0
               ? `ลบ ${room.name} แล้ว · ${formatNumber(losing)} คาบกลับไปเป็นวิชาที่ยังไม่ได้จัด`
-              : `ลบ ${room.name} แล้ว`,
-            plan.undo,
-          );
+              : `ลบ ${room.name} แล้ว`);
           setRoomForm(null);
         }}
         onClose={() => setRoomForm(null)}
@@ -351,9 +351,7 @@ export function PlanOverview() {
           show(
             reason
               ? `กัน ${booking.room.name} ${slotLabel(booking.slotId)} ไว้ให้ ${reason}`
-              : `ปลดการกัน ${booking.room.name} ${slotLabel(booking.slotId)} แล้ว`,
-            plan.undo,
-          );
+              : `ปลดการกัน ${booking.room.name} ${slotLabel(booking.slotId)} แล้ว`);
           setBooking(null);
         }}
         onClose={() => setBooking(null)}

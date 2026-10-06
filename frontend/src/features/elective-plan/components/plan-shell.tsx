@@ -13,6 +13,10 @@ import { formatUpdated } from "@/features/elective-plan/lib/format";
  * how the nav ended up in a different position on every page and the "you have
  * unsaved edits" notice existed on two of them. One shell, one header, and a
  * page below it that only has to render its own content.
+ *
+ * บันทึก is deliberately *not* here. It saves one thing — the week board — so
+ * it lives in that board's own heading, where what it covers is obvious. A
+ * save button in the header of every page would look like it saved the page.
  */
 export function PlanShell({
   eyebrow,
@@ -37,6 +41,19 @@ export function PlanShell({
   // Every planner page renders this shell, and nothing else does: it is the
   // one place that can say "somebody is looking at the plan now".
   useEffect(() => { plan.load(); }, [plan]);
+
+  // Closing the tab on unsaved board moves loses them: the queue is in memory,
+  // because the point of holding them is that they have not been committed
+  // anywhere yet. The browser's own prompt is all that can be offered, and it
+  // is offered from any planner page because the moves outlive the board's.
+  const unsaved = plan.unsaved;
+  useEffect(() => {
+    if (!unsaved) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [unsaved]);
+
   return (
     <div className="app-shell">
       <header className="topbar">

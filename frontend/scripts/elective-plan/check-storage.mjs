@@ -69,7 +69,7 @@ await check('legacy migration preserves edits and isolates terms', async () => {
   const store = new PlanStore(payload, persistence); store.load();
   assert.equal(store.getSnapshot().document.checklists[id].mcvJoinCode, 'OLD');
   await store.mutate(patch('mentorAdded', 'DONE'));
-  assert.equal(JSON.parse(persistence.read(store.key)).version, 4);
+  assert.equal(JSON.parse(persistence.read(store.key)).version, 5);
   assert.ok(persistence.read(LEGACY_STORAGE_KEY));
   const nextTerm = new PlanStore({ ...payload, term: { id: '2569-2' } }, persistence); nextTerm.load();
   assert.deepEqual(nextTerm.getSnapshot().document.checklists, {});
@@ -96,19 +96,48 @@ const v3 = (extra = {}) => JSON.stringify({
   editedAt: '2026-09-01T10:00:00+07:00', assignments: [], courseOverrides: { [id]: { capacity: 55 } },
   roomEdits: { overrides: {}, added: [], removed: [] }, checklists: { [id]: { mentorAdded: 'DONE' } }, ...extra,
 });
-await check('a version 3 plan is read from its own key and saved back as version 4', async () => {
-  const persistence = disk(); persistence.values.set(legacyKeysFor(payload.term.id)[0], v3());
+// legacyKeysFor is newest-first: [v4, v3, ...]. Naming the two by version
+// rather than by index keeps these checks readable the next time one is added.
+const [V4_KEY, V3_KEY] = legacyKeysFor(payload.term.id);
+await check('a version 3 plan is read from its own key and saved back as version 5', async () => {
+  const persistence = disk(); persistence.values.set(V3_KEY, v3());
   const store = new PlanStore(payload, persistence); store.load();
   assert.equal(store.getSnapshot().document.courseOverrides[id].capacity, 55);
   assert.equal(store.getSnapshot().document.checklists[id].mentorAdded, 'DONE');
   assert.deepEqual(store.getSnapshot().document.courseEdits, { added: [], removed: [] });
   assert.equal(await store.mutate(patch('studentsAdded', 'DONE')), true);
   const written = JSON.parse(persistence.read(storageKeyFor(payload.term.id)));
-  assert.equal(written.version, 4);
+  assert.equal(written.version, 5);
   assert.equal(written.revision, 5);
   assert.equal(written.courseOverrides[id].capacity, 55);
   // The old key is left alone: an older build open in another tab still works.
-  assert.equal(persistence.read(legacyKeysFor(payload.term.id)[0]), v3());
+  assert.equal(persistence.read(V3_KEY), v3());
+});
+// Version 5 renamed a room's `tier` to `type`, following the column. A stored
+// v4 plan therefore has to be read under the old spelling and written under the
+// new one - if it were not, every room somebody had edited would fail
+// validation and the whole plan would be refused at load.
+await check('a version 4 plan reads its rooms\' tier as type and saves back as version 5', async () => {
+  const persistence = disk();
+  persistence.values.set(V4_KEY, JSON.stringify({
+    version: 4, termId: payload.term.id, dataset: payload.dataset, seedRevision: 'older', revision: 2,
+    editedAt: '2026-09-01T10:00:00+07:00', assignments: [], courseOverrides: {}, courseEdits: { added: [], removed: [] },
+    roomEdits: {
+      overrides: { [payload.rooms[0].id]: { tier: 'NEEDS_APPROVAL' } },
+      added: [{ id: 'eng-9-9', name: 'ห้อง 9-9', building: 'ตึก 9', floor: '9', seats: 30, seatsIsEstimated: true, tier: 'NEEDS_APPROVAL', blockedSlots: [] }],
+      removed: [],
+    },
+    checklists: {},
+  }));
+  const store = new PlanStore(payload, persistence); store.load();
+  const edits = store.getSnapshot().document.roomEdits;
+  assert.equal(edits.overrides[payload.rooms[0].id].type, 'NEEDS_APPROVAL');
+  assert.equal('tier' in edits.overrides[payload.rooms[0].id], false);
+  assert.equal(edits.added[0].type, 'NEEDS_APPROVAL');
+  assert.equal(await store.mutate(patch('studentsAdded', 'DONE')), true);
+  const written = JSON.parse(persistence.read(storageKeyFor(payload.term.id)));
+  assert.equal(written.version, 5);
+  assert.equal(written.roomEdits.added[0].type, 'NEEDS_APPROVAL');
 });
 const local = (over = {}) => ({
   id: 'plan-99999999', courseCode: '99999999', title: 'วิชาใหม่', category: 'ทดสอบ', provider: 'บริษัททดสอบ',

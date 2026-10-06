@@ -24,7 +24,7 @@ export type Contact = {
  * steps first, so those rooms are a fallback, never a first choice. See
  * `planSchedule` in lib/scheduler.ts for how that is enforced.
  */
-export type RoomTier = "READY" | "NEEDS_APPROVAL";
+export type RoomType = "READY" | "NEEDS_APPROVAL";
 
 export type PlanRoom = {
   id: string;
@@ -38,7 +38,7 @@ export type PlanRoom = {
    * may hold more, but nothing here may assume it does.
    */
   seatsIsEstimated: boolean;
-  tier: RoomTier;
+  type: RoomType;
   /** Periods already taken by something else, with the reason to show a reader. */
   blockedSlots: Array<{ slotId: SlotId; reason: string }>;
 };
@@ -179,6 +179,14 @@ export type TermMeta = {
   /** "1/2569" */
   shortLabel: string;
   status: "CURRENT" | "ARCHIVED";
+  /**
+   * `elective_terms.id`, for asking the API for this term.
+   *
+   * Absent in seed mode, where the terms are bundled files and there is
+   * nothing to ask. Everywhere else the switcher needs it: `id` above is a
+   * label the router and the storage key use, and no route takes it.
+   */
+  serverId?: number;
 };
 
 /**

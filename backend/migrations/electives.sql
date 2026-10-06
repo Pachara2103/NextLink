@@ -41,7 +41,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_elective_terms_single_current
 -- ห้องเรียนที่ใช้เปิดวิชาเลือกได้
 --
 -- แยกจาก classroom ที่เป็นข้อความ เพราะการเลือกห้องใช้ความจุ (ห้องเล็กกว่า
--- จำนวนที่รับ = จัดไม่ได้) และใช้ tier (ห้องภาคจัดได้เลย ห้องคณะต้องยื่นขอ
+-- จำนวนที่รับ = จัดไม่ได้) และใช้ type (ห้องภาคจัดได้เลย ห้องคณะต้องยื่นขอ
 -- ก่อน ระบบจึงเลือกห้องภาคให้ก่อนเสมอ)
 -- --------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS elective_rooms (
@@ -53,13 +53,15 @@ CREATE TABLE IF NOT EXISTS elective_rooms (
     -- true = ตัวเลขที่ได้จากการสังเกต ไม่ใช่ตัวเลขที่ผู้ดูแลอาคารยืนยัน
     -- ระบบถือเป็นขอบล่างและแสดงเป็น ~40
     seats_is_estimated BOOLEAN NOT NULL DEFAULT false,
-    tier TEXT NOT NULL DEFAULT 'needs_approval',
+    -- ชื่อเดิมคือ tier - ฐานที่สร้างไว้ก่อนหน้านี้เปลี่ยนชื่อด้วย
+    -- migrations/elective_reshape.sql
+    type TEXT NOT NULL DEFAULT 'needs_approval',
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_elective_rooms_name UNIQUE (building, name),
     CONSTRAINT ck_elective_rooms_seats CHECK (seats BETWEEN 1 AND 2000),
-    CONSTRAINT ck_elective_rooms_tier CHECK (tier IN ('ready', 'needs_approval')),
+    CONSTRAINT ck_elective_rooms_type CHECK (type IN ('ready', 'needs_approval')),
     CONSTRAINT ck_elective_rooms_name_not_blank CHECK (btrim(name) <> '')
 );
 
@@ -138,21 +140,33 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_electives_id_term ON electives (id, term_id
 -- --------------------------------------------------------------------------
 -- ช่วงที่บริษัทแจ้งว่าสอนได้ (prefer_dates เดิม)
 --
--- หนึ่งแถวต่อหนึ่งคาบ ไม่ใช่อาเรย์ เพราะเป็นสิ่งที่ต้อง join กับตารางคาบและ
--- ถูกถามว่า "วิชาไหนบ้างที่ว่างพุธเช้า" อยู่ตลอด
+-- หนึ่งแถวต่อหนึ่งวิชา เก็บคาบทั้งหมดไว้ในอาเรย์เดียว เพราะช่วงที่สะดวกเป็น
+-- คำตอบเดียวของบริษัท ("จันทร์เช้า พุธบ่าย หรือเสาร์เช้าก็ได้") ที่ถูกอ่านและ
+-- ถูกเขียนทั้งชุดเสมอ - ทั้ง _write_availability และฟอร์มแก้วิชาส่งคาบทั้งชุด
+-- กลับมาทุกครั้งอยู่แล้ว การเก็บเป็นหลายแถวจึงแปลว่าทุกการบันทึกคือ DELETE
+-- ตามด้วย INSERT ทีละแถว และทุกการอ่านคือ GROUP BY ที่ประกอบอาเรย์กลับขึ้นมาใหม่
+--
+-- คำถาม "วิชาไหนบ้างที่ว่างพุธเช้า" ยังตอบได้ด้วย slots @> ARRAY['WED_AM']
+-- ซึ่ง GIN index ข้างล่างรองรับ
+--
+-- ค่าซ้ำในอาเรย์: CHECK ของ postgres มี subquery ไม่ได้ จึงกันไม่ได้ในระดับ
+-- ตาราง - _sorted_slots ใน services/elective.py ตัดซ้ำและเรียงให้ก่อนเขียนเสมอ
 -- --------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS elective_availability (
-    elective_id BIGINT NOT NULL REFERENCES electives(id) ON DELETE CASCADE,
-    slot TEXT NOT NULL,
+    elective_id BIGINT PRIMARY KEY REFERENCES electives(id) ON DELETE CASCADE,
+    slots TEXT[] NOT NULL DEFAULT '{}'::text[],
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (elective_id, slot),
-    CONSTRAINT ck_elective_availability_slot CHECK (slot IN (
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- <@ คือ "ทุกสมาชิกอยู่ในชุดนี้" ซึ่งครอบทั้งค่าที่สะกดผิดและ NULL ใน
+    -- อาเรย์ (ARRAY['MON_AM', NULL] <@ ... ให้ NULL ไม่ใช่ true จึงไม่ผ่าน)
+    CONSTRAINT ck_elective_availability_slots CHECK (slots <@ ARRAY[
         'MON_AM','MON_PM','MON_EVE','TUE_AM','TUE_PM','TUE_EVE',
         'WED_AM','WED_PM','WED_EVE','THU_AM','THU_PM','THU_EVE',
-        'FRI_AM','FRI_PM','FRI_EVE','SAT_AM','SAT_PM','SAT_EVE'))
+        'FRI_AM','FRI_PM','FRI_EVE','SAT_AM','SAT_PM','SAT_EVE']::text[])
 );
 
-CREATE INDEX IF NOT EXISTS idx_elective_availability_slot ON elective_availability (slot);
+CREATE INDEX IF NOT EXISTS idx_elective_availability_slots
+    ON elective_availability USING GIN (slots);
 
 
 -- --------------------------------------------------------------------------

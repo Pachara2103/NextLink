@@ -210,7 +210,7 @@ export function detectConflicts(input: {
           [assignment.id],
         );
       }
-      if (room.tier === "NEEDS_APPROVAL") {
+      if (room.type === "NEEDS_APPROVAL") {
         add(
           "NEEDS_ROOM_APPROVAL",
           assignment.id,

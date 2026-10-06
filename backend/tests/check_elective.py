@@ -49,7 +49,7 @@ from schemas.elective import (
     ElectiveTermCreate,
     ElectiveWrite,
 )
-from schemas.enums import DeliveryMode, ElectiveSlot, RoomTier, SessionSource, TermStatus
+from schemas.enums import DeliveryMode, ElectiveSlot, RoomType, SessionSource, TermStatus
 import services.elective as svc
 
 DSN = os.environ["NEXTLINK_DATABASE_URL"]
@@ -110,7 +110,7 @@ def reset():
 def rooms_seed():
     a = svc.create_room(ElectiveRoomWrite(
         name="301", building="จุฬาพัฒน์ 14", floor="3", seats=40,
-        tier=RoomTier.READY,
+        type=RoomType.READY,
         blocked_slots=[ElectiveRoomBlock(slot=ElectiveSlot.MON_AM, reason="วิชาบังคับ")],
     ))
     b = svc.create_room(ElectiveRoomWrite(
@@ -175,7 +175,7 @@ print("ห้อง")
 def _rooms():
     a, b = rooms_seed()
     assert [x.slot for x in a.blocked_slots] == [ElectiveSlot.MON_AM]
-    assert a.tier == RoomTier.READY and b.seats_is_estimated is True
+    assert a.type == RoomType.READY and b.seats_is_estimated is True
     listed = svc.list_rooms()
     assert [r.name for r in listed.items] == ["301", "ENG-201"], [r.name for r in listed.items]
     expect(BadRequestError, "มีห้องชื่อนี้ในอาคารนี้อยู่แล้ว", lambda: svc.create_room(
@@ -290,6 +290,36 @@ def _availability_only():
 
 
 check("แก้ช่วงที่สะดวกอย่างเดียว - ตัดค่าซ้ำ เรียงให้ และไม่แตะช่องอื่น", _availability_only)
+
+
+def _availability_is_one_row():
+    """หนึ่งวิชา = หนึ่งแถว และคำถาม "วิชาไหนว่างพุธบ่าย" ยังตอบได้
+
+    ตารางนี้เคยเป็นหนึ่งแถวต่อหนึ่งคาบ การเขียนทับจึงเคยเป็น DELETE + INSERT
+    ทีละแถว ถ้าวันหนึ่งมันกลับไปเป็นหลายแถวเงียบ ๆ (เช่น INSERT ที่ลืม
+    ON CONFLICT) เทสข้างบนจะยังผ่าน เพราะมันอ่านผ่าน _attach_availability
+    """
+    target = svc.list_electives().items[0]
+    svc.set_availability(target.id, [ElectiveSlot.WED_PM, ElectiveSlot.MON_AM])
+    svc.set_availability(target.id, [ElectiveSlot.WED_PM, ElectiveSlot.SAT_AM])
+
+    with psycopg2.connect(DSN) as conn, conn.cursor() as cur:
+        cur.execute("SELECT count(*), max(array_length(slots, 1)) FROM elective_availability WHERE elective_id = %s;", (target.id,))
+        rows, slots = cur.fetchone()
+        assert rows == 1 and slots == 2, (rows, slots)
+
+        cur.execute("SELECT elective_id FROM elective_availability WHERE slots @> ARRAY['WED_PM'];")
+        assert target.id in [row[0] for row in cur.fetchall()]
+
+        # ค่าที่ไม่ใช่คาบต้องไม่ผ่าน CHECK แม้จะอยู่ปนในอาเรย์
+        try:
+            cur.execute("UPDATE elective_availability SET slots = ARRAY['MON_AM','SUN_AM'] WHERE elective_id = %s;", (target.id,))
+            raise AssertionError("CHECK ยอมรับคาบที่ไม่มีอยู่จริง")
+        except psycopg2.IntegrityError:
+            conn.rollback()
+
+
+check("ช่วงที่สะดวกเก็บเป็นอาเรย์แถวเดียวต่อวิชา และยังค้นด้วยคาบได้", _availability_is_one_row)
 
 
 print("ผลการจัด")
@@ -504,23 +534,34 @@ check("ลบวิชาแล้วคาบ ช่วงที่สะดว
 print("เทอมที่ปิดแล้ว")
 
 
-def _archived_is_read_only():
+def _archived_is_editable():
+    """เทอมที่ปิดแล้วยังแก้ได้ทุกทางเข้า - งานนำเข้าข้อมูลย้อนหลังต้องใช้
+
+    "ปิดเทอม" แปลว่าเทอมนั้นไม่ใช่เทอมที่กำลังจัด ไม่ได้แปลว่าข้อมูลครบแล้ว
+    """
     plan = svc.get_plan()
     old = svc.archive_term(plan.term.id)
     assert old.status == TermStatus.ARCHIVED
     target = plan.electives[0]
-    expect(BadRequestError, "เทอมนี้ปิดไปแล้ว", lambda: svc.delete_elective(target.id))
-    expect(BadRequestError, "เทอมนี้ปิดไปแล้ว",
-           lambda: svc.set_availability(target.id, [ElectiveSlot.MON_PM]))
-    expect(BadRequestError, "เทอมนี้ปิดไปแล้ว", lambda: svc.update_checklist(
-        target.id, ElectiveChecklistUpdate(create_mcv="DONE")))
-    expect(BadRequestError, "เทอมนี้ปิดไปแล้ว", lambda: svc.replace_sessions(plan.term.id, []))
-    # แต่ยังอ่านได้ตามปกติ
+
+    assert svc.set_availability(target.id, [ElectiveSlot.MON_PM]).availability == [ElectiveSlot.MON_PM]
+    assert svc.update_checklist(
+        target.id, ElectiveChecklistUpdate(create_mcv="DONE")).create_mcv == "DONE"
+    # จัดตารางใหม่ด้วยชุดว่าง = ทิ้งทุกคาบที่ไม่ได้ล็อก คาบที่ล็อกไว้ยังอยู่
+    left = svc.replace_sessions(plan.term.id, [])
+    assert all(item.is_locked for item in left.items)
+
+    # เพิ่มวิชาเข้าเทอมที่ปิดไปแล้วได้ - term_id ต้องระบุ ไม่อย่างนั้นจะไปลง
+    # เทอมที่กำลังจัดอยู่
+    added = svc.create_elective(course("9999999", term_id=plan.term.id), USER_ID)
+    assert added.term_id == plan.term.id
+    svc.delete_elective(added.id)
+    svc.delete_elective(target.id)
+
     assert svc.get_plan(plan.term.id).term.id == plan.term.id
-    assert len(svc.list_electives(plan.term.id).items) == len(plan.electives)
 
 
-check("เทอมที่ปิดแล้วอ่านได้แต่เขียนไม่ได้ ทุกทางเข้า", _archived_is_read_only)
+check("เทอมที่ปิดแล้วยังเพิ่ม/แก้/ลบได้ทุกทางเข้า", _archived_is_editable)
 
 print("ทางเข้าฝั่ง HTTP")
 
@@ -594,7 +635,7 @@ def run_seed():
 
 def rooms_now():
     with psycopg2.connect(DSN) as conn, conn.cursor() as cur:
-        cur.execute("SELECT building, name, seats, tier, is_active FROM elective_rooms ORDER BY building, name;")
+        cur.execute("SELECT building, name, seats, type, is_active FROM elective_rooms ORDER BY building, name;")
         return cur.fetchall()
 
 
@@ -607,14 +648,14 @@ def _seed_opens_an_empty_database():
     assert term.status == TermStatus.CURRENT
     rooms = svc.list_rooms().items
     assert len(rooms) == 16, len(rooms)
-    ready = [room for room in rooms if room.tier == RoomTier.READY]
+    ready = [room for room in rooms if room.type == RoomType.READY]
     assert len(ready) == 6
     assert all(room.building.startswith("จุฬาพัฒน์") for room in ready), "ห้องของภาคคือจุฬาพัฒน์"
-    assert {room.building for room in rooms if room.tier != RoomTier.READY} == {
+    assert {room.building for room in rooms if room.type != RoomType.READY} == {
         "ตึก 3 (คณะวิศวะ)", "ตึก 4 (คณะวิศวะ)", "ตึกร้อยปี (คณะวิศวะ)",
     }
     # ที่นั่งของห้องคณะเป็นตัวเลขประมาณ หน้าเว็บจะแสดงเป็น ~40
-    assert all(room.seats_is_estimated for room in rooms if room.tier != RoomTier.READY)
+    assert all(room.seats_is_estimated for room in rooms if room.type != RoomType.READY)
     # คาบที่ห้องติดงานอื่นต้องติดมาด้วย ไม่ใช่แค่ตัวห้อง
     blocked = [(room.name, block.slot, block.reason) for room in rooms for block in room.blocked_slots]
     assert blocked == [("จุฬาพัฒน์ 5 ห้อง 203", ElectiveSlot.TUE_AM, "วิชาบังคับของภาคใช้อยู่")], blocked
@@ -628,7 +669,7 @@ def _seed_is_idempotent_and_keeps_edits():
     room = [item for item in svc.list_rooms().items if item.name == "ตึก 3 ชั้น 4 ห้อง 405"][0]
     svc.update_room(room.id, ElectiveRoomWrite(
         name=room.name, building=room.building, floor=room.floor, seats=99,
-        seats_is_estimated=False, tier=RoomTier.READY, is_active=False,
+        seats_is_estimated=False, type=RoomType.READY, is_active=False,
     ))
     svc.set_room_blocks(room.id, [ElectiveRoomBlock(slot=ElectiveSlot.MON_PM, reason="ซ่อมแอร์")])
 
@@ -638,7 +679,7 @@ def _seed_is_idempotent_and_keeps_edits():
     assert len(rooms_now()) == 16, "รันซ้ำต้องไม่เพิ่มห้องซ้ำ"
     after = [item for item in svc.list_rooms(include_inactive=True).items if item.id == room.id][0]
     # ของที่คนแก้ผ่านหน้าเว็บต้องชนะสคริปต์ตั้งค่าเสมอ
-    assert after.seats == 99 and after.is_active is False and after.tier == RoomTier.READY
+    assert after.seats == 99 and after.is_active is False and after.type == RoomType.READY
     assert [block.reason for block in after.blocked_slots] == ["ซ่อมแอร์"]
 
 

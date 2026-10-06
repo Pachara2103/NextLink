@@ -10,7 +10,7 @@
       "floor": "1",
       "seats": 64,
       "seatsIsEstimated": false,
-      "tier": "READY",
+      "type": "READY",
       "blockedSlots": []
     },
     {
@@ -20,7 +20,7 @@
       "floor": "3",
       "seats": 236,
       "seatsIsEstimated": false,
-      "tier": "READY",
+      "type": "READY",
       "blockedSlots": []
     },
     {
@@ -30,7 +30,7 @@
       "floor": "3",
       "seats": 64,
       "seatsIsEstimated": false,
-      "tier": "READY",
+      "type": "READY",
       "blockedSlots": []
     },
     {
@@ -40,7 +40,7 @@
       "floor": "3",
       "seats": 30,
       "seatsIsEstimated": false,
-      "tier": "READY",
+      "type": "READY",
       "blockedSlots": []
     },
     {
@@ -50,7 +50,7 @@
       "floor": "2",
       "seats": 58,
       "seatsIsEstimated": false,
-      "tier": "READY",
+      "type": "READY",
       "blockedSlots": [
         {
           "slotId": "TUE_AM",
@@ -65,7 +65,7 @@
       "floor": "2",
       "seats": 36,
       "seatsIsEstimated": false,
-      "tier": "READY",
+      "type": "READY",
       "blockedSlots": []
     },
     {
@@ -75,7 +75,7 @@
       "floor": "17",
       "seats": 40,
       "seatsIsEstimated": true,
-      "tier": "NEEDS_APPROVAL",
+      "type": "NEEDS_APPROVAL",
       "blockedSlots": []
     },
     {
@@ -85,7 +85,7 @@
       "floor": "18",
       "seats": 30,
       "seatsIsEstimated": true,
-      "tier": "NEEDS_APPROVAL",
+      "type": "NEEDS_APPROVAL",
       "blockedSlots": []
     },
     {
@@ -95,7 +95,7 @@
       "floor": "4",
       "seats": 50,
       "seatsIsEstimated": true,
-      "tier": "NEEDS_APPROVAL",
+      "type": "NEEDS_APPROVAL",
       "blockedSlots": []
     },
     {
@@ -105,7 +105,7 @@
       "floor": "17",
       "seats": 40,
       "seatsIsEstimated": true,
-      "tier": "NEEDS_APPROVAL",
+      "type": "NEEDS_APPROVAL",
       "blockedSlots": []
     },
     {
@@ -115,7 +115,7 @@
       "floor": "18",
       "seats": 40,
       "seatsIsEstimated": true,
-      "tier": "NEEDS_APPROVAL",
+      "type": "NEEDS_APPROVAL",
       "blockedSlots": []
     },
     {
@@ -125,7 +125,7 @@
       "floor": "4",
       "seats": 50,
       "seatsIsEstimated": true,
-      "tier": "NEEDS_APPROVAL",
+      "type": "NEEDS_APPROVAL",
       "blockedSlots": []
     },
     {
@@ -135,7 +135,7 @@
       "floor": "4",
       "seats": 50,
       "seatsIsEstimated": true,
-      "tier": "NEEDS_APPROVAL",
+      "type": "NEEDS_APPROVAL",
       "blockedSlots": []
     },
     {
@@ -145,7 +145,7 @@
       "floor": "4",
       "seats": 50,
       "seatsIsEstimated": true,
-      "tier": "NEEDS_APPROVAL",
+      "type": "NEEDS_APPROVAL",
       "blockedSlots": []
     },
     {
@@ -155,7 +155,7 @@
       "floor": "4",
       "seats": 50,
       "seatsIsEstimated": true,
-      "tier": "NEEDS_APPROVAL",
+      "type": "NEEDS_APPROVAL",
       "blockedSlots": []
     },
     {
@@ -165,7 +165,7 @@
       "floor": "4",
       "seats": 50,
       "seatsIsEstimated": true,
-      "tier": "NEEDS_APPROVAL",
+      "type": "NEEDS_APPROVAL",
       "blockedSlots": []
     }
   ]

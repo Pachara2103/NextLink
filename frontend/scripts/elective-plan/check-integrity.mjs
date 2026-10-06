@@ -4,7 +4,7 @@ import { detectConflicts } from '../../src/features/elective-plan/lib/conflicts.
 import { moveAssignment, placeAssignment, changeAssignmentTime } from '../../src/features/elective-plan/lib/assignments.ts';
 
 const course=(id,patch={})=>({id,courseCode:id,title:id,category:'test',provider:id,instructor:id,coordinator:null,deliveryMode:'ON_SITE',availability:['MON_AM','TUE_AM'],section:1,sessionsPerWeek:1,capacity:20,weeks:10,notes:null,...patch});
-const room=(id,seats=60,tier='READY')=>({id,name:id,building:id,floor:'1',seats,tier,seatsIsEstimated:false,blockedSlots:[]});
+const room=(id,seats=60,type='READY')=>({id,name:id,building:id,floor:'1',seats,type,seatsIsEstimated:false,blockedSlots:[]});
 const assignment=(courseId,slotId='MON_AM',roomId='r1',patch={})=>({id:courseId+'@'+slotId,courseId,slotId,roomId,startTime:'09:00',endTime:'12:00',locked:false,source:'MANUAL',...patch});
 let checks=0;
 function check(name,fn){fn(); checks++; console.log('  ✓ '+name);}

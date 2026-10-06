@@ -13,7 +13,7 @@ import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
 /**
  * Which rooms exist, and how much of the week each still has free.
  *
- * The two tiers are shown as two lists rather than a sortable column, because
+ * The two kinds are shown as two lists rather than a sortable column, because
  * they are not two values of one property — a จุฬาพัฒน์ room is available and
  * an Engineering-building room is a request someone has to file. Ranking them
  * in one list invites picking the wrong one by accident.
@@ -33,10 +33,10 @@ export function RoomList() {
     capacity: ALL_SLOTS.length - room.blockedSlots.length,
   });
 
-  const groups: Array<{ tier: PlanRoom["tier"]; heading: string; caption: string }> = [
-    { tier: "READY", heading: "ใช้ได้ทันที", caption: "ห้องของภาค จัดลงได้เลยโดยไม่ต้องขออนุมัติ" },
+  const groups: Array<{ type: PlanRoom["type"]; heading: string; caption: string }> = [
+    { type: "READY", heading: "ใช้ได้ทันที", caption: "ห้องของภาค จัดลงได้เลยโดยไม่ต้องขออนุมัติ" },
     {
-      tier: "NEEDS_APPROVAL",
+      type: "NEEDS_APPROVAL",
       heading: "ต้องขออนุมัติก่อนใช้",
       caption: "ห้องของคณะวิศวะ ต้องยื่นเรื่องหลายขั้นตอน ใช้เมื่อจุฬาพัฒน์ไม่พอ",
     },
@@ -65,13 +65,13 @@ export function RoomList() {
       </div>
 
       {groups.map((group) => {
-        const rooms = plan.rooms.filter((room) => room.tier === group.tier);
+        const rooms = plan.rooms.filter((room) => room.type === group.type);
         return (
-          <section className="panel" key={group.tier}>
+          <section className="panel" key={group.type}>
             <div className="panel-heading">
               <div>
                 <p className="section-kicker">
-                  {group.tier === "READY" ? "จุฬาพัฒน์" : "อาคารคณะวิศวกรรมศาสตร์"}
+                  {group.type === "READY" ? "จุฬาพัฒน์" : "อาคารคณะวิศวกรรมศาสตร์"}
                 </p>
                 <h3>{group.heading}</h3>
               </div>
@@ -96,7 +96,7 @@ export function RoomList() {
                       <Link className="room-card" href={`/elective-plan/rooms/${room.id}`}>
                         <span className="room-card-head">
                           <strong>{room.name}</strong>
-                          {room.tier === "NEEDS_APPROVAL" ? (
+                          {room.type === "NEEDS_APPROVAL" ? (
                             <span className="status-pill tone-orange">ต้องขออนุมัติ</span>
                           ) : null}
                         </span>
@@ -137,10 +137,10 @@ export function RoomList() {
         onSave={async (draft) => {
           if (roomForm?.room) {
             if (!await plan.updateRoom(roomForm.room.id, draft)) return;
-            show(`บันทึก ${draft.name} แล้ว`, plan.undo);
+            show(`แก้ ${draft.name} แล้ว`);
           } else {
             if (!await plan.addRoom(draft)) return;
-            show(`เพิ่ม ${draft.name} แล้ว`, plan.undo);
+            show(`เพิ่ม ${draft.name} แล้ว`);
           }
           setRoomForm(null);
         }}
@@ -152,9 +152,7 @@ export function RoomList() {
           show(
             losing > 0
               ? `ลบ ${room.name} แล้ว · ${formatNumber(losing)} คาบกลับไปเป็นวิชาที่ยังไม่ได้จัด`
-              : `ลบ ${room.name} แล้ว`,
-            plan.undo,
-          );
+              : `ลบ ${room.name} แล้ว`);
           setRoomForm(null);
         }}
         onClose={() => setRoomForm(null)}

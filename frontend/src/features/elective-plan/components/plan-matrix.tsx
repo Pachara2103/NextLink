@@ -95,6 +95,30 @@ export function PlanMatrix({
     onHeldChange?.(heldCourse);
   }, [heldCourse, onHeldChange]);
 
+  /**
+   * Let go of the class however the drag ended.
+   *
+   * `dragend` on the card covers the ordinary case. It does not cover a drag
+   * that ends outside the window, one the browser cancels itself, or one where
+   * the card has been re-rendered out from under the drag — and a board left
+   * holding a class keeps all 306 periods lit and interactive, which is the
+   * expensive state to be stuck in. Escape is the same exit for the keyboard
+   * path, where there is no `dragend` at all.
+   */
+  useEffect(() => {
+    if (!held) return;
+    const release = () => { setHeld(null); setHover(null); };
+    const onKey = (event: globalThis.KeyboardEvent) => { if (event.key === "Escape") release(); };
+    window.addEventListener("dragend", release);
+    window.addEventListener("drop", release);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("dragend", release);
+      window.removeEventListener("drop", release);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [held]);
+
   const roomIdFor = (course: PlanCourse, columnKey: string) =>
     course.deliveryMode === "ONLINE" || columnKey === ONLINE_COLUMN ? null : columnKey;
 
@@ -139,20 +163,81 @@ export function PlanMatrix({
     setHover(null);
   };
 
-  const cellState = (slotId: SlotId, columnKey: string) => {
-    if (!heldCourse || !held) return "";
-    const ignore = held.kind === "assignment" ? held.id : undefined;
-    if (held.kind === "assignment") {
-      const current = assignments.find((item) => item.id === held.id);
-      if (current && current.slotId === slotId && (current.roomId ?? ONLINE_COLUMN) === columnKey) return "";
-    }
-    if (roomWouldBeIgnored(heldCourse, columnKey)) return " is-drop-blocked";
-    return blockersAt(heldCourse, slotId, columnKey, ignore).length === 0 ? " is-drop-ok" : " is-drop-blocked";
-  };
+  /**
+   * The verdict for every cell on the board, worked out once per held class.
+   *
+   * This used to be a function the table called from inside its own loops —
+   * once per cell, three hundred and six times, each call rebuilding the
+   * scheduler's context from the whole course list and re-filtering every
+   * period placed so far. One press cost half a second of blocked main thread
+   * on a real board; `dragover` fires continuously while a card is moving, and
+   * each one set `hover`, so the work queued faster than it could be done and
+   * the page stopped responding for as long as the drag lasted.
+   *
+   * Same answers, one pass: `blockersAt` builds its context once per cell still,
+   * but a cell is now visited once per *held class* rather than once per render,
+   * and `hover` re-renders read a finished map.
+   */
+  const dropStates = useMemo(() => {
+    const states = new Map<string, string>();
+    if (!heldCourse || !held) return states;
 
-  const blockingFor = (assignmentId: string) =>
-    conflicts.filter((item) => item.severity === "BLOCKED" && item.assignmentIds.includes(assignmentId));
-  const hasBlockingConflict = (assignmentId: string) => blockingFor(assignmentId).length > 0;
+    const ignore = held.kind === "assignment" ? held.id : undefined;
+    const from = held.kind === "assignment" ? assignments.find((item) => item.id === held.id) : undefined;
+    // The one filter the old code did per cell, done once.
+    const placed = ignore ? assignments.filter((item) => item.id !== ignore) : assignments;
+
+    for (const column of columns) {
+      // An online class cannot take a room, so every room column is blocked for
+      // it whatever the period — no need to ask the rules eighteen more times.
+      const ignoresRoom = roomWouldBeIgnored(heldCourse, column.key);
+      for (const day of DAYS) {
+        for (const period of PERIOD_KEYS) {
+          const slotId = makeSlotId(day, period);
+          // Where it already is: not a move, so not a target.
+          if (from && from.slotId === slotId && (from.roomId ?? ONLINE_COLUMN) === column.key) continue;
+          if (ignoresRoom) {
+            states.set(`${slotId}:${column.key}`, " is-drop-blocked");
+            continue;
+          }
+          const blockers = placementBlockers({
+            course: heldCourse,
+            courses,
+            rooms,
+            placed,
+            slotId,
+            roomId: roomIdFor(heldCourse, column.key),
+          });
+          states.set(`${slotId}:${column.key}`, blockers.length === 0 ? " is-drop-ok" : " is-drop-blocked");
+        }
+      }
+    }
+    return states;
+    // `heldCourse` and `held` move together; the rest is the plan the verdicts
+    // are about. Deliberately not `hover`, which is what re-renders most.
+  }, [held, heldCourse, assignments, courses, rooms, columns]);
+
+  const cellState = (slotId: SlotId, columnKey: string) => dropStates.get(`${slotId}:${columnKey}`) ?? "";
+
+  /**
+   * What is blocking each class, indexed once rather than filtered per card.
+   *
+   * Every card asked this twice on every render — once for its border, once for
+   * the note under its cell — and every ask walked the whole conflict list.
+   */
+  const blockedBy = useMemo(() => {
+    const byAssignment = new Map<string, string[]>();
+    for (const conflict of conflicts) {
+      if (conflict.severity !== "BLOCKED") continue;
+      for (const id of conflict.assignmentIds) {
+        const titles = byAssignment.get(id);
+        if (titles) titles.push(conflict.title);
+        else byAssignment.set(id, [conflict.title]);
+      }
+    }
+    return byAssignment;
+  }, [conflicts]);
+  const hasBlockingConflict = (assignmentId: string) => blockedBy.has(assignmentId);
 
   return (
     <div className="matrix-block">
@@ -327,7 +412,11 @@ export function PlanMatrix({
                               if (blocked) return;
                               event.preventDefault();
                               event.dataTransfer.dropEffect = "move";
-                              setHover(cellKey);
+                              // `dragover` fires continuously while the pointer
+                              // is anywhere over this cell — dozens of times per
+                              // second, nearly all of them saying what the last
+                              // one said. Only a real change is worth a render.
+                              setHover((current) => (current === cellKey ? current : cellKey));
                             }}
                             onDragLeave={() => setHover((current) => (current === cellKey ? null : current))}
                             onDrop={(event) => {
@@ -475,7 +564,7 @@ export function PlanMatrix({
                                 it the reader has to match the cell against a
                                 list somewhere else on the page. */}
                             {(() => {
-                              const problems = [...new Set(here.flatMap((item) => blockingFor(item.id).map((c) => c.title)))];
+                              const problems = [...new Set(here.flatMap((item) => blockedBy.get(item.id) ?? []))];
                               return problems.length > 0 ? (
                                 <p className="slot-conflict-note">{problems.join(" · ")}</p>
                               ) : null;

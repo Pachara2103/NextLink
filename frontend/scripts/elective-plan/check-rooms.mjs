@@ -45,7 +45,7 @@ const room = (id, over = {}) => ({
   floor: over.floor ?? "1",
   seats: over.seats ?? 40,
   seatsIsEstimated: over.seatsIsEstimated ?? false,
-  tier: over.tier ?? "READY",
+  type: over.type ?? "READY",
   blockedSlots: over.blockedSlots ?? [],
 });
 
@@ -55,10 +55,10 @@ const draft = (over = {}) => ({
   floor: over.floor ?? "4",
   seats: over.seats ?? 50,
   seatsIsEstimated: over.seatsIsEstimated ?? true,
-  tier: over.tier ?? "NEEDS_APPROVAL",
+  type: over.type ?? "NEEDS_APPROVAL",
 });
 
-const SEED = [room("cp4-1f"), room("cp5-203"), room("eng3-405", { tier: "NEEDS_APPROVAL" })];
+const SEED = [room("cp4-1f"), room("cp5-203"), room("eng3-405", { type: "NEEDS_APPROVAL" })];
 
 /* ---- the seed data itself -------------------------------------------- */
 
@@ -70,7 +70,7 @@ check("every seeded room has a unique id and a usable seat count", () => {
   if (bad) return `${bad.id} has ${bad.seats} seats`;
   // An unconfirmed capacity has to say so, or the scheduler treats a guess as
   // a measurement — see docs/data-model.md.
-  const guessed = rooms.filter((item) => item.tier === "NEEDS_APPROVAL" && !item.seatsIsEstimated);
+  const guessed = rooms.filter((item) => item.type === "NEEDS_APPROVAL" && !item.seatsIsEstimated);
   return guessed.length === 0 ? null : `${guessed.map((item) => item.id).join(", ")} claim a confirmed capacity`;
 });
 
@@ -82,10 +82,10 @@ check("with no edits the seed comes back untouched, in order", () => {
 });
 
 check("an override changes the room without touching the seed", () => {
-  const edits = patchRoom(EMPTY_ROOM_EDITS, "cp5-203", { seats: 90, tier: "NEEDS_APPROVAL" });
+  const edits = patchRoom(EMPTY_ROOM_EDITS, "cp5-203", { seats: 90, type: "NEEDS_APPROVAL" });
   const merged = mergeRooms(SEED, edits);
   const found = merged.find((item) => item.id === "cp5-203");
-  if (found.seats !== 90 || found.tier !== "NEEDS_APPROVAL") return "the override did not apply";
+  if (found.seats !== 90 || found.type !== "NEEDS_APPROVAL") return "the override did not apply";
   if (SEED[1].seats !== 40) return "the seed array was mutated";
   return found.name === SEED[1].name ? null : "fields nobody edited were lost";
 });

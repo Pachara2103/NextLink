@@ -55,14 +55,42 @@ export function AvailabilityEditor() {
     });
   }, [plan.courses, deferredSearch, deferredProvider, day, period]);
 
-  const toggleSlot = async (courseId: string, slotId: SlotId) => {
-    const course = plan.courses.find((item) => item.id === courseId);
-    if (!course) return;
-    if (!await plan.toggleAvailability(courseId, slotId)) return;
-    show(
-      `${course.title}: ${course.availability.includes(slotId) ? "เอา" : "เพิ่ม"}${slotLabel(slotId)}`,
-      plan.undo,
+  /**
+   * Which course is open for editing, and the answer being built for it.
+   *
+   * One card at a time, and the grid is read-only until แก้ไข is pressed.
+   * Every tick used to be a save of its own, which is right for a tick that
+   * means something on its own — and a company's answer is not that. "จันทร์
+   * เช้าได้ พุธบ่ายก็ได้ อ้อ เสาร์ไม่ได้แล้ว" is one answer given in one phone
+   * call, and saving the halfway versions of it puts times on the shared plan
+   * that nobody ever offered.
+   */
+  const [editing, setEditing] = useState<{ courseId: string; slots: SlotId[] } | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = (course: { id: string; availability: SlotId[] }) =>
+    setEditing({ courseId: course.id, slots: [...course.availability] });
+
+  const toggleDraft = (slotId: SlotId) =>
+    setEditing((current) =>
+      current === null
+        ? current
+        : {
+            ...current,
+            slots: current.slots.includes(slotId)
+              ? current.slots.filter((slot) => slot !== slotId)
+              : [...current.slots, slotId],
+          },
     );
+
+  const saveEdit = async (title: string) => {
+    if (!editing) return;
+    setSaving(true);
+    const saved = await plan.setAvailability(editing.courseId, editing.slots);
+    setSaving(false);
+    if (!saved) return;
+    setEditing(null);
+    show(`บันทึกช่วงที่สะดวกของ ${title} แล้ว`);
   };
 
   return (
@@ -141,7 +169,10 @@ export function AvailabilityEditor() {
         <div className="course-availability-list">
           {rows.map((course) => {
             const placed = plan.assignments.filter((item) => item.courseId === course.id);
-            const tooFew = course.availability.length < course.sessionsPerWeek;
+            const isEditing = editing?.courseId === course.id;
+            /** What the grid draws: the draft while editing, the saved answer otherwise. */
+            const shown = isEditing ? editing.slots : course.availability;
+            const tooFew = shown.length < course.sessionsPerWeek;
             return (
               <section className="panel course-availability-card" key={course.id}>
                 <div className="panel-heading">
@@ -163,6 +194,18 @@ export function AvailabilityEditor() {
                         ))}
                       </span>
                     )}
+                    {/* One card open at a time: two half-finished answers on
+                        screen is two chances to press บันทึก on the wrong one. */}
+                    {isEditing ? null : (
+                      <button
+                        className="secondary-button"
+                        type="button"
+                        disabled={editing !== null}
+                        onClick={() => startEdit(course)}
+                      >
+                        แก้ไข
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -181,22 +224,32 @@ export function AvailabilityEditor() {
                       </span>
                       {DAYS.map((day) => {
                         const slotId = makeSlotId(day, period);
-                        const on = course.availability.includes(slotId);
+                        const on = shown.includes(slotId);
                         const used = placed.some((item) => item.slotId === slotId);
-                        return (
+                        const label = `${slotLabel(slotId)}${used ? " — จัดวิชานี้ไว้แล้ว" : on ? " — สะดวก" : " — ไม่สะดวก"}`;
+                        const mark = <span aria-hidden="true">{used ? "●" : on ? "✓" : ""}</span>;
+                        // A card nobody is editing renders spans, not disabled
+                        // buttons: eighteen dead tab stops per card, on a page
+                        // that is mostly cards nobody is editing.
+                        return isEditing ? (
                           <button
                             className={`availability-slot${on ? " is-on" : ""}${used ? " is-used" : ""}`}
                             key={slotId}
                             type="button"
                             aria-pressed={on}
-                            onClick={() => toggleSlot(course.id, slotId)}
+                            onClick={() => toggleDraft(slotId)}
                           >
-                            <span aria-hidden="true">{used ? "●" : on ? "✓" : ""}</span>
-                            <span className="sr-only">
-                              {slotLabel(slotId)}
-                              {used ? " — จัดวิชานี้ไว้แล้ว" : on ? " — สะดวก" : " — ไม่สะดวก"}
-                            </span>
+                            {mark}
+                            <span className="sr-only">{label}</span>
                           </button>
+                        ) : (
+                          <span
+                            className={`availability-slot is-static${on ? " is-on" : ""}${used ? " is-used" : ""}`}
+                            key={slotId}
+                          >
+                            {mark}
+                            <span className="sr-only">{label}</span>
+                          </span>
                         );
                       })}
                     </div>
@@ -206,8 +259,23 @@ export function AvailabilityEditor() {
                 {tooFew ? (
                   <p className="edit-mode-note">
                     วิชานี้ต้องได้ {formatNumber(course.sessionsPerWeek)} คาบต่อสัปดาห์ แต่บริษัทแจ้งไว้เพียง{" "}
-                    {formatNumber(course.availability.length)} คาบ — ต้องขอเพิ่มก่อนจึงจะจัดครบได้
+                    {formatNumber(shown.length)} คาบ — ต้องขอเพิ่มก่อนจึงจะจัดครบได้
                   </p>
+                ) : null}
+
+                {isEditing ? (
+                  <div className="availability-actions">
+                    {/* The count sits here rather than in the button: it is the
+                        one number that moves as the grid is ticked, and it is
+                        what the reader checks against "ต้องได้ N คาบ". */}
+                    <span className="availability-count">เลือกไว้ {formatNumber(shown.length)} คาบ</span>
+                    <button className="secondary-button" type="button" disabled={saving} onClick={() => setEditing(null)}>
+                      ยกเลิก
+                    </button>
+                    <button className="primary-button" type="button" disabled={saving} onClick={() => void saveEdit(course.title)}>
+                      {saving ? "กำลังบันทึก…" : "บันทึก"}
+                    </button>
+                  </div>
                 ) : null}
               </section>
             );

@@ -3,17 +3,35 @@
  * and "what it says to the server".
  *
  * The pairing matters more than either half. A drag that the rules forbid is
- * caught by `apply` and never becomes a request; a drag the rules allow but
- * the database refuses — two classes in one room, because somebody else
- * booked it a second ago — comes back as the same Thai sentence the rules
- * would have used, and the class goes back where it was. One vocabulary, two
- * places it can be enforced, and the person sees no seam.
+ * caught by `apply` the moment it happens and never becomes a request; a drag
+ * the rules allow but the database refuses — two classes in one room, because
+ * somebody else booked it first — comes back as the same Thai sentence the
+ * rules would have used. One vocabulary, two places it can be enforced, and
+ * the person sees no seam.
  *
- * `inverse` is the "เลิกทำ" in the toast. It is built *after* the server has
- * answered, from the state on either side of the command, so it can name rows
- * by the ids they really have rather than the ones they were drawn under.
- * Commands that cannot be taken back honestly — deleting a course takes its
- * periods and its paperwork with it — return null and are simply not offered.
+ * `scope` is the third field and the one worth reading twice. Six commands are
+ * `"timetable"` — place, move, remove, lock, unlock a course's periods, retime,
+ * and the two whole-board replacements — and they are held until somebody saves
+ * the board. Every other command is `"now"`. The line is not about risk or size;
+ * it is about whether the press is a decision or a step towards one. Ticking
+ * "จดหมายเชิญ: ส่งแล้ว" is a decision. Dragging a class to Wednesday to see how
+ * the week looks is not.
+ *
+ * Two things follow for the `"timetable"` six, whose `send` runs long after the
+ * press:
+ *
+ * - **`apply` and `send` read different states.** `apply` gets the live state;
+ *   `send` gets `before`/`after`, the pair this command drew, which is what its
+ *   request body describes. A command that read the live state in `send` would
+ *   describe whatever was dragged after it.
+ * - **Ids in `send` go through `context.id`.** A period placed and then moved
+ *   before บันทึก is two queued commands, and when the second is sent the first
+ *   has only just been given a real id. `naming` is how a command reports the
+ *   ids its rows got; `context.id` is how every later command reads them.
+ *
+ * There is no `inverse`. ยกเลิก on the board puts back a timetable this browser
+ * still has (see `plan-remote.ts`), and nothing else is ever taken back — which
+ * is why deleting a course asks first.
  */
 
 import { changeAssignmentTime, moveAssignment, placeAssignment } from "./assignments.ts";
@@ -46,12 +64,12 @@ import {
   withRooms,
   type RemoteState,
 } from "./plan-state.ts";
-import type { RemoteCommand } from "./plan-remote.ts";
-import { roomDraftFrom, validateRoomDraft, type RoomDraft, type RoomOverride } from "./rooms.ts";
+import type { CommandContext, RemoteCommand } from "./plan-remote.ts";
+import { validateRoomDraft, type RoomDraft, type RoomOverride } from "./rooms.ts";
 import { sortAssignments } from "./scheduler.ts";
 import { electiveService } from "@/lib/services/elective";
 import type { Assignment, PlanCourse, PlanRoom, ScheduleResult } from "./plan-types.ts";
-import type { SlotId } from "./slots.ts";
+import { slotLabel, type SlotId } from "./slots.ts";
 
 /* ------------------------------------------------------------------ *
  * lookups
@@ -75,9 +93,16 @@ function sessionOf(state: RemoteState, id: string): Assignment {
   return found;
 }
 
-/** The three ids a course write needs and the grid never shows. */
-function linkOf(state: RemoteState, courseId: string) {
-  const link = state.index.courses.get(courseId);
+/**
+ * The three ids a course write needs and the grid never shows.
+ *
+ * Looked up under the id the course has *now* — a course added earlier in the
+ * same save was drawn under a placeholder, and the entry the server's answer
+ * put in the index is filed under the id it really got.
+ */
+function linkOf(context: CommandContext, courseId: string) {
+  const id = context.id(courseId);
+  const link = context.current().index.courses.get(id) ?? context.before.index.courses.get(courseId);
   if (!link) throw new Error("ไม่พบบริษัทของวิชานี้ กรุณาโหลดแผนล่าสุด");
   return link;
 }
@@ -91,9 +116,9 @@ function linkOf(state: RemoteState, courseId: string) {
  * someone else now" into "อาจารย์สมชาย is now called อาจารย์สมหญิง" everywhere
  * that person appears.
  */
-function peopleIds(state: RemoteState, courseId: string, draft: CourseDraft) {
-  const link = linkOf(state, courseId);
-  const before = courseOf(state, courseId);
+function peopleIds(context: CommandContext, courseId: string, draft: CourseDraft) {
+  const link = linkOf(context, courseId);
+  const before = courseOf(context.before, courseId);
   const same = (a: string | null | undefined, b: string | null | undefined) =>
     (a ?? "").trim() === (b ?? "").trim();
   return {
@@ -106,40 +131,66 @@ function peopleIds(state: RemoteState, courseId: string, draft: CourseDraft) {
 const assignmentsWithout = (state: RemoteState, id: string) =>
   state.document.assignments.filter((item) => item.id !== id);
 
+/**
+ * The id the server gave a period that was drawn here.
+ *
+ * Matched on (course, period), which is the UNIQUE constraint the table
+ * carries — and on the course id the request actually used, not the one the
+ * period was drawn under, because a course created earlier in the same save
+ * has since been renamed to its real id everywhere in the draft.
+ */
+const namePeriod = (drawnId: string, sentCourseId: string, slotId: SlotId) =>
+  (settled: RemoteState): Array<readonly [string, string]> => {
+    const real = settled.document.assignments.find(
+      (item) => item.slotId === slotId && item.courseId === sentCourseId,
+    );
+    return real && real.id !== drawnId ? [[drawnId, real.id] as const] : [];
+  };
+
 /* ------------------------------------------------------------------ *
  * periods
  * ------------------------------------------------------------------ */
 
 export function placeCommand(courseId: string, slotId: SlotId, roomId: string | null): RemoteCommand {
+  // The id `placeAssignment` gives the new period, and the course id the
+  // request went out under — the two halves `naming` needs to pair the row on
+  // screen with the row the database made.
+  let drawnId = "";
+  let sentCourseId = courseId;
   return {
+    scope: "timetable",
     what: "จัดคาบไม่สำเร็จ",
-    apply: (state) =>
-      withDocument(state, {
-        assignments: sortAssignments(
-          placeAssignment({
-            courses: state.payload.courses,
-            rooms: state.payload.rooms,
-            assignments: state.document.assignments,
-            courseId,
-            slotId,
-            roomId,
-          }),
-        ),
-      }),
-    send: async () =>
-      reconcileSession(await electiveService.placeSession(sessionWrite({ courseId, slotId, roomId }))),
-    inverse: ({ after }) => {
-      const placed = after.document.assignments.find(
-        (item) => item.courseId === courseId && item.slotId === slotId,
+    label: `จัดคาบ ${slotLabel(slotId)}`,
+    apply: (state) => {
+      const assignments = sortAssignments(
+        placeAssignment({
+          courses: state.payload.courses,
+          rooms: state.payload.rooms,
+          assignments: state.document.assignments,
+          courseId,
+          slotId,
+          roomId,
+        }),
       );
-      return placed ? removeCommand(placed.id) : null;
+      drawnId =
+        assignments.find((item) => item.courseId === courseId && item.slotId === slotId)?.id ?? "";
+      return withDocument(state, { assignments });
     },
+    send: async ({ id }) => {
+      sentCourseId = id(courseId);
+      return reconcileSession(
+        await electiveService.placeSession(sessionWrite({ courseId, slotId, roomId }, id)),
+      );
+    },
+    naming: (settled) => namePeriod(drawnId, sentCourseId, slotId)(settled),
   };
 }
 
 export function moveCommand(assignmentId: string, slotId: SlotId, roomId: string | null): RemoteCommand {
   return {
+    scope: "timetable",
     what: "ย้ายคาบไม่สำเร็จ",
+    label: `ย้ายคาบไป ${slotLabel(slotId)}`,
     apply: (state) =>
       withDocument(state, {
         assignments: sortAssignments(
@@ -153,39 +204,35 @@ export function moveCommand(assignmentId: string, slotId: SlotId, roomId: string
           }),
         ),
       }),
-    send: async ({ before }) => {
+    send: async ({ before, id }) => {
       await electiveService.updateSession(
-        serverId(assignmentId, "คาบ"),
-        sessionWriteFrom(sessionOf(before, assignmentId), { slotId, roomId }),
+        serverId(id(assignmentId), "คาบ"),
+        sessionWriteFrom(sessionOf(before, assignmentId), { slotId, roomId }, id),
       );
-    },
-    inverse: ({ before }) => {
-      const was = sessionOf(before, assignmentId);
-      return moveCommand(assignmentId, was.slotId, was.roomId);
     },
   };
 }
 
 export function removeCommand(assignmentId: string): RemoteCommand {
   return {
+    scope: "timetable",
     what: "เอาคาบออกไม่สำเร็จ",
+    label: "เอาคาบออกจากตาราง",
     apply: (state) => {
       sessionOf(state, assignmentId);
       return withDocument(state, { assignments: assignmentsWithout(state, assignmentId) });
     },
-    send: async () => {
-      await electiveService.removeSession(serverId(assignmentId, "คาบ"));
-    },
-    inverse: ({ before }) => {
-      const was = sessionOf(before, assignmentId);
-      return placeCommand(was.courseId, was.slotId, was.roomId);
+    send: async ({ id }) => {
+      await electiveService.removeSession(serverId(id(assignmentId), "คาบ"));
     },
   };
 }
 
 export function toggleLockCommand(assignmentId: string): RemoteCommand {
   return {
+    scope: "timetable",
     what: "เปลี่ยนสถานะล็อกไม่สำเร็จ",
+    label: "ล็อก/ปลดล็อกคาบ",
     apply: (state) => {
       const was = sessionOf(state, assignmentId);
       return withDocument(state, {
@@ -194,13 +241,12 @@ export function toggleLockCommand(assignmentId: string): RemoteCommand {
         ),
       });
     },
-    send: async ({ after }) => {
+    send: async ({ after, id }) => {
       await electiveService.updateSession(
-        serverId(assignmentId, "คาบ"),
-        sessionWriteFrom(sessionOf(after, assignmentId)),
+        serverId(id(assignmentId), "คาบ"),
+        sessionWriteFrom(sessionOf(after, assignmentId), {}, id),
       );
     },
-    inverse: () => toggleLockCommand(assignmentId),
   };
 }
 
@@ -212,60 +258,42 @@ export function toggleLockCommand(assignmentId: string): RemoteCommand {
  */
 export function unlockCourseCommand(courseId: string): RemoteCommand {
   return {
+    scope: "timetable",
     what: "ปลดล็อกวิชาไม่สำเร็จ",
+    label: "ปลดล็อกทุกคาบของวิชา",
     apply: (state) =>
       withDocument(state, {
         assignments: state.document.assignments.map((item) =>
           item.courseId === courseId ? { ...item, locked: false } : item,
         ),
       }),
-    send: async ({ before }) => {
+    send: async ({ before, id }) => {
       for (const item of before.document.assignments) {
         if (item.courseId === courseId && item.locked) {
           await electiveService.updateSession(
-            serverId(item.id, "คาบ"),
-            sessionWriteFrom(item, { locked: false }),
+            serverId(id(item.id), "คาบ"),
+            sessionWriteFrom(item, { locked: false }, id),
           );
         }
       }
-    },
-    inverse: ({ before }) => {
-      const locked = before.document.assignments.filter((item) => item.courseId === courseId && item.locked);
-      if (!locked.length) return null;
-      return {
-        what: "ล็อกคาบกลับไม่สำเร็จ",
-        apply: (state) =>
-          withDocument(state, {
-            assignments: state.document.assignments.map((item) =>
-              locked.some((was) => was.id === item.id) ? { ...item, locked: true } : item,
-            ),
-          }),
-        send: async () => {
-          for (const item of locked) {
-            await electiveService.updateSession(serverId(item.id, "คาบ"), sessionWriteFrom(item, { locked: true }));
-          }
-        },
-      };
     },
   };
 }
 
 export function setTimeCommand(assignmentId: string, startTime: string, endTime: string): RemoteCommand {
   return {
+    scope: "timetable",
     what: "แก้เวลาไม่สำเร็จ",
+    label: `แก้เวลาเป็น ${startTime}-${endTime}`,
     apply: (state) =>
       withDocument(state, {
         assignments: changeAssignmentTime(state.document.assignments, assignmentId, startTime, endTime),
       }),
-    send: async ({ after }) => {
+    send: async ({ after, id }) => {
       await electiveService.updateSession(
-        serverId(assignmentId, "คาบ"),
-        sessionWriteFrom(sessionOf(after, assignmentId)),
+        serverId(id(assignmentId), "คาบ"),
+        sessionWriteFrom(sessionOf(after, assignmentId), {}, id),
       );
-    },
-    inverse: ({ before }) => {
-      const was = sessionOf(before, assignmentId);
-      return setTimeCommand(assignmentId, was.startTime, was.endTime);
     },
   };
 }
@@ -278,30 +306,43 @@ export function setTimeCommand(assignmentId: string, startTime: string, endTime:
  * timetable is not a timetable: the server does the whole swap in one
  * transaction and refuses the lot if any part of it clashes.
  */
-export function replaceCommand(next: Assignment[], what: string): RemoteCommand {
+export function replaceCommand(next: Assignment[], what: string, label: string): RemoteCommand {
+  let sentCourseIds = new Map<string, string>();
   return {
+    scope: "timetable",
     what,
+    label,
     apply: (state) => withDocument(state, { assignments: sortAssignments(next) }),
-    send: async () => {
+    send: async ({ id }) => {
+      sentCourseIds = new Map(next.map((item) => [item.id, id(item.courseId)]));
       const written = await electiveService.replaceSessions(
         next
           .filter((item) => !item.locked)
           .map((item) =>
-            sessionWrite({
-              courseId: item.courseId,
-              slotId: item.slotId,
-              roomId: item.roomId,
-              source: item.source,
-              startTime: item.startTime,
-              endTime: item.endTime,
-            }),
+            sessionWrite(
+              {
+                courseId: item.courseId,
+                slotId: item.slotId,
+                roomId: item.roomId,
+                source: item.source,
+                startTime: item.startTime,
+                endTime: item.endTime,
+              },
+              id,
+            ),
           ),
       );
       // The answer is the whole term's periods, ids included — the one case
       // where taking the server's list wholesale is simpler than patching.
       return (state) => withDocument(state, { assignments: sortAssignments(written.map(readSession)) });
     },
-    inverse: ({ before }) => replaceCommand(before.document.assignments, "ย้อนตารางกลับไม่สำเร็จ"),
+    // Every period in the list is a row now, under an id this browser has not
+    // seen; a later press that named one of them by the id it was drawn under
+    // has to be pointed at the right one.
+    naming: (settled) =>
+      next.flatMap((drawn) =>
+        namePeriod(drawn.id, sentCourseIds.get(drawn.id) ?? drawn.courseId, drawn.slotId)(settled),
+      ),
   };
 }
 
@@ -312,7 +353,9 @@ export function replaceCommand(next: Assignment[], what: string): RemoteCommand 
 export function setAvailabilityCommand(courseId: string, availability: SlotId[]): RemoteCommand {
   const slots = sortSlots(availability);
   return {
+    scope: "now",
     what: "บันทึกช่วงที่สะดวกไม่สำเร็จ",
+    label: slots.length ? `ช่วงที่สะดวก ${slots.length} คาบ` : "ล้างช่วงที่สะดวก",
     apply: (state) => {
       courseOf(state, courseId);
       return withCourses(
@@ -320,10 +363,9 @@ export function setAvailabilityCommand(courseId: string, availability: SlotId[])
         state.payload.courses.map((item) => (item.id === courseId ? { ...item, availability: slots } : item)),
       );
     },
-    send: async () => {
-      await electiveService.setAvailability(serverId(courseId, "วิชา"), slots);
+    send: async ({ id }) => {
+      await electiveService.setAvailability(serverId(id(courseId), "วิชา"), slots);
     },
-    inverse: ({ before }) => setAvailabilityCommand(courseId, courseOf(before, courseId).availability),
   };
 }
 
@@ -344,7 +386,9 @@ export function toggleAvailabilityCommand(courseId: string, slotId: SlotId, cour
 export function updateCourseCommand(courseId: string, draft: CourseDraft): RemoteCommand {
   const next = normalizeCourseDraft(draft);
   return {
+    scope: "now",
     what: "บันทึกวิชาไม่สำเร็จ",
+    label: `แก้วิชา ${next.courseCode}`,
     apply: (state) => {
       const courses = state.payload.courses;
       if (!courses.some((course) => course.id === courseId)) {
@@ -367,23 +411,23 @@ export function updateCourseCommand(courseId: string, draft: CourseDraft): Remot
         { assignments },
       );
     },
-    send: async ({ before, after }) => {
+    send: async (context) => {
+      const { after, before, id } = context;
       const updated = await electiveService.updateElective(
-        serverId(courseId, "วิชา"),
-        courseWrite(next, { ...peopleIds(before, courseId, next), termId: before.index.termId }),
+        serverId(id(courseId), "วิชา"),
+        courseWrite(next, { ...peopleIds(context, courseId, next), termId: before.index.termId }),
       );
       // Going online strands the rooms the periods used to sit in; the server
       // took the course but not the periods, so they follow here.
       if (next.deliveryMode === "ONLINE") {
         for (const item of after.document.assignments) {
           if (item.courseId === courseId && item.roomId === null) {
-            await electiveService.updateSession(serverId(item.id, "คาบ"), sessionWriteFrom(item));
+            await electiveService.updateSession(serverId(id(item.id), "คาบ"), sessionWriteFrom(item, {}, id));
           }
         }
       }
       return reconcileCourse(updated);
     },
-    inverse: ({ before }) => updateCourseCommand(courseId, courseDraftFrom(courseOf(before, courseId))),
   };
 }
 
@@ -395,7 +439,9 @@ export function addCourseCommand(draft: CourseDraft, companyId: number): RemoteC
   const next = normalizeCourseDraft(draft);
   const temporary = placeholderId("course");
   return {
+    scope: "now",
     what: "เพิ่มรายวิชาไม่สำเร็จ",
+    label: `เพิ่มวิชา ${next.courseCode}`,
     apply: (state) => {
       const error = validateCourseDraft(next, state.payload.courses);
       if (error) throw new Error(error);
@@ -403,25 +449,29 @@ export function addCourseCommand(draft: CourseDraft, companyId: number): RemoteC
     },
     send: async ({ before }) =>
       reconcileCourse(
-        await electiveService.createElective(courseWrite(next, { companyId, termId: before.index.termId })),
+        await electiveService.createElective(
+          courseWrite(next, { companyId, termId: before.index.termId }),
+        ),
       ),
-    inverse: ({ after }) => {
-      const created = after.payload.courses.find(
+    naming: (settled) => {
+      const created = settled.payload.courses.find(
         (course) => course.courseCode === next.courseCode && course.section === next.section,
       );
-      return created && created.id !== temporary ? removeCourseCommand(created.id) : null;
+      return created && created.id !== temporary ? [[temporary, created.id] as const] : [];
     },
   };
 }
 
 /**
- * No inverse. The row takes its periods and its paperwork with it (ON DELETE
- * CASCADE), and an "undo" that quietly rebuilt the course without them would
- * be a worse answer than the confirmation the list already asks for.
+ * Delete a course. Its periods and its paperwork go with it (ON DELETE
+ * CASCADE), which is why the list asks before queueing one — though until
+ * บันทึก it is still only a draft, and stepping back takes it off the queue.
  */
 export function removeCourseCommand(courseId: string): RemoteCommand {
   return {
+    scope: "now",
     what: "ลบวิชาไม่สำเร็จ",
+    label: "ลบวิชา",
     apply: (state) => {
       courseOf(state, courseId);
       const checklists = { ...state.document.checklists };
@@ -437,8 +487,8 @@ export function removeCourseCommand(courseId: string): RemoteCommand {
         },
       );
     },
-    send: async () => {
-      await electiveService.removeElective(serverId(courseId, "วิชา"));
+    send: async ({ id }) => {
+      await electiveService.removeElective(serverId(id(courseId), "วิชา"));
     },
   };
 }
@@ -450,25 +500,29 @@ export function removeCourseCommand(courseId: string): RemoteCommand {
 export function addRoomCommand(draft: RoomDraft): RemoteCommand {
   const temporary = placeholderId("room");
   return {
+    scope: "now",
     what: "เพิ่มห้องไม่สำเร็จ",
+    label: `เพิ่มห้อง ${draft.name.trim()}`,
     apply: (state) => {
       const error = validateRoomDraft(draft, state.payload.rooms);
       if (error) throw new Error(error);
       return withRooms(state, [...state.payload.rooms, { id: temporary, ...draft, blockedSlots: [] }]);
     },
     send: async () => reconcileRoom(await electiveService.createRoom(roomWrite(draft))),
-    inverse: ({ after }) => {
-      const created = after.payload.rooms.find(
+    naming: (settled) => {
+      const created = settled.payload.rooms.find(
         (room) => room.building === draft.building.trim() && room.name === draft.name.trim(),
       );
-      return created && created.id !== temporary ? removeRoomCommand(created.id) : null;
+      return created && created.id !== temporary ? [[temporary, created.id] as const] : [];
     },
   };
 }
 
 export function updateRoomCommand(roomId: string, patch: RoomOverride): RemoteCommand {
   return {
+    scope: "now",
     what: "บันทึกห้องไม่สำเร็จ",
+    label: "แก้ข้อมูลห้อง",
     apply: (state) => {
       const room = roomOf(state, roomId);
       const error = validateRoomDraft({ ...room, ...patch }, state.payload.rooms, roomId);
@@ -478,16 +532,17 @@ export function updateRoomCommand(roomId: string, patch: RoomOverride): RemoteCo
         state.payload.rooms.map((item) => (item.id === roomId ? { ...item, ...patch } : item)),
       );
     },
-    send: async ({ after }) => {
-      await electiveService.updateRoom(serverId(roomId, "ห้อง"), roomWrite(roomOf(after, roomId)));
+    send: async ({ after, id }) => {
+      await electiveService.updateRoom(serverId(id(roomId), "ห้อง"), roomWrite(roomOf(after, roomId)));
     },
-    inverse: ({ before }) => updateRoomCommand(roomId, roomDraftFrom(roomOf(before, roomId))),
   };
 }
 
 export function removeRoomCommand(roomId: string): RemoteCommand {
   return {
+    scope: "now",
     what: "ลบห้องไม่สำเร็จ",
+    label: "ลบห้อง",
     apply: (state) => {
       roomOf(state, roomId);
       return withDocument(
@@ -498,40 +553,8 @@ export function removeRoomCommand(roomId: string): RemoteCommand {
         { assignments: state.document.assignments.filter((item) => item.roomId !== roomId) },
       );
     },
-    send: async () => {
-      await electiveService.removeRoom(serverId(roomId, "ห้อง"));
-    },
-    inverse: ({ before }) => {
-      const was = roomOf(before, roomId);
-      const restore = addRoomCommand(roomDraftFrom(was));
-      if (!was.blockedSlots.length) return restore;
-      // A room comes back with the periods it was already taken for; without
-      // them the timetable would show it free where it never was.
-      return {
-        ...restore,
-        send: async (context) => {
-          const fix = await restore.send(context);
-          const state = fix ? fix(context.after) : context.after;
-          const created = state.payload.rooms.find(
-            (room) => room.building === was.building && room.name === was.name,
-          );
-          if (created && created.id !== roomId) {
-            await electiveService.setRoomBlocks(
-              serverId(created.id, "ห้อง"),
-              was.blockedSlots.map((block) => ({ slot: block.slotId, reason: block.reason })),
-            );
-          }
-          return (current) =>
-            withRooms(
-              current,
-              current.payload.rooms.map((room) =>
-                room.building === was.building && room.name === was.name
-                  ? { ...room, blockedSlots: was.blockedSlots }
-                  : room,
-              ),
-            );
-        },
-      };
+    send: async ({ id }) => {
+      await electiveService.removeRoom(serverId(id(roomId), "ห้อง"));
     },
   };
 }
@@ -539,7 +562,9 @@ export function removeRoomCommand(roomId: string): RemoteCommand {
 export function setBlockedCommand(roomId: string, slotId: SlotId, reason: string | null): RemoteCommand {
   const trimmed = reason?.trim() || null;
   return {
+    scope: "now",
     what: "บันทึกคาบที่ห้องติดงานอื่นไม่สำเร็จ",
+    label: trimmed ? `จองห้องคาบ ${slotLabel(slotId)}` : `ปล่อยคาบ ${slotLabel(slotId)}`,
     apply: (state) => {
       const room = roomOf(state, roomId);
       const blockedSlots = trimmed
@@ -550,15 +575,11 @@ export function setBlockedCommand(roomId: string, slotId: SlotId, reason: string
         state.payload.rooms.map((item) => (item.id === roomId ? { ...item, blockedSlots } : item)),
       );
     },
-    send: async ({ after }) => {
+    send: async ({ after, id }) => {
       await electiveService.setRoomBlocks(
-        serverId(roomId, "ห้อง"),
+        serverId(id(roomId), "ห้อง"),
         roomOf(after, roomId).blockedSlots.map((block) => ({ slot: block.slotId, reason: block.reason })),
       );
-    },
-    inverse: ({ before }) => {
-      const was = roomOf(before, roomId).blockedSlots.find((block) => block.slotId === slotId);
-      return setBlockedCommand(roomId, slotId, was?.reason ?? null);
     },
   };
 }
@@ -569,22 +590,12 @@ export function setBlockedCommand(roomId: string, slotId: SlotId, reason: string
 
 export function setChecklistCommand(courseId: string, patch: Partial<CourseChecklist>): RemoteCommand {
   return {
+    scope: "now",
     what: "บันทึกเช็กลิสต์ไม่สำเร็จ",
+    label: "แก้เช็กลิสต์เอกสาร",
     apply: (state) => withChecklist(state, courseId, patch),
-    send: async () => {
-      await electiveService.updateChecklist(serverId(courseId, "วิชา"), checklistPatch(patch));
-    },
-    inverse: ({ before }) => {
-      const was = before.document.checklists[courseId] ?? {};
-      const previous: Partial<CourseChecklist> = {};
-      for (const field of Object.keys(patch) as (keyof CourseChecklist)[]) {
-        // A field with no stored answer yet goes back to the default the
-        // checklist reader would have shown, not to `undefined` — which the
-        // patch builder would drop, leaving the new value in place.
-        previous[field] = (was[field] ??
-          (field === "mcvJoinCode" ? "" : field.endsWith("Letter") ? "NOT_RECEIVED" : "NOT_DONE")) as never;
-      }
-      return setChecklistCommand(courseId, previous);
+    send: async ({ id }) => {
+      await electiveService.updateChecklist(serverId(id(courseId), "วิชา"), checklistPatch(patch));
     },
   };
 }
@@ -594,12 +605,14 @@ export function setChecklistCommand(courseId: string, patch: Partial<CourseCheck
  * ------------------------------------------------------------------ */
 
 export function autoAssignCommand(result: ScheduleResult): RemoteCommand {
-  return replaceCommand(result.assignments, "จัดตารางใหม่ไม่สำเร็จ");
+  return replaceCommand(result.assignments, "จัดตารางใหม่ไม่สำเร็จ", "จัดตารางใหม่ทั้งเทอม");
 }
 
 export function clearUnlockedCommand(state: RemoteState): RemoteCommand {
   return replaceCommand(
     state.document.assignments.filter((item) => item.locked),
     "ล้างคาบไม่สำเร็จ",
+    "ล้างคาบที่ยังไม่ล็อก",
   );
 }
+

@@ -308,6 +308,29 @@ function useController(source: PlanSource) {
 
   const cancelPlanning = useMemo(() => () => abortBox.current?.abort(), [abortBox]);
 
+  /**
+   * The board's two verbs, and the term switcher's one.
+   *
+   * Only the shared plan has a board to save: a plan kept in this browser is
+   * written the moment it changes, so its answers are the honest constants —
+   * there is nothing waiting and nothing to throw away. Giving both stores the
+   * same names keeps the board from having to ask which one it is rendering.
+   */
+  const draft = useMemo(
+    () =>
+      store instanceof RemotePlanStore
+        ? { save: store.save, discard: store.discard, selectTerm: store.selectTerm }
+        : {
+            save: async () => true,
+            discard: async () => false,
+            // Seed mode's terms are bundled files, all of them already in
+            // hand: the course list switches between them without asking
+            // anyone, which is what `archives` is for.
+            selectTerm: async () => false,
+          },
+    [store],
+  );
+
   const terms = source.kind === "seed" ? source.terms : snapshot.terms;
   const archives = source.kind === "seed" ? source.archives : snapshot.archives;
 
@@ -332,7 +355,16 @@ function useController(source: PlanSource) {
      * the read is the planner's own first act — see `PlanShell`.
      */
     load: store.load,
-    undo: store.undo, retry: store.retry, reload: store.reload,
+    /**
+     * Step back one change — the plan in this browser only.
+     *
+     * The shared plan has nothing to offer here: everything outside the board
+     * is saved the moment it is pressed, and the board's unsaved moves are
+     * thrown away whole by ยกเลิก rather than one at a time.
+     */
+    undo: store instanceof PlanStore ? store.undo : async () => false,
+    retry: store.retry, reload: store.reload,
+    ...draft,
     recoverEmpty: store instanceof PlanStore ? store.recoverEmpty : async () => false,
     reportError: store.reportError,
     checklistFor: (id: string) => readChecklist(document.checklists[id]),

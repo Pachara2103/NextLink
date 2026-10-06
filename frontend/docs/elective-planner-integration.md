@@ -84,8 +84,8 @@ are required because the scheduler treats them as resources — two courses with
 the same lecturer cannot share a period, and blank names would read as one very
 busy lecturer. `scripts/elective-plan/check-courses.mjs` covers these rules and
 the merge/routing behaviour; it runs as part of `npm run check:planner`, which is
-now 125 domain checks, and `npm run check:browser` is 36 scenarios across the two
-stores (29 on the bundled plan, 7 on the shared one).
+now 126 domain checks, and `npm run check:browser` is 44 scenarios across the two
+stores (29 on the bundled plan, 15 on the shared one).
 
 ### Sections, one capacity, and one class per room
 
@@ -113,16 +113,19 @@ for instructor rights and inviting anyone in — the course has to exist before
 anybody can be added to it. The course and company columns became one cell in
 both tables to pay for the extra column.
 
-### Plan document version 4
+### Plan document version 5
 
-`courseEdits` makes the stored plan version 4, written to
-`nextlink.plan.v4.<termId>`. A version 3 document is read from
-`nextlink.plan.v3.<termId>` (and version 1/2 from `nextlink.plan.v1`), shown with
-no added courses, and saved back under the version 4 key when anything is next
-saved; the older key is left in place, so an older build still open in another
-tab keeps working from the plan it knows. Backups exported before this change
-import unchanged. Plans still belong to the browser origin: a course added on one
-machine reaches another only through **สำรองแผน JSON** and **นำเข้าแผน**.
+`courseEdits` made the stored plan version 4; renaming a room's `tier` to `type`
+makes it version 5, written to `nextlink.plan.v5.<termId>`. Older documents are
+read from their own keys — `nextlink.plan.v4.<termId>`, then
+`nextlink.plan.v3.<termId>`, then `nextlink.plan.v1` for versions 1 and 2 — shown
+with whatever they carried (a v4 room's `tier` is renamed on the way in by
+`readStoredRoomPatch`, a v3 document has no added courses), and saved back under
+the version 5 key when anything is next saved. The older keys are left in place,
+so an older build still open in another tab keeps working from the plan it knows.
+Backups exported before this change import unchanged. Plans still belong to the
+browser origin: a course added on one machine reaches another only through
+**สำรองแผน JSON** and **นำเข้าแผน**.
 
 ## The shared plan
 
@@ -139,38 +142,143 @@ mock when the API was down would look like it was working while saving nothing.
 It is what `check-browser.mjs` drives and what makes the page openable with no
 backend running.
 
-**Every control is one request.** The offline store writes the whole document
-under a lock, which is right for one writer and wrong for several: the last
-whole-document write would erase everything the others did since their read. On
-the shared plan each command changes the screen first (using the same pure rules
-— `placeAssignment`, `validateCourseDraft`), sends its one request, folds in
-whatever the server decided that the screen could not know (above all the row's
-real id), and on failure puts the screen back and says why in the backend's own
-words. `lib/plan-commands.ts` is that table, one entry per control.
+**One request per thing changed. When it goes out is `RemoteCommand.scope`.**
+The offline store writes the whole document under a lock, which is right for one
+writer and wrong for several: the last whole-document write would erase
+everything the others did since their read. So nothing here ever writes "the
+plan" — every command is one request about one row. `lib/plan-commands.ts` is
+that table, one entry per control, and each entry says when it is sent:
 
-**Ids.** The database counts in integers, every domain id in this app is a
-string. `lib/plan-api.ts` is the only place both vocabularies appear; a row
-drawn before the server has named it gets a placeholder that `serverId()`
-refuses, so a request built from one fails here rather than reaching
-`/electives/NaN`. `reconcile*` in `lib/plan-state.ts` then swaps in the real row,
-matched by the three UNIQUE constraints in `migrations/electives.sql`.
+| `scope` | which controls | when it reaches the database |
+|---|---|---|
+| `"now"` | everything except the board — add/edit/delete a course, rooms, room bookings, availability, the paperwork checklist | at the press |
+| `"timetable"` | the week board only: place, move, remove, lock, unlock a course's periods, retime, จัดตารางใหม่, ล้างที่ยังไม่ล็อก | at **บันทึก** on the board |
 
-**Undo** is one step, offered in the toast that confirms the change. A permanent
-button was right when the plan was one person's document with a revision history
-behind it; on a shared plan there is no history to walk back, only the step just
-taken and only while nobody has built on it. `RemoteCommand.inverse` builds that
-step *after* the server has answered, and returns null where taking it back
-honestly is not possible — deleting a course takes its periods and paperwork
-with it.
+The line is not about risk or size; it is about whether the press is a decision
+or a step towards one. Ticking "จดหมายเชิญ: ส่งแล้ว" is a decision, and holding it
+back would only invent a second thing to remember to press. Dragging a class to
+Wednesday to see how the week looks is not — placing a term is twenty drags where
+the first nineteen are thinking out loud, and the room everyone else is reading
+should not flicker through nineteen wrong answers first.
+
+Both paths run `apply` at the press, so a drag the rules forbid
+(`placeAssignment`, `validateCourseDraft`) is refused there and becomes neither
+a request nor a queued move.
+
+**The save bar** is in the board's own heading on the overview —
+`TimetableSave` in `components/timetable-save.tsx` — not in the page header,
+because what it saves is that one table, and a button in the header of every
+page would look like it saved the page. It reads `บันทึกตาราง N รายการ` while
+moves are waiting (the list is in its tooltip) and a quiet `บันทึกแล้ว`
+otherwise, with **ยกเลิกการแก้ไข** beside it only while there is something to
+cancel. ยกเลิก restores the timetable this browser was showing before the first
+drag — no request — and it puts back *only* the periods, so a course added or a
+box ticked while the board was being worked on is untouched. Closing the tab
+loses unsaved moves, so `PlanShell` registers a `beforeunload` warning while
+`unsaved > 0` from any planner page.
+
+There is no undo anywhere on the shared plan. Outside the board there is nothing
+to undo — it is already saved, and a five-second "เลิกทำ" toast was a worse
+answer than the confirmation the control already asks for. On the board, ยกเลิก
+sits permanently beside บันทึก instead. `RemoteCommand.inverse` is gone with the
+toast that used it.
+
+**Ids, and the one thing the board's queue costs.** The database counts in
+integers, every domain id in this app is a string. `lib/plan-api.ts` is the only
+place both vocabularies appear; a row drawn before the server has named it gets
+a placeholder that `serverId()` refuses, so a request built from one fails here
+rather than reaching `/electives/NaN`. Holding moves makes that reachable in a
+new way: a period placed and then locked before บันทึก is two queued commands,
+and when the second is sent the first has only just been given a real id.
+`RemoteCommand.naming` is how a command reports the ids its rows were given once
+the server answers, and `CommandContext.id` is how every later command reads
+them; `reconcile*` in `lib/plan-state.ts` also rewrites anything in the draft
+that named the row by its placeholder. Matching is by the three UNIQUE
+constraints in `migrations/electives.sql`.
+
+**A refusal at บันทึก stops the queue** at the move that was refused, leaves it
+and everything after it waiting, and leaves the board alone — nothing is thrown
+away, and the message is the backend's own words. What it costs is ยกเลิก: once
+part of a queue has reached the database the timetable this store remembers from
+before the save is half-written, so that case (`blocked`) re-reads from the
+server instead of putting anything back. A refusal on a `"now"` command is the
+opposite: it *did* go out, so the control goes back to what the server still has.
+
+**ช่วงที่สะดวก is read until แก้ไข.** Each course's grid used to save on every
+tick. A company's answer is one answer given in one phone call — "จันทร์เช้าได้
+พุธบ่ายก็ได้ อ้อ เสาร์ไม่ได้แล้ว" — and saving the halfway versions of it puts
+times on the shared plan that nobody ever offered. So a card is a record until
+แก้ไข is pressed, one card at a time, with บันทึก and ยกเลิก under the grid and
+one `PUT /{id}/availability` for the whole answer.
 
 **What is hidden on the shared plan**: สำรองแผน JSON, นำเข้าแผน, คืนค่าเริ่มต้น,
 and the permanent เลิกทำรายการล่าสุด. A file on one person's disk is not a backup
 of a table everyone writes to, and importing one would mean one person's
 afternoon replacing everybody's.
 
-The provider stays at the root of the app so that an edit which could not be
-saved survives a trip to another screen and back, but the plan is only read once
-a planner page is on screen — `PlanShell` calls `plan.load()`.
+The provider stays at the root of the app so that a draft survives a trip to
+another screen and back, but the plan is only read once a planner page is on
+screen — `PlanShell` calls `plan.load()`.
+
+### Any term, including one that has ended
+
+"ปิดเทอม" means a term is no longer the one being planned. It does not mean the
+record is complete: paperwork arrives late, and whole terms get entered after the
+fact. So a finished term is now loaded through the same store as the current one
+and every control works on it — `_assert_editable` is gone from
+`services/elective.py`, and the read-only `ArchivedTerm` path is seed mode's
+only.
+
+The term switcher on the course list calls `RemotePlanStore.selectTerm(id)`,
+which re-reads the plan for that term; the board, the rooms and the checklist
+follow, because they are all reading the one store. Two consequences worth
+knowing:
+
+- **Switching is refused while the board has unsaved moves.** They were made
+  against the term they were made on, and carrying them across would write one
+  term's timetable into another's rows. Save or cancel first. With no term
+  picked the course list shows the term the *planner* is on rather than the term
+  being planned — otherwise walking from a past term's board to that page would
+  ask the store to change term under somebody who only changed page.
+- **Finished terms are no longer read on load.** The store used to fetch every
+  archived term's whole plan in the background to fill the switcher; it now
+  fetches only the term somebody asks for, so a department with twenty terms of
+  history costs one request on load instead of twenty-one.
+
+### The board, and why it is fast to drag on
+
+Two things the board does that nothing else on the planner does: it draws three
+hundred-odd cells, and it re-renders while the pointer is moving.
+
+- **The drop verdict is one pass, not one per cell.** `cellState` used to be a
+  function the table called inside its own loops — 306 times per render, each
+  call rebuilding the scheduler's context from the whole course list and
+  re-filtering every period placed so far. It is now a `Map` built once per held
+  class (`dropStates`), and the conflict list is indexed once (`blockedBy`)
+  rather than filtered twice per card.
+- **`dragover` only re-renders when the answer changes.** That event fires
+  continuously while the pointer is anywhere over a cell — dozens of times a
+  second, nearly all of them saying what the last one said — and each one used
+  to set `hover` unconditionally.
+- **A drag that ends anywhere lets go.** `dragend` on the card covers the
+  ordinary case but not a drag that ends outside the window, one the browser
+  cancels itself, or a card re-rendered out from under the drag. A board left
+  holding a class keeps all 306 periods lit and interactive, which is the
+  expensive state to be stuck in, so `window` listeners for `dragend`, `drop`
+  and Escape release it too.
+
+Measured on a fixture with 16 rooms and 25 courses (306 cells), in-page around a
+real click: picking a class up costs ~165 ms of main thread, putting it down is
+free, and a `dragover` that changes the hovered cell is about one frame.
+
+In dark mode the cell and the card were both painted `--ep-surface`, which is
+one colour there (`#101418`) — a class in a period was the same shade as the
+empty period beside it. The three layers are now pulled apart: the grid sinks to
+the page background, the card rises well above it, and the card's border is
+bright enough to survive at 12px.
+
+`TermMeta.serverId` carries `elective_terms.id` for this — `TermMeta.id` is the
+`"2569-1"` label the router and the storage key use, and no route takes it.
 
 ### Setting up a database
 
@@ -199,6 +307,27 @@ three behaviours.
 Room numbers came from `data/plan-rooms.json`, which from here on is the dev
 fixture only. The table is the real list; rooms are edited through the planner.
 
+**An existing database** needs one more file, once:
+
+```sh
+psql -d nextlink -f backend/migrations/elective_reshape.sql
+```
+
+It renames `elective_rooms.tier` to `type` and folds `elective_availability`
+from one row per period into one row per course holding a `slots TEXT[]`,
+carrying the periods across in reading order. Every step checks whether it is
+needed first, so it is safe to run twice, and safe to run against a database
+built from `electives.sql` (where it does nothing). A database that has been
+through it and one created fresh have identical columns, constraints and
+indexes — the psql commands under "Verification" below check exactly that.
+
+`migrations/local/` is not part of either list: those files create tables that
+already exist on Neon and are owned by another service. They exist so the
+console can be opened on a laptop without connecting to the real database, and
+running them against a real one is never right. `line_group_reads.sql` is *not*
+among them despite the name — it is this backend's own state and lives on the
+`nextlink` database.
+
 ## Verification
 
 Run from `frontend/` using Node 22.6+ (the domain scripts use TypeScript stripping):
@@ -210,6 +339,32 @@ npm run check:planner
 API_ORIGIN=http://127.0.0.1:18999 npm run build
 npx playwright install chromium
 npm run check:browser
+```
+
+For the backend, from `backend/` against a disposable local database:
+
+```sh
+createdb nextlink_check
+psql -d nextlink_check -f migrations/init.sql
+psql -d nextlink_check -f migrations/outbox.sql
+psql -d nextlink_check -f migrations/electives.sql
+NEXTLINK_DATABASE_URL=postgresql://postgres@localhost:5432/nextlink_check \
+  ELECTIVE_CHECK_WIPE=yes python tests/check_elective.py
+```
+
+To check that `elective_reshape.sql` lands a database exactly where
+`electives.sql` would have, build one of each and compare their shapes:
+
+```sh
+# `migrated` = the old schema plus the reshape; `fresh` = electives.sql today
+for db in migrated fresh; do
+  psql -q -d $db -t -c "select table_name||'.'||column_name||' '||data_type
+    from information_schema.columns
+    where table_name in ('elective_availability','elective_rooms') order by 1;" > /tmp/$db.cols
+  psql -q -d $db -t -c "select conname from pg_constraint c join pg_class t on t.oid=c.conrelid
+    where t.relname in ('elective_availability','elective_rooms') order by 1;" > /tmp/$db.cons
+done
+diff /tmp/migrated.cols /tmp/fresh.cols && diff /tmp/migrated.cons /tmp/fresh.cons
 ```
 
 `check:browser` runs both suites: `check-browser.mjs` starts the server with

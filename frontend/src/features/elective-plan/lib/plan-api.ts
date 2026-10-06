@@ -126,6 +126,7 @@ export function readTerm(term: ElectiveTerm): TermMeta {
     label: `${SEASON_LABELS[season]} ปีการศึกษา ${term.year}`,
     shortLabel: `${term.semester === 3 ? "S" : term.semester}/${term.year}`,
     status: term.status === "current" ? "CURRENT" : "ARCHIVED",
+    serverId: term.id,
   };
 }
 
@@ -188,7 +189,7 @@ export function readRoom(room: ElectiveRoom): PlanRoom {
     floor: room.floor,
     seats: room.seats,
     seatsIsEstimated: room.seatsIsEstimated,
-    tier: room.tier === "ready" ? "READY" : "NEEDS_APPROVAL",
+    type: room.type === "ready" ? "READY" : "NEEDS_APPROVAL",
     blockedSlots: (room.blockedSlots ?? [])
       .filter((block) => isSlotId(block.slot))
       .map((block) => ({ slotId: block.slot as SlotId, reason: block.reason }))
@@ -400,7 +401,7 @@ export function roomWrite(room: RoomDraft | Omit<PlanRoom, "id">): ElectiveRoomW
     floor: room.floor.trim(),
     seats: room.seats,
     seatsIsEstimated: room.seatsIsEstimated,
-    tier: room.tier === "READY" ? "ready" : "needs_approval",
+    type: room.type === "READY" ? "ready" : "needs_approval",
     isActive: true,
     blockedSlots: blocked
       ? [...blocked]
@@ -411,6 +412,17 @@ export function roomWrite(room: RoomDraft | Omit<PlanRoom, "id">): ElectiveRoomW
 }
 
 /**
+ * How a draft's id becomes the id the database knows.
+ *
+ * Identity for a row that was already saved. For one created earlier in the
+ * same บันทึก it is the map the store built as each answer came back — see
+ * `CommandContext.id` in `plan-remote.ts`. Defaulting to identity here keeps
+ * every caller that never touches a fresh row unchanged.
+ */
+export type IdResolver = (value: string) => string;
+const asIs: IdResolver = (value) => value;
+
+/**
  * One period, as a place / move / retime / lock all send it.
  *
  * The same body for all four because the route is a whole-row write and the
@@ -418,19 +430,22 @@ export function roomWrite(room: RoomDraft | Omit<PlanRoom, "id">): ElectiveRoomW
  * out asks the backend for the period's own bounds, which is what a fresh
  * placement and a move to another period both want; a retime sends both.
  */
-export function sessionWrite(input: {
-  courseId: string;
-  slotId: SlotId;
-  roomId: string | null;
-  locked?: boolean;
-  source?: Assignment["source"];
-  startTime?: string | null;
-  endTime?: string | null;
-}): ElectiveSessionWrite {
+export function sessionWrite(
+  input: {
+    courseId: string;
+    slotId: SlotId;
+    roomId: string | null;
+    locked?: boolean;
+    source?: Assignment["source"];
+    startTime?: string | null;
+    endTime?: string | null;
+  },
+  id: IdResolver = asIs,
+): ElectiveSessionWrite {
   return {
-    electiveId: serverId(input.courseId, "วิชา"),
+    electiveId: serverId(id(input.courseId), "วิชา"),
     slot: input.slotId,
-    roomId: input.roomId === null ? null : serverId(input.roomId, "ห้อง"),
+    roomId: input.roomId === null ? null : serverId(id(input.roomId), "ห้อง"),
     startTime: input.startTime ?? null,
     endTime: input.endTime ?? null,
     isLocked: input.locked ?? false,
@@ -442,21 +457,25 @@ export function sessionWrite(input: {
 export function sessionWriteFrom(
   assignment: Assignment,
   changes: Partial<Pick<Assignment, "slotId" | "roomId" | "locked" | "startTime" | "endTime">> = {},
+  id: IdResolver = asIs,
 ): ElectiveSessionWrite {
   const next = { ...assignment, ...changes };
   const moved = next.slotId !== assignment.slotId;
-  return sessionWrite({
-    courseId: next.courseId,
-    slotId: next.slotId,
-    roomId: next.roomId,
-    locked: next.locked,
-    source: next.source,
-    // Moving to another period resets the clock times to that period's bounds;
-    // a room-only move keeps whatever somebody typed. Same rule as
-    // `moveAssignment` — one behaviour, whichever half of the app applies it.
-    startTime: moved ? null : next.startTime,
-    endTime: moved ? null : next.endTime,
-  });
+  return sessionWrite(
+    {
+      courseId: next.courseId,
+      slotId: next.slotId,
+      roomId: next.roomId,
+      locked: next.locked,
+      source: next.source,
+      // Moving to another period resets the clock times to that period's bounds;
+      // a room-only move keeps whatever somebody typed. Same rule as
+      // `moveAssignment` — one behaviour, whichever half of the app applies it.
+      startTime: moved ? null : next.startTime,
+      endTime: moved ? null : next.endTime,
+    },
+    id,
+  );
 }
 
 /** `readChecklistRow` backwards, over only the boxes that were pressed. */
