@@ -2,11 +2,15 @@ import { getJson, postJson } from "@/lib/services/http";
 import { companyService } from "@/lib/services/company";
 import { employeeService } from "@/lib/services/employee";
 import type {
+  CommitDraftRequest,
+  CommitDraftResult,
   Company,
   CompanyLine,
+  DraftComparison,
   Employee,
   GroupLine,
   LineGroup,
+  LineSummaryDraft,
   ListResponse,
   UpdateLog,
 } from "@/types";
@@ -218,5 +222,45 @@ export const lineService = {
       errorGroups,
       postError,
     };
+  },
+
+  /**
+   * Groups the extraction pass summarised but could not place: no company
+   * points at them yet, so their coordinators wait here until the user picks
+   * an existing company or creates a new one. Each draft carries the existing
+   * companies most likely to be the same one, best first.
+   */
+  listSummaryDrafts: async (): Promise<LineSummaryDraft[]> => {
+    const body = await getJson<ListResponse<LineSummaryDraft>>(
+      "/api/v1/line/summary-drafts",
+    );
+    return body?.items ?? [];
+  },
+
+  /**
+   * The draft's coordinators next to the people already in `companyId`, each
+   * with the most likely existing match. Read-only — nothing is written until
+   * `commitSummaryDraft`.
+   */
+  compareSummaryDraft: (
+    draftId: number,
+    companyId: number,
+  ): Promise<DraftComparison> =>
+    getJson<DraftComparison>(
+      `/api/v1/line/summary-drafts/${draftId}/compare?companyId=${companyId}`,
+    ),
+
+  /** Binds or creates the company, then writes the draft's people — one transaction. */
+  commitSummaryDraft: (
+    draftId: number,
+    body: CommitDraftRequest,
+  ): Promise<CommitDraftResult> =>
+    postJson<CommitDraftResult>(
+      `/api/v1/line/summary-drafts/${draftId}/commit`,
+      body,
+    ),
+
+  discardSummaryDraft: async (draftId: number): Promise<void> => {
+    await postJson(`/api/v1/line/summary-drafts/${draftId}/discard`, {});
   },
 };

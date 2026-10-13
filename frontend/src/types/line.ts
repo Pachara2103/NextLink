@@ -89,3 +89,114 @@ export interface UpdateLog {
   errorGroups: string[];
   createdAt: string;
 }
+
+/**
+ * ร่างผลสรุปของกลุ่มไลน์ที่ยังไม่ได้ผูกบริษัท — `GET /line/summary-drafts`
+ *
+ * Hand-written for the same reason as `UpdateLog`: `api.ts` predates the
+ * route. Mirrors `backend/schemas/line.py::LineSummaryDraft`; replace with the
+ * generated schema once `npm run gen:api` has been run.
+ *
+ * Nothing in a draft is in `companies` / `employees` yet. The extraction pass
+ * parks it here because `employees.company_id` cannot be moved later, so the
+ * user decides first whether the group belongs to a company already in the
+ * system (`candidates`) or to a new one.
+ */
+export interface DraftContact {
+  nameTh?: string | null;
+  nameEn?: string | null;
+  nickname?: string | null;
+  jobTitle?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  relevant?: Schemas["RelevantType"] | null;
+}
+
+export interface CompanyCandidate {
+  companyId: number;
+  companyTh: string | null;
+  companyEn: string | null;
+  aliases?: string[] | null;
+  /** Non-null: bound to another LINE group now, picking it moves it here. */
+  groupId?: string | null;
+  /** 0–1, higher is more likely the same company. */
+  score: number;
+  reasons: string[];
+}
+
+export interface LineSummaryDraft {
+  id: number;
+  groupId: string;
+  status: "pending" | "committed" | "discarded";
+  groupName?: string | null;
+  companyTh?: string | null;
+  companyEn?: string | null;
+  aliases?: string[] | null;
+  contacts: DraftContact[];
+  candidates: CompanyCandidate[];
+  createdBy?: number | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+/**
+ * What the user picked for one coordinator in the draft, by its position in
+ * `contacts`. `link` = the same person as `employeeId`, already in the chosen
+ * company: no new row, only the blank fields on that row are filled.
+ * Coordinators left out are decided by the server (duplicate → skip, else create).
+ */
+export type CoordinatorAction = "create" | "link" | "skip";
+
+export interface CoordinatorDecision {
+  index: number;
+  action: CoordinatorAction;
+  employeeId?: number | null;
+  /** The contact as edited on screen; omitted = as the AI summarised it. */
+  data?: DraftContact | null;
+}
+
+export type CommitDraftRequest =
+  | {
+      mode: "existing";
+      companyId: number;
+      coordinators?: CoordinatorDecision[];
+    }
+  | {
+      mode: "new";
+      company?: {
+        companyTh?: string | null;
+        companyEn?: string | null;
+        aliases?: string[] | null;
+      };
+      /** `link` is rejected here — a new company has nobody to link to. */
+      coordinators?: CoordinatorDecision[];
+    };
+
+/** One draft coordinator next to the person in the company most likely the same. */
+export interface ContactMatch {
+  index: number;
+  contact: DraftContact;
+  employeeId: number | null;
+  /** Which of อีเมล / เบอร์โทร / ชื่อ… matched. Empty when no one did. */
+  matchedBy: string[];
+  suggestedAction: CoordinatorAction;
+}
+
+/** `GET /line/summary-drafts/{id}/compare?companyId=` — read-only. */
+export interface DraftComparison {
+  draftId: number;
+  companyId: number;
+  existing: Schemas["Employee"][];
+  matches: ContactMatch[];
+}
+
+export interface CommitDraftResult {
+  draftId: number;
+  companyId: number;
+  companyCreated: boolean;
+  createdEmployees: number;
+  /** Linked to a person already in the company — no new row. */
+  linkedEmployees: number;
+  /** Not saved: a duplicate of someone in that company (same email / phone / name), or skipped by the user. */
+  skippedDuplicates: number;
+}

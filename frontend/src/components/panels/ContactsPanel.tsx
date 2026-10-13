@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { GroupAccordion } from "@/components/groups/GroupAccordion";
 import { Icon } from "@/components/icons";
+import { SummaryDraftsSection } from "@/components/line/SummaryDrafts";
 import { UpdateLogsModal } from "@/components/line/UpdateLogsModal";
 import { Badge, CountChip } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -187,6 +188,10 @@ export function ContactsPanel() {
           footnote={`บันทึกเข้าฐานข้อมูลแล้ว ${staffCount} คน`}
         />
       </div>
+
+      {/* กลุ่มที่สรุปแล้วแต่ยังไม่ผูกบริษัท: ผู้ประสานงานยังไม่ถูกบันทึกจนกว่า
+          จะเลือกบริษัท (ผูกกับบริษัทเดิมหรือสร้างใหม่) - ดู SummaryDrafts.tsx */}
+      {syncing !== "all" && <SummaryDraftsSection />}
 
       {/* What the tab strip's row became: the list says what it is and how
           much of it there is, and the sort control keeps its place on the

@@ -12,8 +12,8 @@ from schemas.employee import EmployeeBase
 from schemas.enums import ContactStatus
 from schemas.base import ListResponse
 from services import outbox
-from services.company import sync_create_company
 from services.employee import create_employee_pg
+from services.line_draft import company_id_of_group, upsert_pending_draft
 
 from typing import Any
 from utils.mapping import columns_of, rows_to_models
@@ -169,9 +169,12 @@ def update_information(user_id: int, group_data: dict[str, GroupInfo]) ->  ListR
     merge กับบริษัทแล้ว) จอถือข้อมูลชุดนี้อยู่แล้วตั้งแต่ GET /line/groups +
     GET /companies จึงส่งกลับมาแทนที่จะให้ที่นี่ query ซ้ำ
 
-    เขียนเฉพาะ postgres เท่านั้น (create_company_pg / create_employee_pg) ไม่
-    แตะกราฟ - แถวที่ได้จากรอบนี้ยังเป็น pending รอคนยืนยัน จะ sync ขึ้นกราฟ
-    ตอนที่มีคนกดยืนยันผ่าน sync_* ตามทางเดินปกติ
+    เขียนเฉพาะ postgres เท่านั้น ไม่แตะกราฟ - แถวที่ได้จากรอบนี้ยังเป็น pending
+    รอคนยืนยัน จะ sync ขึ้นกราฟตอนที่มีคนกดยืนยันผ่าน sync_* ตามทางเดินปกติ
+
+    กลุ่มที่ผูกบริษัทแล้ว: เขียนผู้ประสานงานเป็น employees (pending) ของบริษัทนั้นเลย
+    กลุ่มที่ยังไม่ผูก: ไม่สร้างบริษัทเอง ผลสรุปพักไว้ใน line_summary_drafts ให้ user
+    เลือกว่าจะผูกกับบริษัทเดิมหรือสร้างใหม่ (ดู services/line_draft.py)
     """
     if not user_id:
         raise BadRequestError()
@@ -201,8 +204,6 @@ def update_information(user_id: int, group_data: dict[str, GroupInfo]) ->  ListR
             continue
 
           group_name = group_info.display_name or "<ไม่มีชื่อกลุ่ม>"
-          company_id = group_info.company_id
-          is_created = False
           try: 
             summary = summarize_line_group_messages(
                 "\n".join(group_messages[group_id]["messages"]), 
@@ -221,22 +222,24 @@ def update_information(user_id: int, group_data: dict[str, GroupInfo]) ->  ListR
                 for key in i:
                     print(f"{key}: {i.get(key) or '<ไม่มีข้อมูล>'}")
 
-           
-            if not group_info.has_company:
-                is_created = True
-                company_id = sync_create_company(
-                    CompanyName(
-                        company_th=summary.get("company_th"),
-                        company_en=summary.get("company_en"),
-                        aliases=summary.get("aliases"),
-                    ),
-                    group_id=group_id, 
-                    conn=conn
-                )
-                print("Create new company successfully\n")
-            
+
+            # อ่านจาก DB ไม่เชื่อ has_company ที่จอส่งมา: ระหว่างนั้นอาจมีคนผูกไปแล้ว
+            company_id = company_id_of_group(group_id, conn)
+
             if company_id is None:
-                raise NotFoundError( message=f"ไม่พบบริษัทของกลุ่ม {group_name} ในฐานข้อมูล")
+                # ยังไม่รู้ว่าเป็นบริษัทไหน -> พักเป็นร่าง ไม่สร้าง company/employees
+                # เพราะ employees.company_id ย้ายทีหลังไม่ได้
+                draft_id = upsert_pending_draft(
+                    group_id=group_id,
+                    group_name=group_info.display_name,
+                    summary=summary,
+                    user_id=user_id,
+                    conn=conn,
+                )
+                _read_group_messages(group_id=group_id, last_read_at=last_read_at, conn=conn)
+                conn.commit()
+                print(f"Save draft {draft_id} for group: {group_name} (no company yet)\n")
+                continue
 
             for contact in contacts:
                 _ = create_employee_pg(
@@ -251,8 +254,6 @@ def update_information(user_id: int, group_data: dict[str, GroupInfo]) ->  ListR
 
             _read_group_messages(group_id=group_id, last_read_at=group_messages[group_id]["last_read_at"], conn=conn)
             conn.commit()
-            if is_created:
-              outbox.flush(outbox.COMPANY, company_id)
             print(f"Ectract Information for group: {group_name} successfully\n")
 
           except Exception as e:
