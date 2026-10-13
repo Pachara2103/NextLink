@@ -81,7 +81,7 @@ export function LinkGroupModal({
       icon="link"
       maxWidth="640px"
       title={`ผูกกลุ่มไลน์กับ: ${companyName}`}
-      subtitle="เลือกกลุ่มไลน์ที่ยังไม่ถูกผูกกับบริษัทใด — เลือกได้ครั้งละหนึ่งกลุ่ม"
+      subtitle="เลือกกลุ่มไลน์ที่ต้องการผูกกับบริษัทนี้"
       onClose={onClose}
       closeDisabled={working}
       footer={

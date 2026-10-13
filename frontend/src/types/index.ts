@@ -133,6 +133,19 @@ export type {
 /** One press of "อัปเดตข้อมูล", as `GET /line/update_logs` returns it. */
 export type { UpdateLog } from "./line";
 
+/** ร่างผลสรุปของกลุ่มที่ยังไม่ผูกบริษัท — see `types/line.ts`. */
+export type {
+  CommitDraftRequest,
+  CommitDraftResult,
+  CompanyCandidate,
+  ContactMatch,
+  CoordinatorAction,
+  CoordinatorDecision,
+  DraftComparison,
+  DraftContact,
+  LineSummaryDraft,
+} from "./line";
+
 /**
  * คุณขวัญใจ — one turn of a conversation, and the progress of one run.
  * Hand-written for now; see the note at the top of `agent.ts`.
