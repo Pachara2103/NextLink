@@ -537,7 +537,9 @@ check("เทอมที่จบแล้วยังเพิ่ม/แก้
 
 def _availability_is_one_row():
     """หนึ่งวิชา = หนึ่งแถว คาบทั้งหมดอยู่ใน slots และถามด้วย @> ได้"""
-    target = svc.get_plan().electives[0]
+    # รันหลังเทสต์ก่อนหน้า จึงไม่มีเทอมที่ current เหลือแล้ว - ระบุเทอมตรง ๆ
+    term = svc.list_terms().items[0]
+    target = svc.get_plan(term.id).electives[0]
     svc.set_availability(target.id, [ElectiveSlot.WED_AM, ElectiveSlot.MON_AM])
     with psycopg2.connect(DSN) as conn, conn.cursor() as cur:
         cur.execute(
