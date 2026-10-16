@@ -54,8 +54,10 @@ try {
   page.on('dialog', dialog => allowDiscard ? dialog.accept() : dialog.dismiss());
   const paths = ['', '/electives', '/mou', '/internship', '/cooperative', '/capstone', '/friday-activities'];
   const go = async path => { await page.goto(base + '/dashboard' + path); await page.locator('.app-shell[data-ready="true"]').waitFor(); };
+  // Role `radio` and a substring of the accessible name — see the same helper in
+   // scripts/elective-plan/check-browser.mjs for why neither is exact.
   const theme = async value => {
-    await page.getByRole('button', { name: value === 'classic' ? 'สีดั้งเดิม' : 'โหมดมืด', exact: true }).filter({ visible: true }).click();
+    await page.getByRole('radio', { name: value === 'classic' ? /สีดั้งเดิม|สว่าง/ : /มืด/ }).filter({ visible: true }).first().click();
     await page.waitForFunction(value => document.documentElement.dataset.theme === value, value);
   };
   const login = async () => {

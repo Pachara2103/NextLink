@@ -261,6 +261,26 @@ AUTH_SECRET=<any long random string>
 GOOGLE_API_KEY=<kept as it is>
 ```
 
+### An account to sign in with
+
+The seed creates rooms and a term, not a user, so a fresh database has nothing
+to sign in as. `users.password` holds a **bcrypt hash** and
+`services/user.py::login` compares with `bcrypt.checkpw`, so a row inserted with
+a plain-text password does not fail as "wrong password" — it fails as a 500 with
+`stored hash is unusable`, which is a much harder thing to work out from the
+login screen. Use the script rather than SQL:
+
+```sh
+cd backend
+.venv/Scripts/python create_user.py admin --display "เจ้าหน้าที่ภาค"
+```
+
+It asks for the password twice without echoing it, enforces the same eight-
+character minimum `update_password` does (so an account created today can
+change its own password tomorrow), and reports a name that is already taken as
+exactly that. `--password-from-env NAME` reads it from the environment instead,
+for a machine-setup script.
+
 `NEO4J_URI` is `bolt://` rather than `neo4j+s://`: the local container speaks
 plain bolt with no certificate, and the `+s` scheme fails the handshake. The two
 database URLs must point at different ports — that is why the LINE container is

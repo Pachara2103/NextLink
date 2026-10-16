@@ -50,21 +50,51 @@ try {
   });
   const page = await context.newPage(); watch(page);
   page.setDefaultTimeout(15000);
-  const chooseTheme = async (value) => {
-    await page.getByRole('button', { name: value === 'classic' ? 'สีดั้งเดิม' : 'โหมดมืด', exact: true }).filter({ visible: true }).click();
+  /**
+   * Press the theme switch in the sidebar.
+   *
+   * By role `radio` and by a *substring* of the accessible name, not an exact
+   * string: the control is a radiogroup of two icon buttons whose words live on
+   * aria-label, and that label has already been reworded once ("สีดั้งเดิม"
+   * became "โหมดสว่าง (สีดั้งเดิม)"). Matching the whole string meant a
+   * wording change failed here as a fifteen-second timeout naming a button that
+   * no longer exists, rather than as anything about the theme.
+   */
+  const pickTheme = async (value) => {
+    await page.getByRole('radio', { name: value === 'classic' ? /สีดั้งเดิม|สว่าง/ : /มืด/ }).filter({ visible: true }).first().click();
     await page.waitForFunction(value => document.documentElement.dataset.theme === value, value);
+  };
+
+  /**
+   * Choose a theme on a page that has no switch on it.
+   *
+   * The sign-in page carries no sidebar and so no switcher — it had one once and
+   * does not now. The theme is still a property of the whole site there, so it
+   * is set the way the app itself stores it (the cookie is what the server reads
+   * for the first render; localStorage is what syncs other tabs) and the page is
+   * read back after a reload. That checks the thing that actually matters about
+   * the sign-in page: that it is painted in the visitor's theme before anybody
+   * has signed in.
+   */
+  const presetTheme = async (value) => {
+    await page.evaluate((value) => {
+      document.cookie = `nextlink-theme=${value}; Path=/; Max-Age=31536000; SameSite=Lax`;
+      try { localStorage.setItem('nextlink.theme', value); } catch { /* blocked store */ }
+    }, value);
   };
   const themeIs = async (value) => assert.equal(await page.locator('html').getAttribute('data-theme'), value);
   await check('planner deep links require sign-in and return to the requested page', async () => {
     await page.goto(base + '/elective-plan/courses/list?view=checklist');
     await page.waitForURL('**/login?next=*');
     assert.equal(await page.locator('.elective-planner').count(), 0);
-    await chooseTheme('classic');
+    await presetTheme('classic');
     await page.reload(); await page.locator('input[name=username]').waitFor();
     await themeIs('classic');
     assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(246, 247, 251)');
     await page.screenshot({ path: 'output/browser/login-classic.png', fullPage: true });
-    await chooseTheme('dark');
+    await presetTheme('dark');
+    await page.reload(); await page.locator('input[name=username]').waitFor();
+    await themeIs('dark');
     await page.screenshot({ path: 'output/browser/login-dark.png', fullPage: true });
     await page.locator('input[name=username]').fill('planner-fixture');
     await page.locator('input[name=password]').fill('local-test-only');
@@ -97,7 +127,7 @@ try {
   const scheduled = await read();
   await check('both themes reach the whole console, planner dialogs and cross-tab preferences', async () => {
     for (const theme of ['classic', 'dark']) {
-      await chooseTheme(theme);
+      await pickTheme(theme);
       await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
       await page.screenshot({ path: `output/browser/planner-${theme}.png`, fullPage: true });
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'planner fits the sidebar layout');
@@ -136,7 +166,7 @@ try {
     }
     const other = await context.newPage(); watch(other); await other.goto(base + '/');
     await other.locator('aside').waitFor();
-    await chooseTheme('classic');
+    await pickTheme('classic');
     await other.waitForFunction(() => document.documentElement.dataset.theme === 'classic');
     await other.reload(); await other.locator('aside').waitFor();
     assert.equal(await other.locator('html').getAttribute('data-theme'), 'classic');
