@@ -25,8 +25,9 @@ import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
  * this page out of reach of the keyboard and off the phone entirely, in a
  * codebase that has otherwise gone to some trouble about both.
  */
-export function RoomSchedule({ payload, roomId }: { payload: PlanPayload; roomId: string }) {
+export function RoomSchedule({ roomId }: { roomId: string }) {
   const plan = usePlanState();
+  const payload = plan.payload;
   const router = useRouter();
   const { toast, show, dismiss, holdTimer, resumeTimer } = useStatusToast();
   const [assignSlot, setAssignSlot] = useState<SlotId | null>(null);

@@ -113,7 +113,7 @@ await check('a version 3 plan is read from its own key and saved back as version
 const local = (over = {}) => ({
   id: 'plan-99999999', courseCode: '99999999', title: 'วิชาใหม่', category: 'ทดสอบ', provider: 'บริษัททดสอบ',
   instructor: 'อาจารย์ทดสอบ', coordinator: null, deliveryMode: 'ON_SITE', availability: ['MON_AM'],
-  sessionsPerWeek: 1, minSeats: 30, capacity: 30, weeks: 10, notes: null, ...over,
+  section: 1, sessionsPerWeek: 1, capacity: 30, weeks: 10, notes: null, ...over,
 });
 await check('a course typed in here is schedulable, and a malformed one is refused', async () => {
   const base = emptyDocument(payload);

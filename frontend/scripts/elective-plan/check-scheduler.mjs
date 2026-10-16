@@ -40,8 +40,8 @@ const course = (over) => ({
   deliveryMode: over.deliveryMode ?? "ON_SITE",
   availability: over.availability,
   sessionsPerWeek: over.sessionsPerWeek ?? 1,
-  minSeats: over.minSeats ?? 20,
-  capacity: over.capacity ?? over.minSeats ?? 20,
+  section: over.section ?? 1,
+  capacity: over.capacity ?? 20,
   weeks: 10,
   notes: null,
 });
@@ -120,10 +120,10 @@ check("a locked assignment is never moved or dropped", () => {
 check("planning the same input twice gives the identical plan", () => {
   const rooms = [room("r1", 60), room("r2", 40), room("r3", 30)];
   const courses = [
-    course({ id: "A", availability: ["WED_AM", "THU_AM"], minSeats: 55 }),
-    course({ id: "B", availability: ["WED_AM", "WED_PM"], minSeats: 35 }),
-    course({ id: "C", availability: ["WED_AM", "THU_AM", "FRI_PM"], minSeats: 25 }),
-    course({ id: "D", availability: ["THU_AM", "FRI_PM"], minSeats: 25, sessionsPerWeek: 2 }),
+    course({ id: "A", availability: ["WED_AM", "THU_AM"], capacity: 55 }),
+    course({ id: "B", availability: ["WED_AM", "WED_PM"], capacity: 35 }),
+    course({ id: "C", availability: ["WED_AM", "THU_AM", "FRI_PM"], capacity: 25 }),
+    course({ id: "D", availability: ["THU_AM", "FRI_PM"], capacity: 25, sessionsPerWeek: 2 }),
   ];
   const a = JSON.stringify(planSchedule({ courses, rooms }));
   const b = JSON.stringify(planSchedule({ courses, rooms }));
@@ -135,7 +135,7 @@ check("an ONLINE course takes no room and blocks nobody", () => {
   const rooms = [room("r1", 50)];
   const result = autoAssign({
     courses: [
-      course({ id: "ONLINE", availability: ["WED_AM"], deliveryMode: "ONLINE", minSeats: 0 }),
+      course({ id: "ONLINE", availability: ["WED_AM"], deliveryMode: "ONLINE", capacity: 0 }),
       course({ id: "ONSITE", availability: ["WED_AM"] }),
     ],
     rooms,
@@ -148,7 +148,7 @@ check("an ONLINE course takes no room and blocks nobody", () => {
 // 6 — refusing to place is fine; refusing to say why is not.
 check("a course that cannot fit is reported with reasons, not placed anyway", () => {
   const rooms = [room("small", 20)];
-  const result = autoAssign({ courses: [course({ id: "BIG", availability: ["WED_AM"], minSeats: 200 })], rooms });
+  const result = autoAssign({ courses: [course({ id: "BIG", availability: ["WED_AM"], capacity: 200 })], rooms });
   if (result.assignments.length !== 0) return "it was placed in a room that cannot hold it";
   const entry = result.unassigned.find((u) => u.courseId === "BIG");
   if (!entry) return "no unassigned entry";
@@ -278,7 +278,7 @@ check("a lecturer already placed in pass 1 still blocks pass 2", () => {
 // 12 — explainFailure is a public entry point; the panel calls it directly.
 check("explainFailure can be called on its own for a single course", () => {
   const rooms = [room("r1", 20)];
-  const target = course({ id: "BIG", availability: ["WED_AM", "THU_AM"], minSeats: 100 });
+  const target = course({ id: "BIG", availability: ["WED_AM", "THU_AM"], capacity: 100 });
   const reason = explainFailure({ course: target, courses: [target], rooms, placed: [] });
   if (reason.perSlot.length !== 2) return `expected both periods explained, got ${reason.perSlot.length}`;
   return null;

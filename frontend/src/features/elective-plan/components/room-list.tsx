@@ -22,8 +22,9 @@ import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
  * loses rooms between terms, and a list that can only be read goes stale the
  * first time that happens — with no way back except a code change.
  */
-export function RoomList({ payload }: { payload: PlanPayload }) {
+export function RoomList() {
   const plan = usePlanState();
+  const payload = plan.payload;
   const { toast, show, dismiss, holdTimer, resumeTimer } = useStatusToast();
   const [roomForm, setRoomForm] = useState<RoomFormTarget | null>(null);
 

@@ -111,7 +111,7 @@ function blockersFor(
 
   if (room) {
     if (room.blockedSlots.some((blocked) => blocked.slotId === slotId)) found.push("ROOM_BLOCKED");
-    if (room.seats < course.minSeats) found.push("ROOM_TOO_SMALL");
+    if (room.seats < course.capacity) found.push("ROOM_TOO_SMALL");
     if (clashing.some((item) => item.roomId === room.id)) found.push("ROOM_DOUBLE_BOOKED");
   }
 
@@ -147,9 +147,9 @@ function scoreFor(course: PlanCourse, slotId: SlotId, room: PlanRoom | null, pla
   if (!categoryClash) score += w.avoidCategoryClash;
 
   if (room) {
-    const slack = room.seats - Math.max(course.minSeats, 1);
-    if (slack >= 0 && slack <= Math.max(course.minSeats, 1) * 0.3) score += w.roomFitsSnugly;
-    if (room.seats >= Math.max(course.minSeats, 1) * 2) score += w.oversizedRoom;
+    const slack = room.seats - Math.max(course.capacity, 1);
+    if (slack >= 0 && slack <= Math.max(course.capacity, 1) * 0.3) score += w.roomFitsSnugly;
+    if (room.seats >= Math.max(course.capacity, 1) * 2) score += w.oversizedRoom;
   }
 
   const loadOnDay = placed.filter((item) => dayOf(item.slotId) === day).length;
@@ -287,9 +287,9 @@ function explain(course: PlanCourse, placed: Assignment[], ctx: Ctx): FailureRea
 
     if (blockers.includes("ROOM_TOO_SMALL") && !blockers.includes("ROOM_DOUBLE_BOOKED")) {
       const largest = Math.max(0, ...ctx.rooms.map((room) => room.seats));
-      details.push(`ต้องการ ${course.minSeats} ที่นั่ง ห้องที่ใหญ่ที่สุดในระบบมี ${largest}`);
+      details.push(`ต้องการ ${course.capacity} ที่นั่ง ห้องที่ใหญ่ที่สุดในระบบมี ${largest}`);
       const reachable = ctx.rooms
-        .filter((room) => room.seats < course.minSeats)
+        .filter((room) => room.seats < course.capacity)
         .map((room) => room.seats)
         .sort((a, b) => b - a)[0];
       if (reachable) {
@@ -318,7 +318,7 @@ function explain(course: PlanCourse, placed: Assignment[], ctx: Ctx): FailureRea
     for (const room of ctx.rooms) {
       const blocked = room.blockedSlots.find((entry) => entry.slotId === slotId);
       if (!blocked) continue;
-      if (room.seats < course.minSeats) continue;
+      if (room.seats < course.capacity) continue;
       details.push(`${room.name} ถูกกันไว้: ${blocked.reason}`);
       push(
         { kind: "FREE_ROOM_SLOT", roomId: room.id, slotId, label: `ปลดการกัน ${room.name} คาบนี้` },
@@ -430,7 +430,7 @@ export function autoAssign(input: {
         if (a.options !== b.options) return a.options - b.options;
         const sessions = (remaining.get(b.course.id) ?? 0) - (remaining.get(a.course.id) ?? 0);
         if (sessions !== 0) return sessions;
-        if (b.course.minSeats !== a.course.minSeats) return b.course.minSeats - a.course.minSeats;
+        if (b.course.capacity !== a.course.capacity) return b.course.capacity - a.course.capacity;
         return a.course.courseCode.localeCompare(b.course.courseCode);
       });
 

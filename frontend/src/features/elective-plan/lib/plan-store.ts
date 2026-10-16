@@ -1,18 +1,27 @@
 import { decodePlan, emptyDocument, legacyKeysFor, storageKeyFor, type PlanData, type PlanDocument } from "./plan-document.ts";
-import type { PlanPayload } from "./plan-types.ts";
+import type { ArchivedTerm, PlanPayload, TermMeta } from "./plan-types.ts";
 
 export type Persistence = {
   read: (key: string) => string | null;
   write: (key: string, value: string) => void;
   exclusive: <T>(name: string, work: () => Promise<T>) => Promise<T>;
 };
+/**
+ * What either store publishes, so a component never has to know which one it
+ * is reading. `payload`, `terms` and `archives` are constants here — a bundled
+ * plan is the file it was built from — and state on the server-backed store.
+ */
 export type PlanSnapshot = {
+  payload: PlanPayload;
   document: PlanDocument;
   ready: boolean;
   status: "loading" | "saved" | "saving" | "error";
   error: string | null;
   recoveryRaw: string | null;
   canUndo: boolean;
+  /** Every term the switcher offers. Read from the API; bundled in seed mode. */
+  terms: TermMeta[];
+  archives: ArchivedTerm[];
 };
 type Mutation = (document: PlanDocument) => PlanData | Promise<PlanData>;
 
@@ -32,7 +41,7 @@ export class PlanStore {
     this.payload = payload;
     this.persistence = persistence;
     this.key = storageKeyFor(payload.term.id);
-    this.snapshot = { document: emptyDocument(payload), ready: false, status: "loading", error: null, recoveryRaw: null, canUndo: false };
+    this.snapshot = { payload, document: emptyDocument(payload), ready: false, status: "loading", error: null, recoveryRaw: null, canUndo: false, terms: [], archives: [] };
   }
   getSnapshot = () => this.snapshot;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };

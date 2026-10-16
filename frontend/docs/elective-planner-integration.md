@@ -84,7 +84,34 @@ are required because the scheduler treats them as resources — two courses with
 the same lecturer cannot share a period, and blank names would read as one very
 busy lecturer. `scripts/elective-plan/check-courses.mjs` covers these rules and
 the merge/routing behaviour; it runs as part of `npm run check:planner`, which is
-now 98 domain checks, and the browser suite is 26 scenarios.
+now 125 domain checks, and `npm run check:browser` is 36 scenarios across the two
+stores (29 on the bundled plan, 7 on the shared one).
+
+### Sections, one capacity, and one class per room
+
+A course code is no longer an identity on its own: the same course taught to a
+second group is a second row with the same code and a different `section`. The
+form asks for it, the uniqueness rule is code + section, the id carries the
+section from the second one on (`plan-21105801-2`), and the table prints
+"ตอน 2" only where there is one — most courses have a single section, and
+"ตอน 1" on every row is a word that says nothing.
+
+`minSeats` is gone; `capacity` is the only number. The staff filling the form
+know the real seat count, and a separate "smallest room this fits in" was a
+second place for the same fact to be wrong. Room fitting, the "room is too
+small" conflict and the "reduce the intake" suggestion all read `capacity` now,
+and the bundled seed files no longer carry the field. A plan saved while it
+still existed opens unchanged — the schema accepts the key and drops it.
+
+Dropping a class into a room that already holds one at that period is refused
+where the drop happens, rather than accepted and reported as a conflict
+afterwards. Two classes in one room at one time is not a state worth saving,
+and `elective_sessions` does not accept the row either.
+
+The paperwork checklist has an eighth step, "สร้างคอร์สใน MCV", between asking
+for instructor rights and inviting anyone in — the course has to exist before
+anybody can be added to it. The course and company columns became one cell in
+both tables to pay for the extra column.
 
 ### Plan document version 4
 
@@ -96,6 +123,81 @@ saved; the older key is left in place, so an older build still open in another
 tab keeps working from the plan it knows. Backups exported before this change
 import unchanged. Plans still belong to the browser origin: a course added on one
 machine reaches another only through **สำรองแผน JSON** and **นำเข้าแผน**.
+
+## The shared plan
+
+The planner now has two stores behind one interface, chosen per process by
+`PLAN_SOURCE` and read in `planSource()` (`lib/plan-data.ts`):
+
+| `PLAN_SOURCE` | store | plan lives in |
+|---|---|---|
+| unset (default) | `RemotePlanStore` | `/api/v1/electives` → postgres |
+| `seed` | `PlanStore` | bundled JSON + localStorage |
+
+`seed` is an explicit opt-in, not a fallback: a planner that quietly dropped to a
+mock when the API was down would look like it was working while saving nothing.
+It is what `check-browser.mjs` drives and what makes the page openable with no
+backend running.
+
+**Every control is one request.** The offline store writes the whole document
+under a lock, which is right for one writer and wrong for several: the last
+whole-document write would erase everything the others did since their read. On
+the shared plan each command changes the screen first (using the same pure rules
+— `placeAssignment`, `validateCourseDraft`), sends its one request, folds in
+whatever the server decided that the screen could not know (above all the row's
+real id), and on failure puts the screen back and says why in the backend's own
+words. `lib/plan-commands.ts` is that table, one entry per control.
+
+**Ids.** The database counts in integers, every domain id in this app is a
+string. `lib/plan-api.ts` is the only place both vocabularies appear; a row
+drawn before the server has named it gets a placeholder that `serverId()`
+refuses, so a request built from one fails here rather than reaching
+`/electives/NaN`. `reconcile*` in `lib/plan-state.ts` then swaps in the real row,
+matched by the three UNIQUE constraints in `migrations/electives.sql`.
+
+**Undo** is one step, offered in the toast that confirms the change. A permanent
+button was right when the plan was one person's document with a revision history
+behind it; on a shared plan there is no history to walk back, only the step just
+taken and only while nobody has built on it. `RemoteCommand.inverse` builds that
+step *after* the server has answered, and returns null where taking it back
+honestly is not possible — deleting a course takes its periods and paperwork
+with it.
+
+**What is hidden on the shared plan**: สำรองแผน JSON, นำเข้าแผน, คืนค่าเริ่มต้น,
+and the permanent เลิกทำรายการล่าสุด. A file on one person's disk is not a backup
+of a table everyone writes to, and importing one would mean one person's
+afternoon replacing everybody's.
+
+The provider stays at the root of the app so that an edit which could not be
+saved survives a trip to another screen and back, but the plan is only read once
+a planner page is on screen — `PlanShell` calls `plan.load()`.
+
+### Setting up a database
+
+```sh
+psql -d nextlink -f backend/migrations/init.sql
+psql -d nextlink -f backend/migrations/outbox.sql
+psql -d nextlink -f backend/migrations/electives.sql
+psql -d nextlink -f backend/migrations/elective_seed.sql
+```
+
+The last file is what makes the page openable at all: a database with the tables
+but no rows has no current term (`GET /plan` answers 404) and no room columns to
+drag a class into. It creates the term from the date it is run — Chula's ภาคต้น
+starts in August, so January–July still counts as the academic year that began
+last August — and the sixteen rooms the department uses every term: จุฬาพัฒน์ 4
+and 5 as `ready`, ตึก 3 / ตึก 4 / ตึกร้อยปี as `needs_approval` with estimated
+seat counts.
+
+Every insert is `ON CONFLICT DO NOTHING`, so running it again adds nothing and
+overwrites nothing: a room whose seat count was corrected in the UI, or that was
+taken out of service, stays as the UI left it. It also will not reopen a term
+somebody deliberately archived — it says so instead, and points at
+`POST /api/v1/electives/terms`. `backend/tests/check_elective.py` covers all
+three behaviours.
+
+Room numbers came from `data/plan-rooms.json`, which from here on is the dev
+fixture only. The table is the real list; rooms are edited through the planner.
 
 ## Verification
 
@@ -109,6 +211,12 @@ API_ORIGIN=http://127.0.0.1:18999 npm run build
 npx playwright install chromium
 npm run check:browser
 ```
+
+`check:browser` runs both suites: `check-browser.mjs` starts the server with
+`PLAN_SOURCE=seed` and drives the bundled plan; `check-browser-api.mjs` starts it
+without that variable and drives the shared plan against a fixture API that can
+be told to refuse a write. Set `PW_CHROMIUM` to use a browser Playwright did not
+install itself.
 
 The browser script starts and stops a local production server on a free port.
 All backend API calls are intercepted with local fixtures, including login and

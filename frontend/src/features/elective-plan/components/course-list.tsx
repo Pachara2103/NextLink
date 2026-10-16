@@ -33,7 +33,7 @@ import {
 import { formatNumber } from "@/features/elective-plan/lib/format";
 import { DAY_COLORS } from "@/features/elective-plan/lib/day-colors.ts";
 import { DAY_LABELS, PERIODS, parseSlotId, slotLabel, type DayKey, type PeriodKey, type SlotId } from "@/features/elective-plan/lib/slots.ts";
-import type { ArchivedTerm, PlacedPeriod, PlanPayload, TermMeta } from "@/features/elective-plan/lib/plan-types.ts";
+import type { PlacedPeriod, PlanCourse } from "@/features/elective-plan/lib/plan-types.ts";
 import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
 import { useUrlFilters } from "@/features/elective-plan/lib/use-url-filters";
 
@@ -57,21 +57,39 @@ const PAGE_SIZE = 10;
  * term that ended" to show history at all; a reference list has no such
  * question, so history lands here and stays read-only.
  */
-export function CourseList({
-  payload,
-  terms,
-  archives,
-}: {
-  payload: PlanPayload;
-  terms: TermMeta[];
-  archives: ArchivedTerm[];
-}) {
+export function CourseList() {
   const plan = usePlanState();
+  const { payload, terms, archives } = plan;
   const { toast, show, dismiss, holdTimer, resumeTimer } = useStatusToast();
-  const currentTerm = useMemo(() => terms.find((term) => term.status === "CURRENT") ?? terms[0], [terms]);
+  // The plan always has a term; the full list of terms is read after it, so
+  // this page renders before the switcher has anything else to offer.
+  const currentTerm = useMemo(
+    () => terms.find((term) => term.status === "CURRENT") ?? terms[0] ?? plan.term,
+    [terms, plan.term],
+  );
 
   const [courseForm, setCourseForm] = useState<CourseFormTarget | null>(null);
-  const [termId, setTermId] = useState(currentTerm.id);
+  /**
+   * Which term the table shows: what the reader picked, or the one being
+   * planned until they pick.
+   *
+   * Derived rather than `useState(currentTerm.id)`. On the shared plan the
+   * term arrives from a request, so an initial value would be the empty
+   * placeholder this page renders before that lands — and it would stay that
+   * for ever, because an initialiser only runs once.
+   */
+  const [pickedTermId, setPickedTermId] = useState<string | null>(null);
+  /**
+   * A pick is honoured while it names a term — or while there is no list of
+   * terms to check it against yet, which is how a link to a past term survives
+   * being opened before that list has been read. A pick the list came back
+   * without (a renamed term, a hand-edited URL) falls back to the plan.
+   */
+  const termId = useMemo(() => {
+    if (pickedTermId === null) return currentTerm.id;
+    const known = terms.some((term) => term.id === pickedTermId);
+    return known || terms.length === 0 ? pickedTermId : currentTerm.id;
+  }, [pickedTermId, terms, currentTerm.id]);
   const [search, setSearch] = useState("");
   const [day, setDay] = useState<DayKey | "">("");
   const [period, setPeriod] = useState<PeriodKey | "">("");
@@ -82,8 +100,26 @@ export function CourseList({
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
 
-  /** null while the current term is selected — the planner's own data. */
+  /**
+   * A term that has been closed: read-only, and read separately from the plan.
+   *
+   * Decided by the term's own status, not by whether its data has arrived.
+   * Those are different questions and answering the first with the second is
+   * what made a closed term show the *current* term's courses with an "เพิ่ม
+   * รายวิชา" button over them: no archive had loaded, so the page concluded it
+   * must be looking at the plan.
+   *
+   * A term this page has never heard of is treated as closed too — it is
+   * either a link to a past term opened before the term list arrived, or a
+   * hand-edited URL, and neither is the plan.
+   */
+  const selectedTerm = useMemo(() => terms.find((term) => term.id === termId) ?? null, [terms, termId]);
+  const isPast = selectedTerm ? selectedTerm.status === "ARCHIVED" : termId !== currentTerm.id;
+
+  /** That term's courses and periods, once they have been read. */
   const archive = useMemo(() => archives.find((item) => item.term.id === termId) ?? null, [archives, termId]);
+  /** A closed term whose data is still on its way. */
+  const loadingTerm = isPast && archive === null;
 
   /**
    * The checklist belongs to the term being worked on.
@@ -93,14 +129,14 @@ export function CourseList({
    * plain table and the switch disappears rather than offering a form that
    * saves answers about a term nobody can act on.
    */
-  const checklistView = view === "checklist" && !archive;
+  const checklistView = view === "checklist" && !isPast;
 
   useUrlFilters(
     {
       q: search,
       day,
       period,
-      placement: !archive && !checklistView && placement !== "all" ? placement : "",
+      placement: !isPast && !checklistView && placement !== "all" ? placement : "",
       term: termId === currentTerm.id ? "" : termId,
       view: checklistView ? "checklist" : "",
       done: checklistView && checklistFilter !== "all" ? checklistFilter : "",
@@ -112,14 +148,17 @@ export function CourseList({
       setPlacement(found.placement === "placed" || found.placement === "unplaced" ? found.placement : "all");
       setView(found.view === "checklist" ? "checklist" : "table");
       setChecklistFilter(found.done === "incomplete" || found.done === "complete" ? found.done : "all");
-      setTermId(terms.some((term) => term.id === found.term) ? found.term : currentTerm.id);
+      setPickedTermId(found.term || null);
       setPage(1);
     },
   );
 
   const roomsById = useMemo(() => new Map(plan.rooms.map((room) => [room.id, room])), [plan.rooms]);
 
-  const courses = archive ? archive.courses : plan.courses;
+  // A closed term shows what it ran; the plan shows what is being planned.
+  // Neither shows the other's — an empty table while a past term loads is the
+  // truth, where the plan's courses under its name would not be.
+  const courses = archive ? archive.courses : isPast ? [] : plan.courses;
 
   const periodsByCourse = useMemo(() => {
     const byCourse = new Map<string, PlacedPeriod[]>();
@@ -171,7 +210,7 @@ export function CourseList({
         if (!matchesSlotFilter(course.availability, day, period)) return false;
         // Only the current term has a "still to do" state; in a finished term
         // every course listed is a course that ran.
-        if (!archive && !checklistView) {
+        if (!isPast && !checklistView) {
           if (placement === "placed" && placed.length < course.sessionsPerWeek) return false;
           if (placement === "unplaced" && placed.length >= course.sessionsPerWeek) return false;
         }
@@ -189,7 +228,7 @@ export function CourseList({
   }, [
     courses,
     periodsByCourse,
-    archive,
+    isPast,
     deferredSearch,
     day,
     period,
@@ -213,7 +252,7 @@ export function CourseList({
           onClear: () => { setDay(""); setPeriod(""); },
         }
       : null,
-    !archive && !checklistView && placement !== "all"
+    !isPast && !checklistView && placement !== "all"
       ? {
           label: "สถานะ",
           value: placement === "placed" ? "จัดแล้ว" : "ยังไม่ได้จัด",
@@ -238,6 +277,54 @@ export function CourseList({
   };
 
   /**
+   * Course, company, code and category in one cell.
+   *
+   * They were four columns for two things: which course this row is, and whose
+   * it is. Split across the table they cost width that the paperwork columns
+   * needed more — and a reader looking for a course reads the name and the
+   * company together anyway, because two companies teach courses with nearly
+   * the same name. The links stay separate inside the cell: one goes to this
+   * course, the other to everything that company teaches.
+   */
+  const courseCell = (course: PlanCourse) => (
+    <span className="course-cell">
+      {isPast ? (
+        <span className="course-link is-static"><strong>{course.title}</strong></span>
+      ) : (
+        <Link className="course-link" href={`/elective-plan/courses?q=${encodeURIComponent(course.title)}`}>
+          <strong>{course.title}</strong>
+        </Link>
+      )}
+      {isPast ? (
+        <span className="course-provider is-static">{course.provider}</span>
+      ) : (
+        <Link className="provider-link course-provider" href={`/elective-plan/courses?provider=${encodeURIComponent(course.provider)}`}>
+          {course.provider}
+        </Link>
+      )}
+      <span className="course-code">
+        {course.courseCode}
+        {/* ตอนเรียนขึ้นเฉพาะตอนที่สองเป็นต้นไป วิชาส่วนใหญ่เปิดตอนเดียว การเขียน
+            "ตอน 1" ทุกแถวจึงเป็นคำที่ไม่ได้บอกอะไรใหม่ */}
+        {course.section > 1 ? ` ตอน ${course.section}` : ""} · {course.category}
+      </span>
+      {/* Only courses somebody typed in here can be edited as a whole. A seeded
+          course is the department's record of what a company offered; the
+          fields of it that planning depends on are edited where they are used —
+          periods on the availability page, paperwork in the checklist. */}
+      {!isPast && plan.isAddedCourse(course.id) ? (
+        <span className="course-row-actions">
+          <span className="local-course-tag">เพิ่มเอง</span>
+          <button className="course-row-edit" type="button" onClick={() => setCourseForm({ course })}>
+            แก้ไข
+            <span className="sr-only"> {course.title}</span>
+          </button>
+        </span>
+      ) : null}
+    </span>
+  );
+
+  /**
    * Show the course that was just added.
    *
    * A new course lands at the end of the list, which is very likely a page the
@@ -254,7 +341,7 @@ export function CourseList({
 
   /** The term is a scope, not a filter: the search box narrows within it. */
   const changeTerm = (nextId: string) => {
-    setTermId(nextId);
+    setPickedTermId(nextId);
     setPage(1);
     setPlacement("all");
   };
@@ -305,8 +392,8 @@ export function CourseList({
    */
   const downloadXlsx = () => {
     const context: ExportContext = {
-      term: archive ? archive.term : currentTerm,
-      isArchived: archive !== null,
+      term: archive ? archive.term : selectedTerm ?? currentTerm,
+      isArchived: isPast,
       filters: activeFilters.map((filter) => (filter.value ? `${filter.label}: ${filter.value}` : filter.label)),
       dataUpdated: archive ? archive.lastUpdated : payload.lastUpdated,
       isMock: archive ? archive.isMock : payload.isMock,
@@ -341,16 +428,16 @@ export function CourseList({
       isMock={archive ? archive.isMock : payload.isMock}
       // Local edits belong to the term being planned; saying "แก้ไขไว้ในเครื่องนี้"
       // over a term that ended would point at edits this page is not showing.
-      editedAt={archive ? null : plan.editedAt}
+      editedAt={isPast ? null : plan.editedAt}
       onReset={plan.resetAll}
     >
       <div className="intro-row">
         <div>
           <p className="section-kicker">รายวิชา</p>
-          <h2>{archive ? "วิชาที่เปิดจริง และคาบที่สอนจริง" : "ช่วงที่บริษัทสะดวก และคาบที่ได้จริง"}</h2>
+          <h2>{isPast ? "วิชาที่เปิดจริง และคาบที่สอนจริง" : "ช่วงที่บริษัทสะดวก และคาบที่ได้จริง"}</h2>
           <p className="intro-copy">
-            {archive
-              ? `${archive.term.label} — เทอมที่ปิดไปแล้ว ดูได้อย่างเดียว`
+            {isPast
+              ? `${(selectedTerm ?? archive?.term)?.label ?? "เทอมที่เลือก"} — เทอมที่ปิดไปแล้ว ดูได้อย่างเดียว`
               : "กดชื่อวิชาหรือชื่อบริษัทเพื่อไปแก้ช่วงที่สะดวกของรายการนั้นได้ทันที"}
           </p>
         </div>
@@ -381,7 +468,7 @@ export function CourseList({
             a row: adding a course is not a filter and does not belong among
             them, and it is the same list in either view. A finished term has
             neither — there is nothing left to add to a term that ended. */}
-        {archive ? null : (
+        {isPast ? null : (
           <div className="view-switch-row">
             <div className="view-switch" role="group" aria-label="รูปแบบตาราง">
               <button
@@ -411,7 +498,7 @@ export function CourseList({
             </button>
           </div>
         )}
-        <div className={`filters ${archive ? "filters-archive" : "filters-list"}`}>
+        <div className={`filters ${isPast ? "filters-archive" : "filters-list"}`}>
           <label>
             ค้นหาวิชา ผู้สอน บริษัท หรือหมวด
             <input
@@ -469,16 +556,25 @@ export function CourseList({
           </button>
         </div>
 
-        <ResultAnnouncer message={`พบ ${rows.length} วิชา ใน${archive ? archive.term.label : currentTerm.label}`} />
-        {rows.length === 0 ? (
+        <ResultAnnouncer
+          message={loadingTerm
+            ? `กำลังโหลด${(selectedTerm ?? currentTerm).label}`
+            : `พบ ${rows.length} วิชา ใน${(selectedTerm ?? currentTerm).label}`}
+        />
+        {/* A closed term is a separate read. Until it lands there is nothing to
+            say about it — and "ไม่พบวิชา" would be a claim about the term, not
+            about the request still being in flight. */}
+        {loadingTerm ? (
+          <p className="empty-result" role="status">กำลังโหลดรายวิชาของเทอมที่ปิดไปแล้ว…</p>
+        ) : rows.length === 0 ? (
           <EmptyResult message="ไม่พบวิชาที่ตรงกับตัวกรอง" hasFilters={activeFilters.length > 0} onClear={clearFilters} />
         ) : (
           <>
             <div className="table-wrap">
               {checklistView ? (
-              /* Course and company stay, so a row is still recognisable as the
-                 same row in either view; everything after them is the work
-                 itself. Seven controls in a row is a lot of table, which is
+              /* The course cell stays, so a row is still recognisable as the
+                 same row in either view; everything after it is the work
+                 itself. Eight controls in a row is a lot of table, which is
                  why the columns are headed with a phrase and the full step is
                  on the control's own label for anyone who needs it read out. */
               <table className="checklist-table">
@@ -490,16 +586,14 @@ export function CourseList({
                     several. Percentages so the whole thing still fits when a
                     sidebar takes a slice of the page. */}
                 <colgroup>
-                  <col style={{ width: "17%" }} />
-                  <col style={{ width: "9%" }} />
+                  <col style={{ width: "22%" }} />
                   {CHECKLIST_FIELDS.map((field) => (
-                    <col key={field.key} style={{ width: field.kind === "code" ? "8%" : "11%" }} />
+                    <col key={field.key} style={{ width: field.kind === "code" ? "8%" : "10%" }} />
                   ))}
                 </colgroup>
                 <thead>
                   <tr>
                     <th scope="col">วิชา</th>
-                    <th scope="col">บริษัท</th>
                     {CHECKLIST_FIELDS.map((field) => (
                       <th scope="col" key={field.key} title={field.label}>{field.short}</th>
                     ))}
@@ -508,13 +602,7 @@ export function CourseList({
                 <tbody>
                   {visible.map(({ course, checklist }) => (
                     <tr key={course.id} className={isChecklistComplete(checklist) ? "is-complete" : undefined}>
-                      <td>
-                        <Link className="course-link" href={`/elective-plan/courses?q=${encodeURIComponent(course.title)}`}>
-                          <strong>{course.title}</strong>
-                          <span className="course-code">{course.courseCode} · {course.category}</span>
-                        </Link>
-                      </td>
-                      <td><span className="schedule-text">{course.provider}</span></td>
+                      <td>{courseCell(course)}</td>
                       {CHECKLIST_FIELDS.map((field) => (
                         <td key={field.key}>{checklistControl(course.id, course.title, checklist, field)}</td>
                       ))}
@@ -527,63 +615,20 @@ export function CourseList({
                 <thead>
                   <tr>
                     <th scope="col">วิชา</th>
-                    <th scope="col">บริษัท</th>
                     <th scope="col">ผู้สอน</th>
-                    <th scope="col">{archive ? "ช่วงที่แจ้งไว้" : "ช่วงที่สะดวก"}</th>
-                    <th scope="col">{archive ? "คาบที่สอน" : "คาบที่ได้"}</th>
+                    <th scope="col">{isPast ? "ช่วงที่แจ้งไว้" : "ช่วงที่สะดวก"}</th>
+                    <th scope="col">{isPast ? "คาบที่สอน" : "คาบที่ได้"}</th>
                     <th scope="col">ห้อง</th>
                   </tr>
                 </thead>
                 <tbody>
                   {visible.map(({ course, placed }) => (
                     <tr key={course.id}>
-                      <td>
-                        {/* Both the title and the company lead to the same page,
-                            filtered to what was clicked — from a row here the
-                            next question is always "what else can they do", and
-                            the answer lives on the availability page. That page
-                            only knows the term being planned, so a past term's
-                            rows are plain text rather than links into it. */}
-                        {archive ? (
-                          <span className="course-link is-static">
-                            <strong>{course.title}</strong>
-                            <span className="course-code">{course.courseCode} · {course.category}</span>
-                          </span>
-                        ) : (
-                          <Link className="course-link" href={`/elective-plan/courses?q=${encodeURIComponent(course.title)}`}>
-                            <strong>{course.title}</strong>
-                            <span className="course-code">{course.courseCode} · {course.category}</span>
-                          </Link>
-                        )}
-                        {/* Only courses somebody typed in here can be edited as
-                            a whole. A seeded course is the department's record
-                            of what a company offered; the fields of it that
-                            planning depends on are edited where they are used —
-                            periods on the availability page, paperwork in the
-                            checklist — and the rest is not this app's to rewrite. */}
-                        {!archive && plan.isAddedCourse(course.id) ? (
-                          <span className="course-row-actions">
-                            <span className="local-course-tag">เพิ่มเอง</span>
-                            <button
-                              className="course-row-edit"
-                              type="button"
-                              onClick={() => setCourseForm({ course })}
-                            >
-                              แก้ไข
-                              <span className="sr-only"> {course.title}</span>
-                            </button>
-                          </span>
-                        ) : null}
-                      </td>
-                      <td>
-                        {archive ? (
-                          <span className="schedule-text">{course.provider}</span>
-                        ) : (
-                          <Link className="provider-link" href={`/elective-plan/courses?provider=${encodeURIComponent(course.provider)}`}>
-                            {course.provider}
-                          </Link>
-                        )}
-                      </td>
+                      {/* ทั้งชื่อวิชาและชื่อบริษัทพาไปหน้าเดียวกัน โดยกรองตามสิ่งที่กด
+                          — คำถามถัดไปจากแถวนี้คือ "แล้วเขาสอนคาบไหนได้อีก" ซึ่ง
+                          ตอบอยู่ในหน้าช่วงที่สะดวก หน้านั้นรู้จักแต่เทอมที่กำลังจัด
+                          แถวของเทอมเก่าจึงเป็นข้อความเปล่า ไม่ใช่ลิงก์ */}
+                      <td>{courseCell(course)}</td>
                       <td><span className="schedule-text">{course.instructor}</span></td>
                       <td>
                         {course.availability.length === 0 ? (
@@ -687,13 +732,13 @@ export function CourseList({
         courses={plan.courses}
         isAdded={courseForm?.course ? plan.isAddedCourse(courseForm.course.id) : false}
         assignedCount={courseForm?.course ? plan.assignmentsForCourse(courseForm.course.id) : 0}
-        onSave={async (draft) => {
+        onSave={async (draft, companyId) => {
           const target = courseForm?.course;
           if (target) {
             if (!await plan.updateCourse(target.id, draft)) return;
             show(`บันทึก ${draft.title} แล้ว`, plan.undo);
           } else {
-            if (!await plan.addCourse(draft)) return;
+            if (!await plan.addCourse(draft, companyId)) return;
             show(`เพิ่ม ${draft.title} เข้า${currentTerm.shortLabel} แล้ว`, plan.undo);
             revealCourses();
           }

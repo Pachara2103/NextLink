@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatNumber } from "@/features/elective-plan/lib/format";
 import {
+  COURSE_CATEGORIES,
   DELIVERY_LABELS,
   DELIVERY_MODES,
   courseDraftFrom,
@@ -13,6 +14,8 @@ import {
 import { DAYS, DAY_SHORT, PERIODS, PERIOD_KEYS, makeSlotId, slotLabel } from "@/features/elective-plan/lib/slots.ts";
 import type { PlanCourse } from "@/features/elective-plan/lib/plan-types.ts";
 import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
+import { companyService } from "@/lib/services/company";
+import type { Company } from "@/types";
 
 /** `course: null` means a new course; `target: null` means the dialog is closed. */
 export type CourseFormTarget = { course: PlanCourse | null };
@@ -28,6 +31,7 @@ export type CourseFormTarget = { course: PlanCourse | null };
  */
 const NEW_COURSE: CourseDraft = {
   courseCode: "",
+  section: 1,
   title: "",
   category: "",
   provider: "",
@@ -36,13 +40,16 @@ const NEW_COURSE: CourseDraft = {
   deliveryMode: "ON_SITE",
   availability: [],
   sessionsPerWeek: 1,
-  minSeats: 40,
   capacity: 40,
   weeks: 10,
   notes: null,
 };
 
-type ContactDraft = { name: string; email: string; lineId: string };
+type ContactDraft = { name: string; email: string; phone: string };
+
+/** The one name a company is shown under everywhere in this console. */
+const companyLabel = (company: Company): string =>
+  company.companyTh?.trim() || company.companyEn?.trim() || `บริษัท #${company.id}`;
 
 /**
  * Add or edit one course.
@@ -64,7 +71,11 @@ type CourseDialogProps = {
   isAdded: boolean;
   /** Periods this course currently holds; what a deletion would cost. */
   assignedCount: number;
-  onSave: (draft: CourseDraft) => void;
+  /**
+   * `companyId` is the row the course will hang off in `electives`. It is
+   * undefined on the bundled plan, which has no company table to point at.
+   */
+  onSave: (draft: CourseDraft, companyId?: number) => void;
   onDelete: () => void;
   onClose: () => void;
 };
@@ -83,10 +94,37 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
   const [contact, setContact] = useState<ContactDraft>(() => ({
     name: editing?.coordinator?.name ?? "",
     email: editing?.coordinator?.email ?? "",
-    lineId: editing?.coordinator?.lineId ?? "",
+    phone: editing?.coordinator?.phone ?? "",
   }));
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  /**
+   * The company directory, read once the form is open rather than with the
+   * plan: it is the same list the groups and MOU screens use, it is only
+   * needed by the person filling this in, and a plan that failed to load
+   * because the company list was slow would be the wrong trade.
+   */
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companyId, setCompanyId] = useState<number | null>(null);
+  useEffect(() => {
+    if (plan.mode !== "api") return;
+    let live = true;
+    companyService
+      .list()
+      .then((rows) => {
+        if (!live) return;
+        setCompanies(rows);
+        // Match the course already being edited to its row by the name it is
+        // shown under, so opening a form and saving it does not move a course
+        // to a different company.
+        const name = editing?.provider.trim();
+        const found = name ? rows.find((row) => companyLabel(row) === name) : undefined;
+        setCompanyId(found?.id ?? null);
+      })
+      .catch(() => { if (live) setError("โหลดรายชื่อบริษัทไม่สำเร็จ กรุณาลองใหม่"); });
+    return () => { live = false; };
+  }, [plan.mode, editing]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -97,14 +135,25 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
   /** What other courses already say, so the second one in a company is a pick. */
   const suggestions = useMemo(() => ({
     providers: [...new Set(courses.map((course) => course.provider.trim()).filter(Boolean))].sort(),
-    categories: [...new Set(courses.map((course) => course.category.trim()).filter(Boolean))].sort(),
     instructors: [...new Set(courses.map((course) => course.instructor.trim()).filter(Boolean))].sort(),
   }), [courses]);
+
+  const categoryOptions = useMemo(() => {
+    const set = new Set<string>(COURSE_CATEGORIES);
+    for (const course of courses) {
+      const cat = course.category?.trim();
+      if (cat) set.add(cat);
+    }
+    if (draft.category?.trim()) {
+      set.add(draft.category.trim());
+    }
+    return Array.from(set);
+  }, [courses, draft.category]);
 
   const withContact = (): CourseDraft => ({
     ...draft,
     coordinator: contact.name.trim()
-      ? { name: contact.name, email: contact.email || null, lineId: contact.lineId || null }
+      ? { name: contact.name, email: contact.email || null, phone: contact.phone || null }
       : null,
   });
 
@@ -124,8 +173,12 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
       setError(problem);
       return;
     }
+    if (plan.mode === "api" && !companyId) {
+      setError("กรุณาเลือกบริษัทผู้สอนจากรายชื่อ");
+      return;
+    }
     setError(null);
-    onSave(normalizeCourseDraft(next));
+    onSave(normalizeCourseDraft(next), companyId ?? undefined);
   };
 
   const number = (value: number) => (Number.isFinite(value) ? value : "");
@@ -162,17 +215,16 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
           </label>
 
           <label>
-            หมวดของวิชา
+            ตอนเรียน
+            {/* วิชาเดียวกันที่เปิดสองตอนคือสองวิชาสำหรับระบบนี้: คนละคาบ คนละห้อง
+                และเดินเอกสารแยกกัน สิ่งเดียวที่ใช้ร่วมกันคือรหัสวิชา */}
             <input
-              type="text"
-              list="course-categories"
-              value={draft.category}
-              placeholder="เช่น วิศวกรรมซอฟต์แวร์"
-              onChange={(event) => setDraft({ ...draft, category: event.target.value })}
+              type="number"
+              min={1}
+              max={99}
+              value={number(draft.section)}
+              onChange={(event) => setDraft({ ...draft, section: parse(event.target.value) })}
             />
-            <datalist id="course-categories">
-              {suggestions.categories.map((item) => <option key={item} value={item} />)}
-            </datalist>
           </label>
 
           <label className="course-form-wide">
@@ -185,18 +237,44 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
             />
           </label>
 
+          {/*
+            * On the shared plan the company is a foreign key, so it is picked
+            * rather than typed: "บ. เอบีซี" and "ABC จำกัด" are one company to a
+            * reader and two rows to a database, and the course has to point at
+            * the same one the MOU and the LINE group already do. On the bundled
+            * plan there is no company table, so the free-text box stays.
+            */}
           <label>
             บริษัทผู้สอน
-            <input
-              type="text"
-              list="course-providers"
-              value={draft.provider}
-              placeholder="เช่น Soft Square"
-              onChange={(event) => setDraft({ ...draft, provider: event.target.value })}
-            />
-            <datalist id="course-providers">
-              {suggestions.providers.map((item) => <option key={item} value={item} />)}
-            </datalist>
+            {plan.mode === "api" ? (
+              <select
+                value={companyId ?? ""}
+                disabled={companies.length === 0}
+                onChange={(event) => {
+                  const picked = companies.find((item) => String(item.id) === event.target.value);
+                  setCompanyId(picked?.id ?? null);
+                  setDraft({ ...draft, provider: picked ? companyLabel(picked) : "" });
+                }}
+              >
+                <option value="">{companies.length ? "— เลือกบริษัท —" : "กำลังโหลดรายชื่อบริษัท…"}</option>
+                {companies.map((item) => (
+                  <option key={item.id} value={item.id}>{companyLabel(item)}</option>
+                ))}
+              </select>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  list="course-providers"
+                  value={draft.provider}
+                  placeholder="เช่น Soft Square"
+                  onChange={(event) => setDraft({ ...draft, provider: event.target.value })}
+                />
+                <datalist id="course-providers">
+                  {suggestions.providers.map((item) => <option key={item} value={item} />)}
+                </datalist>
+              </>
+            )}
           </label>
 
           <label>
@@ -211,6 +289,19 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
             <datalist id="course-instructors">
               {suggestions.instructors.map((item) => <option key={item} value={item} />)}
             </datalist>
+          </label>
+
+          <label>
+            หมวดของวิชา
+            <select
+              value={draft.category}
+              onChange={(event) => setDraft({ ...draft, category: event.target.value })}
+            >
+              <option value="">— เลือกหมวดของวิชา —</option>
+              {categoryOptions.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
           </label>
 
           <label>
@@ -281,6 +372,7 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
           </fieldset>
 
           <label>
+            {/* ตัวเลขเดียวกันนี้เป็นเกณฑ์เลือกห้องด้วย: ห้องที่นั่งน้อยกว่านี้ถือว่าเล็กไป */}
             จำนวนที่รับ (คน)
             <input
               type="number"
@@ -288,17 +380,6 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
               max={10000}
               value={number(draft.capacity)}
               onChange={(event) => setDraft({ ...draft, capacity: parse(event.target.value) })}
-            />
-          </label>
-
-          <label>
-            ที่นั่งขั้นต่ำที่ห้องต้องมี
-            <input
-              type="number"
-              min={0}
-              max={10000}
-              value={number(draft.minSeats)}
-              onChange={(event) => setDraft({ ...draft, minSeats: parse(event.target.value) })}
             />
           </label>
 
@@ -340,12 +421,13 @@ function CourseDialogForm({ target, courses, isAdded, assignedCount, onSave, onD
                 />
               </label>
               <label>
-                LINE ID
+                เบอร์โทร
                 <input
                   type="text"
-                  value={contact.lineId}
-                  placeholder="เช่น softsquare_narin"
-                  onChange={(event) => setContact({ ...contact, lineId: event.target.value })}
+                  inputMode="tel"
+                  value={contact.phone}
+                  placeholder="เช่น 081-234-5678"
+                  onChange={(event) => setContact({ ...contact, phone: event.target.value })}
                 />
               </label>
             </div>

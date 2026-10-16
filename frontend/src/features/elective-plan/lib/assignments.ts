@@ -19,9 +19,19 @@ export function assertPlacement(
     throw new Error("วิชาในห้องเรียนหรือไฮบริดต้องมีห้องเรียน กรุณาเลือกคอลัมน์ห้อง");
   }
   if (course.deliveryMode === "ONLINE" && roomId !== null) throw new Error("วิชาออนไลน์ไม่ใช้ห้องเรียน");
+  // ข้อจำกัดของวิชาเองมาก่อน: ถ้าคาบปลายทางเป็นคาบของวิชานี้อยู่แล้ว การบอกว่า
+  // "ห้องไม่ว่าง" เป็นความจริงที่ไม่ช่วยอะไร
   const others = assignments.filter((item) => item.courseId === course.id && item.id !== ignoreId);
   if (others.some((item) => item.slotId === slotId)) throw new Error("วิชานี้มีคาบในช่วงปลายทางแล้ว กรุณาเลือกคาบอื่น");
   if (others.length >= course.sessionsPerWeek) throw new Error("วิชานี้ถูกจัดครบจำนวนคาบแล้ว");
+  // หนึ่งห้อง หนึ่งคาบ หนึ่งคลาส - ปฏิเสธตั้งแต่ตอนวาง ไม่ใช่ปล่อยให้ทับกันแล้ว
+  // ค่อยไปขึ้นเป็นรายการชนให้ตามแก้ สองคลาสในห้องเดียวเวลาเดียวกันไม่ใช่สถานะ
+  // ที่ควรบันทึกได้ และตาราง elective_sessions ก็ไม่รับแถวแบบนั้น
+  if (roomId !== null && assignments.some(
+    (item) => item.id !== ignoreId && item.roomId === roomId && item.slotId === slotId,
+  )) {
+    throw new Error("ห้องนี้มีคลาสอยู่แล้วในคาบนี้ กรุณาเลือกห้องอื่นหรือคาบอื่น");
+  }
 }
 
 export function placeAssignment(input: {

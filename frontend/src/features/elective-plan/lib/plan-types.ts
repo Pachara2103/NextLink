@@ -2,10 +2,17 @@ import type { SlotId } from "./slots.ts";
 
 export type DeliveryMode = "ON_SITE" | "HYBRID" | "ONLINE";
 
+/**
+ * The person at the company to ring about one course.
+ *
+ * Email and phone rather than email and LINE id: this contact is a row in
+ * `employees`, which has those two columns and no third one, and a field that
+ * cannot be written back is a field that quietly loses whatever is typed in it.
+ */
 export type Contact = {
   name: string;
   email: string | null;
-  lineId: string | null;
+  phone: string | null;
 };
 
 /**
@@ -47,6 +54,13 @@ export type PlanRoom = {
 export type PlanCourse = {
   id: string;
   courseCode: string;
+  /**
+   * ตอนเรียน. Two sections of one course are two courses to this app: they meet
+   * at different times, in different rooms, and are signed off separately — the
+   * only thing they share is the code, which is why the code alone is not an
+   * identity here.
+   */
+  section: number;
   title: string;
   category: string;
   provider: string;
@@ -57,9 +71,13 @@ export type PlanCourse = {
   availability: SlotId[];
   /** How many periods a week this course needs. Usually 1. */
   sessionsPerWeek: number;
-  /** Seats the room must have. Room *type* is deliberately not modelled: every
-   *  class is taught with students on their own laptops. */
-  minSeats: number;
+  /**
+   * How many students the course takes, and therefore the smallest room it
+   * fits in. One number rather than two: the staff who fill this in know the
+   * real seat count, and a separate "minimum seats" was a second place for the
+   * same fact to be wrong. Room *type* is deliberately not modelled — every
+   * class is taught with students on their own laptops.
+   */
   capacity: number;
   weeks: number;
   notes: string | null;
