@@ -7,7 +7,7 @@ and, for a new resource, one include_router line here — app.py never grows.
 from fastapi import APIRouter
 
 from api.v1 import admin, auth, company, contact, line, note, ai, chat_history
-from api.v1 import employee
+from api.v1 import employee, friday_activity, friday_import
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -20,4 +20,6 @@ api_router.include_router(line.router)
 api_router.include_router(note.router)
 api_router.include_router(ai.router)
 api_router.include_router(chat_history.router)
+api_router.include_router(friday_import.router)
+api_router.include_router(friday_activity.router)
 
