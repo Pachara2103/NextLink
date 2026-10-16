@@ -177,7 +177,7 @@ export type {
   ElectiveTermCreate,
   ElectiveWrite,
   ReceiptStatus,
-  RoomTier,
+  RoomType,
   SessionSource,
   TermStatus,
 } from "./elective";

@@ -14,7 +14,7 @@
 -- ซึ่งตอนนี้เป็นข้อมูลตัวอย่างของโหมด dev เท่านั้น **ตารางนี้คือของจริง** -
 -- แก้ห้องให้แก้ผ่านหน้าเว็บ ไม่ใช่แก้ไฟล์ JSON แล้วรันไฟล์นี้ซ้ำ
 --
--- จุฬาพัฒน์ = ห้องของภาค จัดได้เลย (tier = ready)
+-- จุฬาพัฒน์ = ห้องของภาค จัดได้เลย (type = ready)
 -- ตึก 3 / ตึก 4 / ตึกร้อยปี = ห้องคณะ ต้องยื่นเรื่องก่อน (needs_approval)
 -- ที่นั่งของห้องคณะเป็นตัวเลขประมาณจากการสังเกต ยังไม่ได้ยืนยันกับผู้ดูแล
 -- อาคาร จึงตั้ง seats_is_estimated = true ระบบถือเป็นขอบล่างและแสดงเป็น ~40
@@ -52,7 +52,7 @@ ON CONFLICT ON CONSTRAINT uq_elective_terms_year_semester DO NOTHING;
 -- ชื่อห้องเขียนเต็มรวมชื่ออาคาร เพราะเป็นชื่อที่คนในภาคเรียกกันจริง และเป็น
 -- ชื่อที่ไปโผล่บนหัวคอลัมน์ของตาราง กับในไฟล์ Excel ที่ส่งต่อให้คนอื่น
 -- --------------------------------------------------------------------------
-INSERT INTO elective_rooms (building, name, floor, seats, seats_is_estimated, tier) VALUES
+INSERT INTO elective_rooms (building, name, floor, seats, seats_is_estimated, type) VALUES
     -- จุฬาพัฒน์ 4
     ('จุฬาพัฒน์ 4', 'จุฬาพัฒน์ 4 ชั้น 1', '1', 64, false, 'ready'),
     ('จุฬาพัฒน์ 4', 'จุฬาพัฒน์ 4 ห้อง A ชั้น 3', '3', 64, false, 'ready'),
@@ -112,8 +112,8 @@ BEGIN
     FROM elective_terms WHERE status = 'current';
 
     SELECT
-        count(*) FILTER (WHERE tier = 'ready' AND is_active),
-        count(*) FILTER (WHERE tier = 'needs_approval' AND is_active)
+        count(*) FILTER (WHERE type = 'ready' AND is_active),
+        count(*) FILTER (WHERE type = 'needs_approval' AND is_active)
     INTO ready_rooms, approval_rooms
     FROM elective_rooms;
 

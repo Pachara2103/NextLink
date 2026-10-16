@@ -88,7 +88,7 @@ class TermStatus(StrEnum):
     ARCHIVED = "archived"
 
 
-class RoomTier(StrEnum):
+class RoomType(StrEnum):
     """ห้องภาคจัดได้เลย ห้องคณะต้องยื่นขอก่อน ตัวจัดตารางจึงเลือกห้องภาคก่อนเสมอ"""
 
     READY = "ready"

@@ -24,7 +24,7 @@ export type Contact = {
  * steps first, so those rooms are a fallback, never a first choice. See
  * `planSchedule` in lib/scheduler.ts for how that is enforced.
  */
-export type RoomTier = "READY" | "NEEDS_APPROVAL";
+export type RoomType = "READY" | "NEEDS_APPROVAL";
 
 export type PlanRoom = {
   id: string;
@@ -38,7 +38,7 @@ export type PlanRoom = {
    * may hold more, but nothing here may assume it does.
    */
   seatsIsEstimated: boolean;
-  tier: RoomTier;
+  type: RoomType;
   /** Periods already taken by something else, with the reason to show a reader. */
   blockedSlots: Array<{ slotId: SlotId; reason: string }>;
 };

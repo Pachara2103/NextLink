@@ -188,7 +188,7 @@ export function readRoom(room: ElectiveRoom): PlanRoom {
     floor: room.floor,
     seats: room.seats,
     seatsIsEstimated: room.seatsIsEstimated,
-    tier: room.tier === "ready" ? "READY" : "NEEDS_APPROVAL",
+    type: room.type === "ready" ? "READY" : "NEEDS_APPROVAL",
     blockedSlots: (room.blockedSlots ?? [])
       .filter((block) => isSlotId(block.slot))
       .map((block) => ({ slotId: block.slot as SlotId, reason: block.reason }))
@@ -400,7 +400,7 @@ export function roomWrite(room: RoomDraft | Omit<PlanRoom, "id">): ElectiveRoomW
     floor: room.floor.trim(),
     seats: room.seats,
     seatsIsEstimated: room.seatsIsEstimated,
-    tier: room.tier === "READY" ? "ready" : "needs_approval",
+    type: room.type === "READY" ? "ready" : "needs_approval",
     isActive: true,
     blockedSlots: blocked
       ? [...blocked]

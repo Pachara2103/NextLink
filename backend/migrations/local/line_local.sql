@@ -10,10 +10,10 @@
 --   line_messages <- services/line.py::get_groups_messages
 --
 -- line_group_reads ไม่ได้อยู่ในนี้ เพราะเป็นสถานะของ backend เอง อยู่ฝั่ง
--- nextlink (ดู migrations/line_group_reads.sql)
+-- nextlink และถูกสร้างโดย migrations/init.sql แล้ว
 --
 -- รันกับฐานที่ LINE_DATABASE_URL ชี้ไปตอนพัฒนา:
---   psql postgresql://postgres:<รหัส>@localhost:5433/line -f migrations/line_local.sql
+--   psql postgresql://postgres:<รหัส>@localhost:5433/line -f migrations/local/line_local.sql
 -- ==========================================================================
 
 BEGIN;

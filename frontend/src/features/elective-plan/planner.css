@@ -667,11 +667,11 @@ out — but it should never happen without the reader seeing it. */
 .elective-planner .room-form .room-form-check { display: flex; align-items: flex-start; gap: 10px; grid-column: 1 / -1; color: var(--ep-ink, #38445b); font-size: 14px; font-weight: 700; }
 .elective-planner .room-form-check input { width: 18px; height: 18px; margin-top: 3px; }
 .elective-planner .room-form-check small { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; font-weight: 650; line-height: 1.45; }
-.elective-planner .tier-choice { display: grid; gap: 10px; margin: 0; padding: 13px 14px; border: 1px solid var(--line); border-radius: 12px; }
-.elective-planner .tier-choice legend { padding: 0 6px; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-.elective-planner .tier-choice label { display: flex; align-items: flex-start; gap: 10px; color: var(--ep-ink, #38445b); font-size: 14px; font-weight: 700; }
-.elective-planner .tier-choice input { width: 18px; height: 18px; margin-top: 3px; }
-.elective-planner .tier-choice small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; font-weight: 650; line-height: 1.45; }
+.elective-planner .type-choice { display: grid; gap: 10px; margin: 0; padding: 13px 14px; border: 1px solid var(--line); border-radius: 12px; }
+.elective-planner .type-choice legend { padding: 0 6px; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.elective-planner .type-choice label { display: flex; align-items: flex-start; gap: 10px; color: var(--ep-ink, #38445b); font-size: 14px; font-weight: 700; }
+.elective-planner .type-choice input { width: 18px; height: 18px; margin-top: 3px; }
+.elective-planner .type-choice small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; font-weight: 650; line-height: 1.45; }
 .elective-planner .room-form-error { grid-column: 1 / -1; margin: 0; padding: 10px 12px; border-radius: 9px; color: var(--ep-red, #a3313c); background: var(--ep-pink-soft, #ffe9ed); font-size: 13px; line-height: 1.5; }
 .elective-planner .dialog-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 4px; padding-top: 16px; border-top: 1px solid var(--line); }
 .elective-planner .dialog-actions-end { display: flex; align-items: center; gap: 10px; margin-left: auto; }

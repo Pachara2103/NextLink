@@ -64,10 +64,10 @@ function roomPatch(value: unknown, full = false): boolean {
   for (const key of ["name", "building", "floor"])
     if ((full || key in value) && (!string(value[key]) || !value[key].trim())) return false;
   if ((full || "seats" in value) && !count(value.seats, 1, 2000)) return false;
-  if ((full || "tier" in value) && value.tier !== "READY" && value.tier !== "NEEDS_APPROVAL") return false;
+  if ((full || "type" in value) && value.type !== "READY" && value.type !== "NEEDS_APPROVAL") return false;
   if ((full || "seatsIsEstimated" in value) && typeof value.seatsIsEstimated !== "boolean") return false;
   if ((full || "blockedSlots" in value) && !blockedSlots(value.blockedSlots)) return false;
-  return Object.keys(value).every((key) => ["name", "building", "floor", "seats", "tier", "seatsIsEstimated", "blockedSlots", ...(full ? ["id"] : [])].includes(key));
+  return Object.keys(value).every((key) => ["name", "building", "floor", "seats", "type", "seatsIsEstimated", "blockedSlots", ...(full ? ["id"] : [])].includes(key));
 }
 function contact(value: unknown): boolean {
   if (value === null) return true;

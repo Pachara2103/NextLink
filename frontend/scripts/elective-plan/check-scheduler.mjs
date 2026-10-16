@@ -46,14 +46,14 @@ const course = (over) => ({
   notes: null,
 });
 
-const room = (id, seats, tier = "READY", blockedSlots = []) => ({
+const room = (id, seats, type = "READY", blockedSlots = []) => ({
   id,
   name: id,
-  building: tier === "READY" ? "จุฬาพัฒน์" : "ตึก 4",
+  building: type === "READY" ? "จุฬาพัฒน์" : "ตึก 4",
   floor: "1",
   seats,
   seatsIsEstimated: false,
-  tier,
+  type,
   blockedSlots,
 });
 

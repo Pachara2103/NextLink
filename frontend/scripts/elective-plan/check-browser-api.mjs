@@ -44,8 +44,8 @@ const TERM = { id: 7, year: 2569, semester: 1, status: 'current', createdAt: '20
 /** The term that was closed to open the one above — 1/2569 in the report. */
 const PAST_TERM = { id: 6, year: 2568, semester: 2, status: 'archived', createdAt: null, updatedAt: '2026-01-01T03:00:00Z' };
 const ROOMS = [
-  { id: 4, name: '301', building: 'จุฬาพัฒน์ 14', floor: '3', seats: 40, seatsIsEstimated: false, tier: 'ready', isActive: true, blockedSlots: [], createdAt: null, updatedAt: null },
-  { id: 5, name: '302', building: 'จุฬาพัฒน์ 14', floor: '3', seats: 60, seatsIsEstimated: false, tier: 'ready', isActive: true, blockedSlots: [], createdAt: null, updatedAt: null },
+  { id: 4, name: '301', building: 'จุฬาพัฒน์ 14', floor: '3', seats: 40, seatsIsEstimated: false, type: 'ready', isActive: true, blockedSlots: [], createdAt: null, updatedAt: null },
+  { id: 5, name: '302', building: 'จุฬาพัฒน์ 14', floor: '3', seats: 60, seatsIsEstimated: false, type: 'ready', isActive: true, blockedSlots: [], createdAt: null, updatedAt: null },
 ];
 const course = (id, code, name) => ({
   id, termId: 7, companyId: 3, companyTh: 'บริษัททดสอบ', companyEn: null,

@@ -110,7 +110,7 @@ export function RoomSchedule({ roomId }: { roomId: string }) {
           <p className="intro-copy">
             {room.seatsIsEstimated ? "ประมาณ " : ""}
             {formatNumber(room.seats)} ที่นั่ง · ใช้ไปแล้ว {formatNumber(inThisRoom.length)} จาก {formatNumber(capacity)} คาบ
-            {room.tier === "NEEDS_APPROVAL" ? " · ห้องนี้ต้องยื่นเรื่องขอใช้กับคณะวิศวะก่อน" : ""}
+            {room.type === "NEEDS_APPROVAL" ? " · ห้องนี้ต้องยื่นเรื่องขอใช้กับคณะวิศวะก่อน" : ""}
           </p>
         </div>
         <div className="intro-badges">
@@ -122,7 +122,7 @@ export function RoomSchedule({ roomId }: { roomId: string }) {
               <span className="scope-chip-label">ความจุ</span> ยังไม่ยืนยัน
             </span>
           ) : null}
-          {room.tier === "NEEDS_APPROVAL" ? <span className="status-pill tone-orange">ต้องขออนุมัติ</span> : null}
+          {room.type === "NEEDS_APPROVAL" ? <span className="status-pill tone-orange">ต้องขออนุมัติ</span> : null}
         </div>
       </div>
 

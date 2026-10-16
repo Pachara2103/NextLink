@@ -27,7 +27,7 @@ const elective = (over = {}) => ({
 });
 const room = (over = {}) => ({
   id: 4, name: '301', building: 'จุฬาพัฒน์ 14', floor: '3', seats: 40, seatsIsEstimated: false,
-  tier: 'ready', isActive: true, blockedSlots: [], createdAt: null, updatedAt: null, ...over,
+  type: 'ready', isActive: true, blockedSlots: [], createdAt: null, updatedAt: null, ...over,
 });
 const session = (over = {}) => ({
   id: 55, electiveId: 12, termId: 7, slot: 'MON_AM', roomId: 4, startTime: '09:00:00',
@@ -121,11 +121,11 @@ check('a new room takes the server id, matched by building and name', () => {
   const placeholder = placeholderId('room');
   const state = withRooms(loaded(), [
     ...loaded().payload.rooms,
-    { id: placeholder, name: 'ENG-201', building: 'วิศวฯ 4', floor: '2', seats: 80, seatsIsEstimated: true, tier: 'NEEDS_APPROVAL', blockedSlots: [] },
+    { id: placeholder, name: 'ENG-201', building: 'วิศวฯ 4', floor: '2', seats: 80, seatsIsEstimated: true, type: 'NEEDS_APPROVAL', blockedSlots: [] },
   ]);
-  const settled = reconcileRoom(room({ id: 9, name: 'ENG-201', building: 'วิศวฯ 4', floor: '2', seats: 80, seatsIsEstimated: true, tier: 'needs_approval' }))(state);
+  const settled = reconcileRoom(room({ id: 9, name: 'ENG-201', building: 'วิศวฯ 4', floor: '2', seats: 80, seatsIsEstimated: true, type: 'needs_approval' }))(state);
   assert.deepEqual(settled.payload.rooms.map((item) => item.id), ['4', '9']);
-  assert.equal(settled.payload.rooms[1].tier, 'NEEDS_APPROVAL');
+  assert.equal(settled.payload.rooms[1].type, 'NEEDS_APPROVAL');
 });
 
 check('a placeholder id is refused by the request builder rather than sent as NaN', () => {

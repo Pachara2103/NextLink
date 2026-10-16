@@ -103,7 +103,7 @@ function readSlots(where: string, values: unknown): SlotId[] {
 }
 
 function readRoom(raw: (typeof roomsJson)["rooms"][number]): PlanRoom {
-  if (raw.tier !== "READY" && raw.tier !== "NEEDS_APPROVAL") throw new Error(`room ${raw.id}: unknown tier ${raw.tier}`);
+  if (raw.type !== "READY" && raw.type !== "NEEDS_APPROVAL") throw new Error(`room ${raw.id}: unknown type ${raw.type}`);
   assertSeedNumber(`room ${raw.id} seats`, raw.seats, 1, 2000);
   if (new Set(raw.blockedSlots.map((entry) => entry.slotId)).size !== raw.blockedSlots.length) throw new Error(`room ${raw.id}: duplicate blocked slot`);
   return {
@@ -113,7 +113,7 @@ function readRoom(raw: (typeof roomsJson)["rooms"][number]): PlanRoom {
     floor: raw.floor,
     seats: raw.seats,
     seatsIsEstimated: raw.seatsIsEstimated,
-    tier: raw.tier === "NEEDS_APPROVAL" ? "NEEDS_APPROVAL" : "READY",
+    type: raw.type === "NEEDS_APPROVAL" ? "NEEDS_APPROVAL" : "READY",
     blockedSlots: raw.blockedSlots.map((blocked) => {
       if (!isSlotId(blocked.slotId)) {
         throw new Error(`room ${raw.id}: unknown blocked slot "${blocked.slotId}"`);

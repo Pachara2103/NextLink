@@ -49,7 +49,7 @@ export function PlanOverview() {
   /** Companies that have not answered yet — nothing can be planned for these. */
   const awaitingAvailability = plan.courses.filter((course) => course.availability.length === 0).length;
   const needsApproval = plan.assignments.filter(
-    (item) => item.roomId && roomsById.get(item.roomId)?.tier === "NEEDS_APPROVAL",
+    (item) => item.roomId && roomsById.get(item.roomId)?.type === "NEEDS_APPROVAL",
   ).length;
 
   const { readyCapacity, roomSlotsUsed, utilisation, flaggedCourses } = planMetrics(plan.rooms, plan.assignments, plan.conflicts);

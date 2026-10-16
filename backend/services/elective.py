@@ -56,7 +56,6 @@ from schemas.enums import (
     DeliveryMode,
     ElectiveSlot,
     RelevantType,
-    TermStatus,
 )
 from services import outbox
 from services.employee import create_employee_pg
@@ -171,14 +170,11 @@ def _resolve_term(conn: Any, term_id: int | None) -> ElectiveTerm:
     return _term_row(conn, term_id) if term_id else _current_term(conn)
 
 
-def _assert_editable(term: ElectiveTerm) -> None:
-    """เทอมที่ปิดไปแล้วคือบันทึกว่าเกิดอะไรขึ้น ไม่ใช่แผนที่ยังแก้ได้
-
-    หน้าเว็บซ่อนปุ่มแก้ทั้งหมดเมื่อดูเทอมเก่าอยู่แล้ว ตรงนี้คือด่านสำหรับคำสั่ง
-    ที่ไม่ได้ผ่านหน้าจอ (แท็บที่เปิดค้างไว้ตั้งแต่ก่อนปิดเทอม)
-    """
-    if term.status == TermStatus.ARCHIVED:
-        raise BadRequestError(message="เทอมนี้ปิดไปแล้ว แก้ไขไม่ได้")
+# เทอมที่จบไปแล้วยังเขียนได้
+#
+# เคยมีด่านหนึ่งที่ปิดทุกคำสั่งเขียนของเทอม archived แต่งานจริงต้องนำเข้า
+# ข้อมูลย้อนหลังของเทอมที่ผ่านไปแล้ว เก็บไว้ดูเป็นประวัติ ด่านนั้นจึงถูกถอดออก
+# สถานะ current/archived ยังมีอยู่ แต่บอกแค่ว่าเทอมไหนกำลังจัดอยู่ ไม่ได้แปลว่าห้ามเขียน
 
 
 def create_term(payload: ElectiveTermCreate, archive_current: bool = True) -> ElectiveTerm:
@@ -538,12 +534,12 @@ def _attach_availability(conn: Any, electives: list[Elective]) -> list[Elective]
 
     with conn.cursor() as cursor:
         cursor.execute(
-            "SELECT elective_id, slot FROM elective_availability WHERE elective_id = ANY(%s);",
+            "SELECT elective_id, slots FROM elective_availability WHERE elective_id = ANY(%s);",
             ([item.id for item in electives],),
         )
-        grouped: dict[int, list[str]] = {}
-        for elective_id, slot in cursor.fetchall():
-            grouped.setdefault(elective_id, []).append(slot)
+        grouped: dict[int, list[str]] = {
+            elective_id: list(slots or []) for elective_id, slots in cursor.fetchall()
+        }
 
     for item in electives:
         item.availability = _sorted_slots(grouped.get(item.id, []))
@@ -579,15 +575,18 @@ def get_elective(id: int) -> Elective:
 
 
 def _write_availability(conn: Any, elective_id: int, slots: Iterable[ElectiveSlot]) -> None:
+    # หนึ่งคำสั่ง ไม่ใช่ DELETE แล้วไล่ INSERT ทีละคาบ: สิบแปดคาบของ
+    # วิชาหนึ่งคือแถวเดียวแล้ว และลำดับในอาเรย์คือลำดับคาบในสัปดาห์
     with conn.cursor() as cursor:
         cursor.execute(
-            "DELETE FROM elective_availability WHERE elective_id = %s;", (elective_id,)
+            """
+            INSERT INTO elective_availability (elective_id, slots)
+            VALUES (%s, %s)
+            ON CONFLICT (elective_id) DO UPDATE
+                SET slots = EXCLUDED.slots, updated_at = now();
+            """,
+            (elective_id, [slot.value for slot in _sorted_slots(slots)]),
         )
-        for slot in _sorted_slots(slots):
-            cursor.execute(
-                "INSERT INTO elective_availability (elective_id, slot) VALUES (%s, %s);",
-                (elective_id, slot.value),
-            )
 
 
 def _elective_params(payload: ElectiveWrite, term_id: int, lecturer_id: int, coordinator_id: int | None) -> dict:
@@ -614,7 +613,6 @@ def create_elective(payload: ElectiveWrite, user_id: Any) -> Elective:
 
     with nl_db.get_connection() as conn:
         term = _resolve_term(conn, payload.term_id)
-        _assert_editable(term)
 
         lecturer_id = _resolve_person(
             conn, payload.company_id, payload.lecturer, user_id, _LECTURER_TITLE,
@@ -668,7 +666,6 @@ def update_elective(id: int, payload: ElectiveWrite, user_id: Any) -> Elective:
     with nl_db.get_connection() as conn:
         current = _elective_row(conn, id)
         term = _resolve_term(conn, payload.term_id or current.term_id)
-        _assert_editable(term)
 
         lecturer_id = _resolve_person(
             conn, payload.company_id, payload.lecturer, user_id, _LECTURER_TITLE,
@@ -707,7 +704,6 @@ def update_elective(id: int, payload: ElectiveWrite, user_id: Any) -> Elective:
 def set_availability(id: int, slots: list[ElectiveSlot]) -> Elective:
     with nl_db.get_connection() as conn:
         elective = _elective_row(conn, id)
-        _assert_editable(_term_row(conn, elective.term_id))
         try:
             _write_availability(conn, id, slots)
         except psycopg2.IntegrityError as e:
@@ -724,7 +720,6 @@ def delete_elective(id: int) -> None:
     """
     with nl_db.get_connection() as conn:
         elective = _elective_row(conn, id)
-        _assert_editable(_term_row(conn, elective.term_id))
 
         with conn.cursor() as cursor:
             cursor.execute("DELETE FROM electives WHERE id = %s;", (id,))
@@ -791,7 +786,6 @@ def _assert_quota(conn: Any, elective: Elective) -> None:
 def place_session(payload: ElectiveSessionWrite) -> ElectiveSession:
     with nl_db.get_connection() as conn:
         elective = _elective_row(conn, payload.elective_id)
-        _assert_editable(_term_row(conn, elective.term_id))
         _assert_room_matches_mode(elective, payload.room_id)
         _assert_quota(conn, elective)
 
@@ -835,7 +829,6 @@ def update_session(id: int, payload: ElectiveSessionWrite) -> ElectiveSession:
     with nl_db.get_connection() as conn:
         current = _session_row(conn, id)
         elective = _elective_row(conn, current.elective_id)
-        _assert_editable(_term_row(conn, elective.term_id))
 
         moved = current.slot != payload.slot
         if current.is_locked and (moved or current.room_id != payload.room_id):
@@ -885,7 +878,6 @@ def update_session(id: int, payload: ElectiveSessionWrite) -> ElectiveSession:
 def delete_session(id: int) -> None:
     with nl_db.get_connection() as conn:
         current = _session_row(conn, id)
-        _assert_editable(_term_row(conn, current.term_id))
         if current.is_locked:
             raise BadRequestError(message="ปลดล็อกคาบนี้ก่อนเอาออกจากตาราง")
 
@@ -911,7 +903,6 @@ def replace_sessions(
     """
     with nl_db.get_connection() as conn:
         term = _resolve_term(conn, term_id)
-        _assert_editable(term)
 
         with conn.cursor() as cursor:
             cursor.execute("SELECT id FROM elective_terms WHERE id = %s FOR UPDATE;", (term.id,))
@@ -1024,7 +1015,6 @@ def update_checklist(elective_id: int, payload: ElectiveChecklistUpdate) -> Elec
 
     with nl_db.get_connection() as conn:
         elective = _elective_row(conn, elective_id)
-        _assert_editable(_term_row(conn, elective.term_id))
 
         try:
             with conn.cursor() as cursor:

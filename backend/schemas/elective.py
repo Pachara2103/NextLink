@@ -18,7 +18,7 @@ from schemas.enums import (
     DoneStatus,
     ElectiveSlot,
     ReceiptStatus,
-    RoomTier,
+    RoomType,
     SessionSource,
     TermStatus,
 )
@@ -58,7 +58,7 @@ class ElectiveRoomBase(ApiBaseModel):
     seats_is_estimated: bool = Field(
         False, description="true = ตัวเลขจากการสังเกต ระบบถือเป็นขอบล่างและแสดงเป็น ~40"
     )
-    tier: RoomTier = RoomTier.NEEDS_APPROVAL
+    type: RoomType = RoomType.NEEDS_APPROVAL
     is_active: bool = True
 
 
