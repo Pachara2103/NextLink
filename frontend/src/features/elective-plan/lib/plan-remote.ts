@@ -52,7 +52,7 @@ import { emptyDocument, type PlanDocument } from "./plan-document.ts";
 import { replaceCommand } from "./plan-commands.ts";
 import { readArchivedTerm, readPlan, readTerm } from "./plan-api.ts";
 import { blankState, type Reconcile, type RemoteState } from "./plan-state.ts";
-import type { PlanPayload, TermMeta } from "./plan-types.ts";
+import type { PlanPayload } from "./plan-types.ts";
 import type { PlanSnapshot } from "./plan-store.ts";
 
 export type CommandContext = { before: RemoteState; after: RemoteState };

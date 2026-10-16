@@ -113,14 +113,18 @@ for instructor rights and inviting anyone in — the course has to exist before
 anybody can be added to it. The course and company columns became one cell in
 both tables to pay for the extra column.
 
-### Plan document version 4
+### Plan document version 5
 
-`courseEdits` makes the stored plan version 4, written to
-`nextlink.plan.v4.<termId>`. A version 3 document is read from
-`nextlink.plan.v3.<termId>` (and version 1/2 from `nextlink.plan.v1`), shown with
-no added courses, and saved back under the version 4 key when anything is next
-saved; the older key is left in place, so an older build still open in another
-tab keeps working from the plan it knows. Backups exported before this change
+`courseEdits` made the stored plan version 4; renaming a room's `tier` to `type`,
+following the column, makes it version 5, written to `nextlink.plan.v5.<termId>`.
+A version 4 document is read from `nextlink.plan.v4.<termId>` (version 3 from
+`nextlink.plan.v3.<termId>`, version 1/2 from `nextlink.plan.v1`) and its room
+edits are renamed on the way in by `readStoredRoomPatch` — one line, in one
+place, so the validator stays a statement about the current shape only. Without
+it a v4 document would fail validation whole and lose every edit in it over one
+renamed field. Each is shown as it is and saved back under the version 5 key when
+anything is next saved; the older key is left in place, so an older build still
+open in another tab keeps working from the plan it knows. Backups exported before this change
 import unchanged. Plans still belong to the browser origin: a course added on one
 machine reaches another only through **สำรองแผน JSON** and **นำเข้าแผน**.
 
@@ -133,6 +137,49 @@ The planner now has two stores behind one interface, chosen per process by
 |---|---|---|
 | unset (default) | `RemotePlanStore` | `/api/v1/electives` → postgres |
 | `seed` | `PlanStore` | bundled JSON + localStorage |
+
+### What is sent at the press, and what waits for บันทึก
+
+Every command carries a `scope`. `"now"` is the default and sends at the press;
+`"timetable"` draws the change and waits for the board's บันทึก, so it has no
+`send` of its own.
+
+| scope | commands | why |
+|---|---|---|
+| `timetable` | place, move, remove, retime, จัดตารางใหม่, ล้างที่ยังไม่ล็อก | laying out a week is twenty drags that are one decision, and half of those positions are ones the planner is only trying out |
+| `now` | course add/edit/delete, availability, rooms, room bookings, checklist, lock/unlock | each is one decision, finished when it is pressed |
+
+บันทึก sends the finished week as **one** request — `PUT /sessions`, the same
+transactional swap จัดตารางใหม่ already used, which the server applies whole or
+refuses whole. A refusal leaves the edits on screen with the reason beside them,
+which is the only state they can be corrected from. ยกเลิก restores the week the
+server last confirmed, and only the week: the courses and rooms were saved at the
+press and are not that button's to undo. While anything is waiting, the focus
+refresh is suppressed — a read would replace the edits with the server's week,
+which is the one thing บันทึก exists to prevent.
+
+Locking is `now` even though the control sits on a card: a lock is a statement
+about a row the server already has — it is what the bulk swap leaves alone — so
+it cannot be applied to a card that has not been saved yet.
+
+There is no เลิกทำ anywhere on the page. A step back was right when the plan was
+one person's document with a revision history behind it; on a plan several people
+write to, the state it would restore may already have been built on by somebody
+else, so the button promised something it could not do. ยกเลิก is the honest
+version of the same idea: it discards edits that were never sent.
+
+### Any term, including one that has ended
+
+An ended term is read-only in no sense but the planning one. The backend has no
+guard against writing to an `archived` term: backfilling terms that ran before
+this page existed is the reason the history is worth reading at all, and
+`current`/`archived` now says which term is being planned, not what may be
+written. The courses tab keeps its add button on a past term and names that
+term's row explicitly (`TermMeta.serverId`), because the store is holding the
+term being planned and "the term being looked at" is that page's business alone —
+so the new course is written to the right term and read back from the archives
+rather than drawn under the wrong term's name. The checklist view still
+disappears on a past term: its paperwork was either done or it was not.
 
 `seed` is an explicit opt-in, not a fallback: a planner that quietly dropped to a
 mock when the API was down would look like it was working while saving nothing.
@@ -174,12 +221,51 @@ a planner page is on screen — `PlanShell` calls `plan.load()`.
 
 ### Setting up a database
 
+The quickest route is `docker compose up -d` from the repo root, which brings up
+`nextlink-postgres` (5432, database `nextlink`), `nextlink-line-db` (5433,
+database `line`) and `nextlink-neo4j` (7474/7687) and runs the migrations on
+first start. By hand, the order matters:
+
 ```sh
 psql -d nextlink -f backend/migrations/init.sql
-psql -d nextlink -f backend/migrations/outbox.sql
+psql -d nextlink -f backend/migrations/security.sql
 psql -d nextlink -f backend/migrations/electives.sql
 psql -d nextlink -f backend/migrations/elective_seed.sql
 ```
+
+`electives.sql` references `companies` and `employees`, and the seed references
+the `elective_*` tables, so alphabetical order fails on the first file — which is
+exactly what the postgres image does with `/docker-entrypoint-initdb.d`, and why
+`docker/nextlink-init.sh` is the one place that decides the order.
+
+`backend/migrations/local/` is separate on purpose: `line_local.sql` creates
+cut-down `line_groups` / `line_messages` tables so the console opens without
+Neon, and the real LINE database already has those names under a different
+schema. It must never be run against it. See that folder's README.
+
+The `.env` values for this stack (`backend/.env`):
+
+```ini
+NEXTLINK_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/nextlink
+LINE_DATABASE_URL=postgresql://postgres:postgres@localhost:5433/line
+NEO4J_URI=bolt://localhost:7687
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=nextlink-dev
+NEO4J_DATABASE=neo4j
+PG_POOL_MIN=1
+PG_POOL_MAX=10
+CORS_ORIGINS=http://localhost:3000
+HOST=127.0.0.1
+PORT=8000
+AUTH_SECRET=<any long random string>
+GOOGLE_API_KEY=<kept as it is>
+```
+
+`NEO4J_URI` is `bolt://` rather than `neo4j+s://`: the local container speaks
+plain bolt with no certificate, and the `+s` scheme fails the handshake. The two
+database URLs must point at different ports — that is why the LINE container is
+published on 5433 rather than sharing 5432, so `LINE_DATABASE_URL` can never
+quietly end up on the `nextlink` database.
 
 The last file is what makes the page openable at all: a database with the tables
 but no rows has no current term (`GET /plan` answers 404) and no room columns to

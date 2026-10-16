@@ -51,7 +51,7 @@ import {
   type RemoteState,
 } from "./plan-state.ts";
 import type { RemoteCommand } from "./plan-remote.ts";
-import { roomDraftFrom, validateRoomDraft, type RoomDraft, type RoomOverride } from "./rooms.ts";
+import { validateRoomDraft, type RoomDraft, type RoomOverride } from "./rooms.ts";
 import { sortAssignments } from "./scheduler.ts";
 import { electiveService } from "@/lib/services/elective";
 import type { Assignment, PlanCourse, PlanRoom, ScheduleResult } from "./plan-types.ts";

@@ -59,7 +59,7 @@ export function PlanStorage() {
    * which discards edits that were never sent rather than reversing ones that
    * were.
    */
-  const { toast, show, dismiss, holdTimer, resumeTimer } = useStatusToast();
+  const { toast, dismiss, holdTimer, resumeTimer } = useStatusToast();
 
   return (
     <section className="plan-storage" aria-label="การบันทึกแผน">
