@@ -179,6 +179,15 @@ export type TermMeta = {
   /** "1/2569" */
   shortLabel: string;
   status: "CURRENT" | "ARCHIVED";
+  /**
+   * `elective_terms.id`, when this term came from the API.
+   *
+   * The planner's own `id` is "2569-1" because that is what a person reads and
+   * what a URL carries. A write has to name the row, so the number comes along
+   * rather than being derived — deriving it would mean a second place that
+   * decides which term "2569-1" is. Absent in seed mode, which has no rows.
+   */
+  serverId?: number;
 };
 
 /**

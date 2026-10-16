@@ -126,6 +126,7 @@ export function readTerm(term: ElectiveTerm): TermMeta {
     label: `${SEASON_LABELS[season]} ปีการศึกษา ${term.year}`,
     shortLabel: `${term.semester === 3 ? "S" : term.semester}/${term.year}`,
     status: term.status === "current" ? "CURRENT" : "ARCHIVED",
+    serverId: term.id,
   };
 }
 

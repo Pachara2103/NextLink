@@ -30,11 +30,26 @@
  *
  * Commands run one at a time. Two drags in quick succession are two requests
  * in order, not two racing reads of the same list.
+ *
+ * The week timetable is the one exception, and it is deliberate. Laying out a
+ * week is not a series of decisions, it is one decision taken in twenty drags:
+ * a planner shuffles classes between rooms and periods until the whole week
+ * works, and half of those positions are ones they are only trying out. So a
+ * command marked `scope: "timetable"` changes the screen and stops there, and
+ * บันทึก sends the finished week as one request — the same bulk swap
+ * "จัดตารางใหม่" uses, which the server applies in a transaction or
+ * refuses whole. ยกเลิก puts the week back to the last one the server
+ * confirmed. Everything else — a course edited, a box ticked, a room added —
+ * is one decision and is still sent at the press.
  */
 
 import { electiveService } from "@/lib/services/elective";
 import { describeError } from "@/lib/services/errors";
-import { emptyDocument } from "./plan-document.ts";
+import { emptyDocument, type PlanDocument } from "./plan-document.ts";
+// The only edge back to the command file, and it is one function: the bulk
+// swap that บันทึก sends. Everything in plan-commands.ts points this way,
+// and only at the type, so there is no cycle at runtime.
+import { replaceCommand } from "./plan-commands.ts";
 import { readArchivedTerm, readPlan, readTerm } from "./plan-api.ts";
 import { blankState, type Reconcile, type RemoteState } from "./plan-state.ts";
 import type { PlanPayload, TermMeta } from "./plan-types.ts";
@@ -43,21 +58,21 @@ import type { PlanSnapshot } from "./plan-store.ts";
 export type CommandContext = { before: RemoteState; after: RemoteState };
 
 export type RemoteCommand = {
+  /**
+   * Where this change is written.
+   *
+   * `"now"` (the default) sends at the press. `"timetable"` draws it and waits
+   * for บันทึก on the board, and so needs no `send` of its own.
+   */
+  scope?: "now" | "timetable";
   /** Change the screen now. Throws a Thai sentence if the rules forbid it. */
   apply: (state: RemoteState) => RemoteState;
   /** Tell the server. `before` is the state the command started from. */
-  send: (context: CommandContext) => Promise<Reconcile | void>;
+  send?: (context: CommandContext) => Promise<Reconcile | void>;
   /** What the failure message should say this was an attempt to do. */
   what: string;
-  /**
-   * The command that takes this one back, built once the server has answered.
-   *
-   * `after` here is the reconciled state, so a row created by this command can
-   * be named by the id it really got. Returning null means this action is not
-   * offered a "เลิกทำ" — see `removeCourseCommand` for why that is sometimes
-   * the honest answer.
-   */
-  inverse?: (context: CommandContext) => RemoteCommand | null;
+  /** How this edit is named in the list of what is waiting to be saved. */
+  label?: string;
 };
 
 const FALLBACK = {
@@ -75,14 +90,15 @@ export class RemotePlanStore {
   private queue: Promise<unknown> = Promise.resolve();
   private loaded = false;
   /**
-   * The way back from the last thing that worked.
+   * The board edits that have not been sent, and the week to put back.
    *
-   * One step, not a stack. The plan is shared, so a second step back would be
-   * undoing a state somebody else has since built on — and the control that
-   * offers this is a toast that is gone in five seconds, which is exactly the
-   * window in which "I meant the other room" is still true.
+   * `baseline` is the timetable as the server last confirmed it, kept from the
+   * moment the first unsaved drag happens. ยกเลิก restores exactly that —
+   * only the periods, never the courses or rooms, because those were saved at
+   * the press and are not this button's to undo.
    */
-  private undoCommand: RemoteCommand | null = null;
+  private pending: string[] = [];
+  private baseline: PlanDocument["assignments"] | null = null;
 
   /** Same shape as the offline store's, so the provider can hold either. */
   readonly key = "api";
@@ -95,7 +111,8 @@ export class RemotePlanStore {
       status: "loading",
       error: null,
       recoveryRaw: null,
-      canUndo: false,
+      unsaved: 0,
+      unsavedLabels: [],
       terms: [],
       archives: [],
     };
@@ -142,6 +159,9 @@ export class RemotePlanStore {
     // but not while the first read is still in flight, which is what a focus
     // event right after load would otherwise trigger.
     if (!this.loaded || !this.snapshot.ready) return;
+    // Not while the board has edits waiting: a read would replace them with
+    // the server's week, which is the one thing บันทึก exists to prevent.
+    if (this.pending.length) return;
     void this.refreshNow();
   };
 
@@ -151,9 +171,11 @@ export class RemotePlanStore {
       try {
         const plan = await electiveService.plan(this.termId);
         const { payload, assignments, checklists, index } = readPlan(plan);
-        // A fresh read is a new starting point: what "เลิกทำ" would have put
-        // back was computed against a plan that is no longer on screen.
-        this.undoCommand = null;
+        // A fresh read is a new starting point: the week on screen is the
+        // week the server has, so there is nothing waiting and nothing to
+        // put back.
+        this.pending = [];
+        this.baseline = null;
         this.commit(
           {
             payload,
@@ -161,7 +183,7 @@ export class RemotePlanStore {
             document: { ...emptyDocument(payload), assignments, checklists },
           },
           {
-            ready: true, status: "saved", error: null, canUndo: false,
+            ready: true, status: "saved", error: null, unsaved: 0, unsavedLabels: [],
             // The switcher offers the term that is on screen from the first
             // paint; the rest of the list arrives a moment later. A page that
             // renders before it knows every term must still know this one.
@@ -194,6 +216,20 @@ export class RemotePlanStore {
    * switcher offers next, not what it waits for. A term that fails to load is
    * simply not offered — nothing on this page depends on it.
    */
+  /**
+   * Read the term list again.
+   *
+   * The one thing that changes a finished term from this page is a course
+   * backfilled into it, and that course is read back from the term's own plan
+   * — so the way to show it is to read the archives again rather than to
+   * patch a list the component does not own.
+   */
+  refreshTerms = (): Promise<void> => {
+    const next = this.queue.then(() => this.loadTerms());
+    this.queue = next.catch(() => undefined);
+    return next;
+  };
+
   private async loadTerms(): Promise<void> {
     try {
       const terms = await electiveService.listTerms();
@@ -223,7 +259,87 @@ export class RemotePlanStore {
    * the plan the other left behind.
    */
   run = (command: RemoteCommand): Promise<boolean> => {
-    const next = this.queue.then(() => this.perform(command));
+    const next = this.queue.then(() =>
+      command.scope === "timetable" ? this.draw(command) : this.perform(command),
+    );
+    this.queue = next.catch(() => false);
+    return next;
+  };
+
+  /**
+   * A board edit: change the screen, remember how to put it back, send nothing.
+   *
+   * It still runs inside the queue and still goes through `apply`, so a drag
+   * the rules forbid is refused here exactly as it would be if it were about
+   * to be sent — waiting to save must not mean waiting to find out.
+   */
+  private draw(command: RemoteCommand): boolean {
+    if (!this.snapshot.ready) {
+      this.publish({ error: "กำลังโหลดแผน กรุณารอสักครู่" });
+      return false;
+    }
+
+    const before = this.state;
+    let after: RemoteState;
+    try {
+      after = command.apply(before);
+    } catch (error) {
+      this.publish({ error: error instanceof Error ? error.message : "ทำรายการไม่ได้" });
+      return false;
+    }
+
+    if (this.baseline === null) this.baseline = before.document.assignments;
+    this.pending = [...this.pending, command.label ?? command.what];
+    this.commit(after, {
+      status: "draft",
+      error: null,
+      unsaved: this.pending.length,
+      unsavedLabels: this.pending,
+    });
+    return true;
+  }
+
+  /**
+   * Send the week as it now stands.
+   *
+   * One request for the whole timetable rather than one per drag: the periods
+   * only make sense together (a class moved out of a room is what lets another
+   * move in), and the server's bulk swap either takes the lot or leaves the
+   * saved week untouched. A refusal therefore keeps the edits on screen with
+   * the reason beside them, which is the only state from which they can be
+   * corrected.
+   */
+  save = (): Promise<boolean> => {
+    if (!this.pending.length) return Promise.resolve(true);
+    const next = this.queue.then(async () => {
+      const ok = await this.perform(
+        replaceCommand(this.state.document.assignments, "บันทึกตารางไม่สำเร็จ"),
+      );
+      if (ok) {
+        this.pending = [];
+        this.baseline = null;
+        this.publish({ unsaved: 0, unsavedLabels: [] });
+      }
+      return ok;
+    });
+    this.queue = next.catch(() => false);
+    return next;
+  };
+
+  /** Put the week back to the last one the server confirmed. */
+  discard = (): Promise<boolean> => {
+    if (!this.pending.length) return Promise.resolve(true);
+    const next = this.queue.then(async () => {
+      const baseline = this.baseline;
+      this.pending = [];
+      this.baseline = null;
+      if (!baseline) return this.refreshNow();
+      this.commit(
+        { ...this.state, document: { ...this.state.document, assignments: baseline } },
+        { status: "saved", error: null, unsaved: 0, unsavedLabels: [] },
+      );
+      return true;
+    });
     this.queue = next.catch(() => false);
     return next;
   };
@@ -248,40 +364,18 @@ export class RemotePlanStore {
     this.commit(after, { status: "saving", error: null });
 
     try {
-      const reconcile = await command.send({ before, after });
+      const reconcile = await command.send?.({ before, after });
       const settled = reconcile ? reconcile(this.state) : this.state;
-      // Built from the settled state, so a row this command created is named
-      // by the id the server gave it rather than its placeholder.
-      this.undoCommand = command.inverse?.({ before, after: settled }) ?? null;
-      this.commit(settled, { status: "saved", error: null, canUndo: this.undoCommand !== null });
+      this.commit(settled, { status: "saved", error: null });
       return true;
     } catch (error) {
-      this.undoCommand = null;
       this.commit(before, {
         status: "error",
         error: describeError(error, command.what, FALLBACK),
-        canUndo: false,
       });
       return false;
     }
   }
-
-  /**
-   * Take the last command back.
-   *
-   * It runs as a command of its own — the same optimistic draw, the same
-   * request, the same rollback if the server refuses. That matters: the state
-   * it is putting back may no longer be reachable (someone else took the room
-   * in the meantime), and pretending otherwise would show a plan the database
-   * does not have.
-   */
-  undo = async (): Promise<boolean> => {
-    const command = this.undoCommand;
-    if (!command) return false;
-    this.undoCommand = null;
-    this.publish({ canUndo: false });
-    return this.run(command);
-  };
 
   /** Clear a message the person has read. The plan itself is untouched. */
   clearError = () => this.publish({ error: null, status: this.snapshot.ready ? "saved" : this.snapshot.status });

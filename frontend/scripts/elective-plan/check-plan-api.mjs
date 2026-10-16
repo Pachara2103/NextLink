@@ -59,9 +59,12 @@ const plan = (over = {}) => ({
 });
 
 check('a term becomes the id, labels and status the planner already speaks', () => {
+  // `serverId` comes along as well: the planner's own id is what a person
+  // reads, and a write has to name the row.
   assert.deepEqual(readTerm(term()), {
     id: '2569-1', academicYear: 2569, season: 'FIRST',
     label: 'ภาคต้น ปีการศึกษา 2569', shortLabel: '1/2569', status: 'CURRENT',
+    serverId: term().id,
   });
   assert.equal(readTerm(term({ semester: 2, status: 'archived' })).status, 'ARCHIVED');
   assert.equal(readTerm(term({ semester: 2 })).label, 'ภาคปลาย ปีการศึกษา 2569');

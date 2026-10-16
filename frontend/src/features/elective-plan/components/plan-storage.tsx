@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { usePathname } from "next/navigation";
 import { StatusToast, useStatusToast } from "@/features/elective-plan/components/status-toast";
 import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
@@ -21,9 +21,10 @@ const STATUS: Record<string, string> = {
   loading: "กำลังโหลดแผน…",
   saving: "กำลังบันทึก…",
   error: "แผนยังบันทึกไม่สำเร็จ",
+  draft: "ตารางมีการแก้ที่ยังไม่ได้บันทึก",
 };
 
-/** Persistent controls live with the layout's store, including undo after navigation. */
+/** Persistent controls live with the layout's store, so they survive navigation. */
 export function PlanStorage() {
   const plan = usePlanState();
   const pathname = usePathname();
@@ -48,21 +49,17 @@ export function PlanStorage() {
   const wholePlan = !shared && (pathname === OVERVIEW || pathname === `${OVERVIEW}/`);
 
   /**
-   * "เลิกทำ" moved into the message that says the change was saved.
+   * No "เลิกทำ" anywhere on this page.
    *
-   * A permanent button was right when the plan was one person's document with
-   * a revision history behind it. On a shared plan there is no history to walk
-   * back — only the one step just taken, and only while nobody has built on
-   * it. A toast is exactly that offer, and it says so where the change
-   * happened rather than in a toolbar.
+   * A step back was right when the plan was one person's document with a
+   * revision history behind it. On a plan several people are writing to there
+   * is no such history: the state a step back would restore may already have
+   * been built on by somebody else, so the button would promise something it
+   * cannot do. What replaces it is the week board's บันทึก/ยกเลิก pair,
+   * which discards edits that were never sent rather than reversing ones that
+   * were.
    */
   const { toast, show, dismiss, holdTimer, resumeTimer } = useStatusToast();
-  const undoable = useRef(false);
-  useEffect(() => {
-    if (!shared) return;
-    if (plan.canUndo && !undoable.current) show("บันทึกแล้ว", () => void plan.undo());
-    undoable.current = plan.canUndo;
-  }, [shared, plan.canUndo, plan.undo, show]);
 
   return (
     <section className="plan-storage" aria-label="การบันทึกแผน">
@@ -83,14 +80,12 @@ export function PlanStorage() {
         ) : null}
         {shared ? (
           <button type="button" className="secondary-button" disabled={plan.status === "saving"} onClick={() => plan.reload()}>โหลดแผนล่าสุด</button>
-        ) : (
-          <button type="button" className="secondary-button" disabled={!plan.canUndo || plan.status === "saving"} onClick={() => void plan.undo()}>เลิกทำรายการล่าสุด</button>
-        )}
+        ) : null}
         {wholePlan ? (
           <input ref={file} className="sr-only" type="file" accept=".json,application/json" aria-label="ไฟล์แผน JSON" onChange={async (event) => {
             const selected = event.target.files?.[0];
             event.target.value = "";
-            if (!selected || !window.confirm("แทนที่แผนปัจจุบันด้วยไฟล์นี้? สามารถเลิกทำรายการล่าสุดได้")) return;
+            if (!selected || !window.confirm("แทนที่แผนปัจจุบันด้วยไฟล์นี้? แผนเดิมจะหายไป ควรสำรองไว้ก่อน")) return;
             try {
               await plan.importPlan(await selected.text());
             } catch {

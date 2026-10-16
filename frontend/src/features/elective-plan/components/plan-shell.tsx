@@ -54,7 +54,7 @@ export function PlanShell({
             // a reader needs at a glance is that local edits exist at all.
             <span className="local-edit-note" title={`แก้ไขล่าสุด ${formatUpdated(editedAt, timezone)}`}>
               มีการแก้ไขแผน
-              <button className="local-edit-reset" type="button" onClick={() => { if (window.confirm("คืนค่าเริ่มต้นทั้งแผน? สามารถเลิกทำรายการล่าสุดได้")) onReset(); }}>
+              <button className="local-edit-reset" type="button" onClick={() => { if (window.confirm("คืนค่าเริ่มต้นทั้งแผน? การแก้ไขทั้งหมดในเบราว์เซอร์นี้จะหายไป")) onReset(); }}>
                 คืนค่าเริ่มต้น
               </button>
             </span>

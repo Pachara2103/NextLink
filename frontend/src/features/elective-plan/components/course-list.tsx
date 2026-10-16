@@ -308,20 +308,31 @@ export function CourseList() {
             "ตอน 1" ทุกแถวจึงเป็นคำที่ไม่ได้บอกอะไรใหม่ */}
         {course.section > 1 ? ` ตอน ${course.section}` : ""} · {course.category}
       </span>
-      {/* Only courses somebody typed in here can be edited as a whole. A seeded
-          course is the department's record of what a company offered; the
-          fields of it that planning depends on are edited where they are used —
-          periods on the availability page, paperwork in the checklist. */}
-      {!isPast && plan.isAddedCourse(course.id) ? (
-        <span className="course-row-actions">
-          <span className="local-course-tag">เพิ่มเอง</span>
-          <button className="course-row-edit" type="button" onClick={() => setCourseForm({ course })}>
-            แก้ไข
-            <span className="sr-only"> {course.title}</span>
-          </button>
-        </span>
-      ) : null}
     </span>
+  );
+
+  /**
+   * แก้ไข, in a column of its own at the end of the row.
+   *
+   * It used to sit under the course name, which put a control in the middle of
+   * the thing it acts on and left every row a different height. At the end of
+   * the row it is where the eye already goes after reading across, and it is
+   * in the same place on every row — so the column can be found once instead
+   * of being hunted for per row.
+   *
+   * The "เพิ่มเอง" badge that was beside it is gone. On the shared plan
+   * every course was typed in by somebody, so the badge marked all of them and
+   * told the reader nothing.
+   */
+  const editCell = (course: PlanCourse) => (
+    <td className="row-action-cell">
+      {!isPast && plan.isAddedCourse(course.id) ? (
+        <button className="row-action-button" type="button" onClick={() => setCourseForm({ course })}>
+          แก้ไข
+          <span className="sr-only"> {course.title}</span>
+        </button>
+      ) : null}
+    </td>
   );
 
   /**
@@ -466,9 +477,28 @@ export function CourseList() {
             A finished term has no paperwork left to do, so it gets no switch. */}
         {/* The switch and the one control that acts on the list as a whole share
             a row: adding a course is not a filter and does not belong among
-            them, and it is the same list in either view. A finished term has
-            neither — there is nothing left to add to a term that ended. */}
-        {isPast ? null : (
+            them, and it is the same list in either view.
+            A finished term keeps the add button and loses the switch. Backfilling
+            is the reason this page can be opened on a past term at all — a term
+            that ran before the planner existed has to be typed in afterwards for
+            the history to be worth reading — while its paperwork was either done
+            or it was not, and nobody is going to tick a box about it now. */}
+        {isPast ? (
+          <div className="view-switch-row">
+            <p className="archive-note">
+              {selectedTerm?.label ?? "เทอมนี้"}จบไปแล้ว เพิ่มรายวิชาย้อนหลังได้เพื่อเก็บไว้เป็นประวัติ
+            </p>
+            <button
+              className="primary-button"
+              type="button"
+              disabled={!selectedTerm?.serverId}
+              onClick={() => setCourseForm({ course: null })}
+              title={`เพิ่มรายวิชาย้อนหลังเข้า${selectedTerm?.label ?? "เทอมนี้"}`}
+            >
+              ＋ เพิ่มรายวิชาย้อนหลัง
+            </button>
+          </div>
+        ) : (
           <div className="view-switch-row">
             <div className="view-switch" role="group" aria-label="รูปแบบตาราง">
               <button
@@ -590,6 +620,7 @@ export function CourseList() {
                   {CHECKLIST_FIELDS.map((field) => (
                     <col key={field.key} style={{ width: field.kind === "code" ? "8%" : "10%" }} />
                   ))}
+                  <col style={{ width: "7%" }} />
                 </colgroup>
                 <thead>
                   <tr>
@@ -597,6 +628,7 @@ export function CourseList() {
                     {CHECKLIST_FIELDS.map((field) => (
                       <th scope="col" key={field.key} title={field.label}>{field.short}</th>
                     ))}
+                    <th scope="col"><span className="sr-only">แก้ไขรายวิชา</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -606,6 +638,7 @@ export function CourseList() {
                       {CHECKLIST_FIELDS.map((field) => (
                         <td key={field.key}>{checklistControl(course.id, course.title, checklist, field)}</td>
                       ))}
+                      {editCell(course)}
                     </tr>
                   ))}
                 </tbody>
@@ -619,6 +652,7 @@ export function CourseList() {
                     <th scope="col">{isPast ? "ช่วงที่แจ้งไว้" : "ช่วงที่สะดวก"}</th>
                     <th scope="col">{isPast ? "คาบที่สอน" : "คาบที่ได้"}</th>
                     <th scope="col">ห้อง</th>
+                    <th scope="col"><span className="sr-only">แก้ไขรายวิชา</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -707,6 +741,7 @@ export function CourseList() {
                         )}
                         <small>รับ {formatNumber(course.capacity)} คน</small>
                       </td>
+                      {editCell(course)}
                     </tr>
                   ))}
                 </tbody>
@@ -736,10 +771,17 @@ export function CourseList() {
           const target = courseForm?.course;
           if (target) {
             if (!await plan.updateCourse(target.id, draft)) return;
-            show(`บันทึก ${draft.title} แล้ว`, plan.undo);
+            show(`บันทึก ${draft.title} แล้ว`);
+          } else if (isPast) {
+            // Named explicitly: the store is holding the term being planned,
+            // and "the term being looked at" is this page's business alone.
+            const termRow = selectedTerm?.serverId;
+            if (!termRow) return;
+            if (!await plan.addCourseToTerm(draft, companyId, termRow)) return;
+            show(`เพิ่ม ${draft.title} เข้า${selectedTerm?.shortLabel ?? ""} แล้ว`);
           } else {
             if (!await plan.addCourse(draft, companyId)) return;
-            show(`เพิ่ม ${draft.title} เข้า${currentTerm.shortLabel} แล้ว`, plan.undo);
+            show(`เพิ่ม ${draft.title} เข้า${currentTerm.shortLabel} แล้ว`);
             revealCourses();
           }
           setCourseForm(null);
@@ -753,7 +795,6 @@ export function CourseList() {
             losing > 0
               ? `เอา ${target.title} ออกแล้ว · ${formatNumber(losing)} คาบถูกปลดออกจากตาราง`
               : `เอา ${target.title} ออกแล้ว`,
-            plan.undo,
           );
           setCourseForm(null);
         }}

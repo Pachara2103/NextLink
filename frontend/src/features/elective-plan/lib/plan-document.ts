@@ -7,17 +7,21 @@ import type { Assignment, PlanCourse, PlanPayload, PlanRoom } from "./plan-types
 export const LEGACY_STORAGE_KEY = "nextlink.plan.v1";
 // Versions 1/2 did not record a term; they were shipped for this term only.
 export const LEGACY_TERM_ID = "2569-1";
-export const storageKeyFor = (termId: string) => `nextlink.plan.v4.${termId}`;
+export const storageKeyFor = (termId: string) => `nextlink.plan.v5.${termId}`;
 /**
  * Where an earlier release would have written this term's plan, newest first.
  *
  * Version 4 added courses a person typed in themselves, so a v3 document is a
- * v4 document with none of them — it is read, shown, and written back under the
- * new key the first time anything is saved. Reading the old key rather than
- * renaming it means a browser that still has an older build open in another tab
- * keeps working from the plan it already knows.
+ * v4 document with none of them. Version 5 renamed a room's `tier` to `type`,
+ * following the column, so a v4 document is a v5 document whose room edits
+ * still say `tier` — `readStoredRoomPatch` renames it on the way in. Either is
+ * read, shown, and written back under the new key the first time anything is
+ * saved. Reading the old key rather than renaming it means a browser that still
+ * has an older build open in another tab keeps working from the plan it already
+ * knows.
  */
 export const legacyKeysFor = (termId: string): string[] => [
+  `nextlink.plan.v4.${termId}`,
   `nextlink.plan.v3.${termId}`,
   ...(termId === LEGACY_TERM_ID ? [LEGACY_STORAGE_KEY] : []),
 ];
@@ -30,7 +34,7 @@ export type PlanData = {
   checklists: Record<string, Partial<CourseChecklist>>;
 };
 export type PlanDocument = PlanData & {
-  version: 4;
+  version: 5;
   termId: string;
   dataset: string;
   seedRevision: string;
@@ -40,7 +44,7 @@ export type PlanDocument = PlanData & {
 
 export const emptyPlanData = (): PlanData => ({ assignments: [], courseOverrides: {}, courseEdits: EMPTY_COURSE_EDITS, roomEdits: EMPTY_ROOM_EDITS, checklists: {} });
 export const emptyDocument = (payload: PlanPayload): PlanDocument => ({
-  ...emptyPlanData(), version: 4, termId: payload.term.id, dataset: payload.dataset,
+  ...emptyPlanData(), version: 5, termId: payload.term.id, dataset: payload.dataset,
   seedRevision: payload.seedRevision, revision: 0, editedAt: null,
 });
 
@@ -69,6 +73,29 @@ function roomPatch(value: unknown, full = false): boolean {
   if ((full || "blockedSlots" in value) && !blockedSlots(value.blockedSlots)) return false;
   return Object.keys(value).every((key) => ["name", "building", "floor", "seats", "type", "seatsIsEstimated", "blockedSlots", ...(full ? ["id"] : [])].includes(key));
 }
+/**
+ * A room edit as some earlier build wrote it.
+ *
+ * Version 4 and earlier stored `tier`; the column and every caller now say
+ * `type`. Renaming here rather than in `roomPatch` keeps the validator a
+ * statement about the current shape only — the migration is one line, in one
+ * place, and the rest of the file never has to know there were two words.
+ */
+function readStoredRoomPatch(value: unknown): unknown {
+  if (!object(value) || !("tier" in value)) return value;
+  const { tier, ...rest } = value as Record<string, unknown>;
+  return "type" in rest ? rest : { ...rest, type: tier };
+}
+
+function readStoredRoomEdits(value: unknown): unknown {
+  if (!object(value)) return value;
+  const overrides = object(value.overrides)
+    ? Object.fromEntries(Object.entries(value.overrides).map(([id, patch]) => [id, readStoredRoomPatch(patch)]))
+    : value.overrides;
+  const added = Array.isArray(value.added) ? value.added.map(readStoredRoomPatch) : value.added;
+  return { ...value, overrides, added };
+}
+
 function contact(value: unknown): boolean {
   if (value === null) return true;
   return object(value) && string(value.name) && Boolean(value.name.trim())
@@ -117,7 +144,7 @@ function coursePatch(value: unknown, full = false): boolean {
 /** Runtime validation at the persistence boundary; no partial/unsafe casts reach React. */
 export function decodePlan(raw: string, payload: PlanPayload): { document: PlanDocument; migrated: boolean } {
   const value: unknown = JSON.parse(raw);
-  if (!object(value) || ![1, 2, 3, 4].includes(value.version as number)) throw new Error("ไม่รู้จักรูปแบบไฟล์แผน");
+  if (!object(value) || ![1, 2, 3, 4, 5].includes(value.version as number)) throw new Error("ไม่รู้จักรูปแบบไฟล์แผน");
   const legacy = value.version === 1 || value.version === 2;
   if (legacy && payload.term.id !== LEGACY_TERM_ID) throw new Error("แผนรุ่นเก่าเป็นของเทอม 2569-1");
   if (!legacy && (value.termId !== payload.term.id || value.dataset !== payload.dataset)) throw new Error("ไฟล์แผนนี้เป็นของคนละเทอมหรือชุดข้อมูล");
@@ -128,7 +155,7 @@ export function decodePlan(raw: string, payload: PlanPayload): { document: PlanD
   // Absent before version 4, which is the whole of the migration: a plan made
   // before courses could be typed in is a plan with none added.
   const courseEdits = value.courseEdits ?? EMPTY_COURSE_EDITS;
-  const edits = value.roomEdits ?? EMPTY_ROOM_EDITS;
+  const edits = readStoredRoomEdits(value.roomEdits ?? EMPTY_ROOM_EDITS);
   const checklists = value.checklists ?? {};
   if (!object(courseOverrides) || !Object.values(courseOverrides).every((patch) => coursePatch(patch))) throw new Error("ข้อมูลแก้ไขวิชาไม่ถูกต้อง");
   if (!object(courseEdits) || !Array.isArray(courseEdits.added) || !courseEdits.added.every((course) => coursePatch(course, true))
@@ -181,5 +208,5 @@ export function decodePlan(raw: string, payload: PlanPayload): { document: PlanD
     revision: legacy ? 0 : value.revision as number,
     editedAt: string(value.editedAt) ? value.editedAt : null,
   };
-  return { document, migrated: legacy || value.version !== 4 || value.seedRevision !== payload.seedRevision };
+  return { document, migrated: legacy || value.version !== 5 || value.seedRevision !== payload.seedRevision };
 }

@@ -20,6 +20,9 @@ import { explainFailure, sortAssignments } from "./scheduler.ts";
 import { scheduleInWorker } from "./schedule-worker-client.ts";
 import { changeAssignmentTime, moveAssignment, placeAssignment } from "./assignments.ts";
 import { decodePlan, emptyPlanData, type CourseOverride, type PlanDocument } from "./plan-document.ts";
+import { courseWrite } from "./plan-api.ts";
+import { electiveService } from "@/lib/services/elective";
+import { describeError } from "@/lib/services/errors";
 import { browserPersistence, PlanStore } from "./plan-store.ts";
 import { RemotePlanStore } from "./plan-remote.ts";
 import {
@@ -203,6 +206,18 @@ function localCommands(store: PlanStore, payload: PlanPayload, planning: Plannin
       return { ...current, roomEdits: setRoomBlocked(current.roomEdits, room, slotId, reason) };
     }),
     setChecklistField: (id: string, patch: Partial<CourseChecklist>) => store.mutate((current) => ({ ...current, checklists: { ...current.checklists, [id]: { ...current.checklists[id], ...patch } } })),
+    /**
+     * Backfilling a finished term is an API-only act.
+     *
+     * The plan in this browser is one term's document; a past term here is
+     * bundled JSON with no row to write to. The control is hidden on this
+     * path, and this is the backstop.
+     */
+    addCourseToTerm: async (_draft: CourseDraft, _companyId: number | undefined, _termId: number) => {
+      store.reportError("การเพิ่มวิชาเข้าเทอมที่จบไปแล้ว ทำได้เฉพาะตอนต่อเซิร์ฟเวอร์");
+      return false;
+    },
+    refreshTerms: async () => {},
     resetAll: () => store.replace(emptyPlanData(), store.getSnapshot().document.revision),
     importPlan: async (raw: string) => {
       try { return await store.replace(decodePlan(raw, payload).document, store.getSnapshot().document.revision); }
@@ -265,6 +280,32 @@ function remoteCommands(store: RemotePlanStore, planning: Planning): ReturnType<
     // Both of these replace the plan wholesale, which is a thing you may do to
     // a copy in your own browser and not to the one everybody is working in.
     // The controls that call them are hidden on this path.
+    /**
+     * Add a course to a term that has ended.
+     *
+     * Not a command, on purpose. A command draws its change on the plan that
+     * is on screen and the plan on screen is the term being planned — drawing
+     * a backfilled course there would show it under the wrong term's name
+     * until the next read corrected it. So this writes the row and then reads
+     * the archives again, which is the only picture that was ever going to be
+     * right.
+     */
+    addCourseToTerm: async (draft: CourseDraft, companyId: number | undefined, termId: number) => {
+      if (!companyId) return refuse("การเพิ่มวิชาโดยไม่เลือกบริษัท");
+      const next = normalizeCourseDraft(draft);
+      try {
+        await electiveService.createElective(courseWrite(next, { companyId, termId }));
+        await store.refreshTerms();
+        return true;
+      } catch (error) {
+        store.reportError(describeError(error, "เพิ่มรายวิชาเข้าเทอมเก่าไม่สำเร็จ", {
+          network: "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ยังเพิ่มรายวิชาไม่ได้",
+          unknown: "เพิ่มรายวิชาเข้าเทอมเก่าไม่สำเร็จ",
+        }));
+        return false;
+      }
+    },
+    refreshTerms: () => store.refreshTerms(),
     resetAll: () => refuse("การคืนค่าเริ่มต้นทั้งแผน"),
     importPlan: () => refuse("การนำเข้าแผน"),
   };
@@ -332,7 +373,16 @@ function useController(source: PlanSource) {
      * the read is the planner's own first act — see `PlanShell`.
      */
     load: store.load,
-    undo: store.undo, retry: store.retry, reload: store.reload,
+    retry: store.retry, reload: store.reload,
+    /**
+     * The week board's two buttons.
+     *
+     * They sit beside "ตารางห้องเรียนทั้งสัปดาห์" rather than in the header
+     * because that is the only thing they are about: the periods. A course
+     * edited or a box ticked was written when it was pressed, and offering to
+     * save it a second time would be a lie about what it covers.
+     */
+    saveBoard: store.save, discardBoard: store.discard,
     recoverEmpty: store instanceof PlanStore ? store.recoverEmpty : async () => false,
     reportError: store.reportError,
     checklistFor: (id: string) => readChecklist(document.checklists[id]),

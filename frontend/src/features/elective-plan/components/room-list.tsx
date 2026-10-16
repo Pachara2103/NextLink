@@ -137,10 +137,10 @@ export function RoomList() {
         onSave={async (draft) => {
           if (roomForm?.room) {
             if (!await plan.updateRoom(roomForm.room.id, draft)) return;
-            show(`บันทึก ${draft.name} แล้ว`, plan.undo);
+            show(`บันทึก ${draft.name} แล้ว`);
           } else {
             if (!await plan.addRoom(draft)) return;
-            show(`เพิ่ม ${draft.name} แล้ว`, plan.undo);
+            show(`เพิ่ม ${draft.name} แล้ว`);
           }
           setRoomForm(null);
         }}
@@ -153,7 +153,6 @@ export function RoomList() {
             losing > 0
               ? `ลบ ${room.name} แล้ว · ${formatNumber(losing)} คาบกลับไปเป็นวิชาที่ยังไม่ได้จัด`
               : `ลบ ${room.name} แล้ว`,
-            plan.undo,
           );
           setRoomForm(null);
         }}

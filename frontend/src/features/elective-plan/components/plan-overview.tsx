@@ -18,6 +18,7 @@ import type { PlanCourse, Suggestion } from "@/features/elective-plan/lib/plan-t
 import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
 
 import { TermDialog } from "@/features/elective-plan/components/term-dialog";
+import { TimetableSave } from "@/features/elective-plan/components/timetable-save";
 import { electiveService } from "@/lib/services/elective";
 import type { ElectiveTermCreate } from "@/types";
 
@@ -65,12 +66,12 @@ export function PlanOverview() {
   const applySuggestion = async (suggestion: Suggestion) => {
     if (suggestion.kind === "UNLOCK_COURSE") {
       if (!await plan.unlockCourse(suggestion.courseId)) return;
-      show(`ปลดล็อก ${coursesById.get(suggestion.courseId)?.title ?? ""} แล้ว — กดจัดตารางอัตโนมัติอีกครั้ง`, plan.undo);
+      show(`ปลดล็อก ${coursesById.get(suggestion.courseId)?.title ?? ""} แล้ว — กดจัดตารางอัตโนมัติอีกครั้ง`);
       return;
     }
     if (suggestion.kind === "REDUCE_CAPACITY") {
       if (!await plan.setCourseField(suggestion.courseId, { capacity: suggestion.seats })) return;
-      show(`ปรับจำนวนที่รับเป็น ${suggestion.seats} คนแล้ว`, plan.undo);
+      show(`ปรับจำนวนที่รับเป็น ${suggestion.seats} คนแล้ว`);
       return;
     }
     if (suggestion.kind === "ASK_MORE_AVAILABILITY") {
@@ -115,7 +116,6 @@ export function PlanOverview() {
       result.unassigned.length
         ? `ยังหาแผนให้ ${formatNumber(new Set(result.unassigned.map((item) => item.courseId)).size)} วิชาไม่พบภายในขอบเขตค้นหา`
         : `จัดตารางครบทั้ง ${formatNumber(result.assignments.length)} คาบแล้ว`,
-      plan.undo,
     );
   };
 
@@ -236,7 +236,10 @@ export function PlanOverview() {
         <div className="panel-heading">
           <div>
             <p className="section-kicker">ทั้งภาควิชา · จันทร์ถึงเสาร์</p>
-            <h3>ตารางห้องเรียนทั้งสัปดาห์</h3>
+            <div className="matrix-title-row">
+              <h3>ตารางห้องเรียนทั้งสัปดาห์</h3>
+              <TimetableSave />
+            </div>
             {/* {holding ? (
               <p className="matrix-holding">
                 กำลังวาง <strong>{holding.title}</strong> — ชี้ช่องที่ต้องการแล้วกด ช่องที่ขึ้นขอบเขียวคือวางได้
@@ -251,7 +254,7 @@ export function PlanOverview() {
             <button
               className="secondary-button"
               type="button"
-              onClick={async () => { if (!await plan.clearUnlocked()) return; show("ล้างคาบที่ยังไม่ล็อกแล้ว", plan.undo); }}
+              onClick={async () => { if (!await plan.clearUnlocked()) return; show("ล้างคาบที่ยังไม่ล็อกแล้ว"); }}
             >
               ล้างที่ยังไม่ล็อก
             </button>
@@ -269,7 +272,7 @@ export function PlanOverview() {
           onPlace={plan.place}
           onMove={plan.move}
           onToggleLock={plan.toggleLock}
-          onRemove={async (id) => { if (!await plan.remove(id)) return; show("เอาวิชาออกจากตารางแล้ว", plan.undo); }}
+          onRemove={async (id) => { if (!await plan.remove(id)) return; show("เอาวิชาออกจากตารางแล้ว"); }}
           onBlockedDrop={(title, slotId, blockers, roomIgnored) =>
             show(
               // An online class has no room to give, so the room it was dropped on
@@ -280,8 +283,6 @@ export function PlanOverview() {
                     blockers.length > 0 ? ` และ ${blockers.map((code) => BLOCKER_LABELS[code]).join(" · ")}` : ""
                   }`
                 : `${title} ${blockers.map((code) => BLOCKER_LABELS[code]).join(" · ")}`,
-                // ลง${slotLabel(slotId)}แล้ว แต่
-              plan.undo,
             )
           }
           onHeldChange={onHeldChange}
@@ -319,10 +320,10 @@ export function PlanOverview() {
         onSave={async (draft) => {
           if (roomForm?.room) {
             if (!await plan.updateRoom(roomForm.room.id, draft)) return;
-            show(`บันทึก ${draft.name} แล้ว`, plan.undo);
+            show(`บันทึก ${draft.name} แล้ว`);
           } else {
             if (!await plan.addRoom(draft)) return;
-            show(`เพิ่ม ${draft.name} เข้าตารางแล้ว`, plan.undo);
+            show(`เพิ่ม ${draft.name} เข้าตารางแล้ว`);
           }
           setRoomForm(null);
         }}
@@ -335,7 +336,6 @@ export function PlanOverview() {
             losing > 0
               ? `ลบ ${room.name} แล้ว · ${formatNumber(losing)} คาบกลับไปเป็นวิชาที่ยังไม่ได้จัด`
               : `ลบ ${room.name} แล้ว`,
-            plan.undo,
           );
           setRoomForm(null);
         }}
@@ -352,7 +352,6 @@ export function PlanOverview() {
             reason
               ? `กัน ${booking.room.name} ${slotLabel(booking.slotId)} ไว้ให้ ${reason}`
               : `ปลดการกัน ${booking.room.name} ${slotLabel(booking.slotId)} แล้ว`,
-            plan.undo,
           );
           setBooking(null);
         }}
