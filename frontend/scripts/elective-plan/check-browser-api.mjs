@@ -210,6 +210,11 @@ try {
   };
   const since = () => { calls = []; };
   const sent = (method, path) => calls.filter((c) => c.method === method && c.path.startsWith(path));
+  // The bulk swap, told apart from a single period's PUT /sessions/<id>, which
+  // startsWith would otherwise count as the same thing.
+  const bulkWrites = () => calls.filter((c) => c.method === 'PUT' && c.path === '/api/v1/electives/sessions');
+  const saveBoard = page.locator('.timetable-save-now');
+  const cancelBoard = page.locator('.timetable-save-cancel');
 
   await check('the plan on screen is the one the API answered with, not a bundled file', async () => {
     await go('/courses/list');
@@ -223,12 +228,21 @@ try {
     assert.ok(await page.getByText('ภาคต้น ปีการศึกษา 2569').count() >= 0);
   });
 
-  await check('placing a class shows it at once and sends one request carrying it', async () => {
+  await check('the week board draws first and sends nothing until บันทึก', async () => {
+    resetPlan();
     await go('/');
     since();
     await page.getByRole('button', { name: 'จัดตารางอัตโนมัติ', exact: true }).click();
     await page.waitForFunction(() => document.querySelectorAll('.matrix-chip, .course-chip').length > 0, undefined, { timeout: 10000 });
-    const writes = sent('PUT', '/api/v1/electives/sessions');
+    // Laying out a week is one decision taken in many moves, and half of the
+    // positions tried are ones the planner is only looking at. None of them
+    // reaches the database.
+    assert.equal(bulkWrites().length, 0, 'nothing is sent before บันทึก');
+    await saveBoard.waitFor();
+
+    await saveBoard.click();
+    await saveBoard.waitFor({ state: 'detached' });
+    const writes = bulkWrites();
     assert.equal(writes.length, 1, 'one transaction for the whole timetable');
     assert.ok(Array.isArray(writes[0].body) && writes[0].body.length > 0);
     assert.ok(writes[0].body.every((item) => typeof item.electiveId === 'number' && typeof item.slot === 'string'));
@@ -238,6 +252,22 @@ try {
       (ids) => [...document.querySelectorAll('.matrix-chip')].length === ids.length,
       plan.sessions.map((item) => item.id),
     );
+  });
+
+  await check('ยกเลิก throws away the board edits, and sends nothing either way', async () => {
+    resetPlan();
+    await go('/');
+    const before = await page.locator('.matrix-chip').count();
+    since();
+    await page.getByRole('button', { name: 'จัดตารางอัตโนมัติ', exact: true }).click();
+    await cancelBoard.waitFor();
+    await cancelBoard.click();
+    // Back to the week the server last confirmed — not a request that undoes
+    // one, which is a promise this page cannot keep on a plan several people
+    // are writing to. Nothing was sent, so there is nothing to take back.
+    await page.waitForFunction((before) => document.querySelectorAll('.matrix-chip').length === before, before);
+    await cancelBoard.waitFor({ state: 'detached' });
+    assert.equal(bulkWrites().length, 0, 'ยกเลิก sends nothing');
   });
 
   await check('a refused write puts the screen back and says why in the backend\'s words', async () => {
@@ -257,7 +287,7 @@ try {
     });
   });
 
-  await check('a saved change offers one step back, and taking it calls the inverse', async () => {
+  await check('a change outside the board is sent at the press, with nothing offering to reverse it', async () => {
     resetPlan();
     await go('/courses/list?view=checklist');
     const box = page.locator('select.checklist-select').first();
@@ -265,16 +295,13 @@ try {
     since();
     await box.selectOption({ index: 1 });
     await page.waitForFunction(() => document.querySelectorAll('[role="status"]').length > 0);
-    const undo = page.locator('.toast-undo');
-    await undo.waitFor();
+    // Ticking a box is one decision and is finished when it is pressed: there
+    // is no บันทึก covering it, and no step back either. The toast that
+    // confirms it used to carry a "เลิกทำ"; on a shared plan that offered to
+    // restore a state somebody else may already have built on.
     assert.equal(sent('PATCH', '/api/v1/electives/').length, 1);
-    since();
-    await undo.click();
-    await page.waitForFunction(() => {
-      const select = document.querySelector('select.checklist-select');
-      return select && select.selectedIndex === 0;
-    });
-    assert.equal(sent('PATCH', '/api/v1/electives/').length, 1, 'undo is a request of its own');
+    assert.equal(await page.locator('.toast-undo').count(), 0);
+    assert.equal(await page.getByRole('button', { name: 'เลิกทำ', exact: true }).count(), 0);
   });
 
   await check('the shared plan hides the controls that would replace everybody\'s work', async () => {
@@ -322,7 +349,7 @@ try {
     await page.getByText('2110999', { exact: false }).first().waitFor();
   });
 
-  await check('a closed term shows its own courses, and offers nothing to add to it', async () => {
+  await check('a closed term shows its own courses, and can still be backfilled', async () => {
     resetPlan();
     // 2/2569 is the term being planned and has two courses; 2/2568 is closed
     // and ran one. Reading either must not show the other's.
@@ -335,8 +362,13 @@ try {
     await page.getByText('2110001', { exact: false }).first().waitFor();
     assert.equal(await page.getByText('2110123', { exact: false }).count(), 0,
       'the term being planned must not appear under a closed term\'s name');
-    assert.equal(await page.getByRole('button', { name: /เพิ่มรายวิชา/ }).count(), 0,
-      'there is nothing to add to a term that ended');
+    // A term that ran before this page existed has to be typed in afterwards
+    // for the history to be worth reading, so the add button stays — saying
+    // plainly that what it adds is a record, not a plan. The checklist view is
+    // what goes: that paperwork was either done or it was not.
+    await page.getByRole('button', { name: /เพิ่มรายวิชาย้อนหลัง/ }).waitFor();
+    assert.equal(await page.getByRole('button', { name: 'เช็กลิสต์งานเอกสาร', exact: true }).count(), 0,
+      'a term that ended has no paperwork left to tick');
     // ...and the only reason it could show them is that it asked for that term
     // by name. A request without `termId` is answered with the plan, which is
     // how a closed term used to end up displaying the current term's courses.
@@ -346,10 +378,14 @@ try {
     );
   });
 
-  await check('switching back to the term being planned brings the add button back', async () => {
+  await check('switching back to the term being planned brings its own courses and controls back', async () => {
     await page.locator('select').first().selectOption('2569-1');
     await page.getByText('2110123', { exact: false }).first().waitFor();
-    await page.getByRole('button', { name: /เพิ่มรายวิชา/ }).waitFor();
+    // Plain เพิ่มรายวิชา here, not เพิ่มรายวิชาย้อนหลัง: both terms can be
+    // added to, and the label is the only thing that says which one you are
+    // about to write into.
+    await page.getByRole('button', { name: '＋ เพิ่มรายวิชา', exact: true }).waitFor();
+    await page.getByRole('button', { name: 'เช็กลิสต์งานเอกสาร', exact: true }).waitFor();
     assert.equal(await page.getByText('2110001', { exact: false }).count(), 0);
   });
 
@@ -357,7 +393,7 @@ try {
     await page.goto(base + '/elective-plan/courses/list?term=2568-2');
     await page.getByRole('region', { name: 'การบันทึกแผน', exact: true }).waitFor();
     await page.getByText('2110001', { exact: false }).first().waitFor();
-    assert.equal(await page.getByRole('button', { name: /เพิ่มรายวิชา/ }).count(), 0);
+    await page.getByRole('button', { name: /เพิ่มรายวิชาย้อนหลัง/ }).waitFor();
     assert.equal(await page.getByText('2110123', { exact: false }).count(), 0);
   });
 

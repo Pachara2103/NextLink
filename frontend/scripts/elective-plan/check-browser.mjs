@@ -13,7 +13,21 @@ let logs = ''; server.stdout.on('data', (data) => { logs += data; }); server.std
 let browser;
 const results = [];
 const errors = [], failedAssets = [];
-const key = 'nextlink.plan.v4.2569-1';
+/**
+ * The key the planner writes its document under, read from the source rather
+ * than typed here.
+ *
+ * It was a literal, and when the document went from version 4 to 5 this file
+ * kept watching the old key: the planner saved, nothing appeared where the
+ * test was looking, and it died in waitForFunction with an empty log — which
+ * says nothing at all about the version being the reason. Reading the version
+ * out of plan-document.ts means a future bump either keeps working or fails
+ * on the next line with a sentence naming the problem.
+ */
+const planDocument = await readFile('src/features/elective-plan/lib/plan-document.ts', 'utf8');
+const storageVersion = planDocument.match(/nextlink\.plan\.v(\d+)\.\$\{termId\}/)?.[1];
+if (!storageVersion) throw new Error('อ่านเวอร์ชันของ storageKeyFor จาก plan-document.ts ไม่สำเร็จ');
+const key = `nextlink.plan.v${storageVersion}.2569-1`;
 const courseId = 'plan-21105801';
 await mkdir('output/browser', { recursive: true });
 const check = async (name, fn) => { await fn(); results.push(name); console.log('  ✓ ' + name); };
@@ -105,6 +119,14 @@ try {
   });
   const go = async (path) => { await page.goto(base + '/elective-plan' + (path === '/' ? '' : path)); await page.getByRole('region', { name: 'การบันทึกแผน', exact: true }).waitFor(); };
   const read = () => page.evaluate((key) => JSON.parse(localStorage.getItem(key)), key);
+  /**
+   * There is no step back on this page any more, anywhere.
+   *
+   * Asserted rather than merely not exercised: the button was removed because
+   * on a plan several people share it promised to restore a state somebody may
+   * already have built on, and a control like that tends to come back.
+   */
+  const noUndo = async () => assert.equal(await page.getByRole('button', { name: 'เลิกทำรายการล่าสุด', exact: true }).count(), 0, 'ปุ่มเลิกทำกลับมาแล้ว');
   const seed = async (document) => { await page.evaluate(({ key, document }) => { localStorage.removeItem(key); localStorage.setItem(key, JSON.stringify(document)); }, { key, document }); };
   await go('/');
   await check('integrated planner hydrates and loads its scheduler worker', async () => {
@@ -273,7 +295,12 @@ try {
     // The new course is on the last page of the list, and the list went there.
     await page.getByText('Prompt Engineering for Teams', { exact: true }).first().waitFor();
     assert.equal(await listed(), before + 1);
-    assert.equal(await page.locator('.local-course-tag').count(), 1);
+    // The "เพิ่มเอง" badge that used to mark this row is gone — on the shared
+    // plan every course was typed in by somebody, so it marked all of them and
+    // told the reader nothing. What identifies the row as editable now is the
+    // แก้ไข button in the last column, in the same place on every row.
+    assert.equal(await page.locator('.local-course-tag').count(), 0);
+    assert.equal(await page.locator('td.row-action-cell button').count(), 1);
     assert.equal(await page.locator('.course-link strong').last().innerText(), 'Prompt Engineering for Teams');
     const added = await read();
     assert.equal(added.courseEdits.added.length, 1);
@@ -305,23 +332,22 @@ try {
     assert.equal((await read()).assignments.some((item) => item.courseId === 'plan-21105899'), false);
     await page.getByText('ไม่พบวิชาที่ตรงกับตัวกรอง', { exact: false }).waitFor();
     assert.equal(await listed(), before);
-    // Removing a course is one step, so undo brings back its periods with it.
-    await page.getByRole('button', { name: 'เลิกทำรายการล่าสุด', exact: true }).click();
-    await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).courseEdits.added.length === 1, key);
-    assert.ok((await read()).assignments.some((item) => item.courseId === 'plan-21105899'));
+    // The course took its periods with it and nothing offers to bring them
+    // back — the confirmation in front of the delete is the whole guard.
+    await noUndo();
     assert.deepEqual(errors, []);
     await seed(blank);
   });
-  await check('whole-plan controls stay on the overview, and undo follows you everywhere', async () => {
+  await check('whole-plan controls stay on the overview, and no page offers a step back', async () => {
     await seed(blank); await go('/');
     const backup = page.getByRole('button', { name: 'สำรองแผน JSON', exact: true });
     const importPlan = page.getByRole('button', { name: 'นำเข้าแผน', exact: true });
-    const undo = page.getByRole('button', { name: 'เลิกทำรายการล่าสุด', exact: true });
     await backup.waitFor();
+    await noUndo();
     assert.equal(await importPlan.count(), 1);
     for (const path of ['/courses/list', '/courses', '/rooms']) {
       await go(path);
-      await undo.waitFor();
+      await noUndo();
       assert.equal(await backup.count(), 0, `สำรองแผน JSON is still on ${path}`);
       assert.equal(await importPlan.count(), 0, `นำเข้าแผน is still on ${path}`);
       // The file input goes with the button it belongs to.
@@ -380,18 +406,20 @@ try {
   await check('course and company share one column in both tables', async () => {
     await seed(blank); await go('/courses/list');
     await page.locator('tbody tr').first().waitFor();
-    assert.deepEqual(
-      (await page.locator('thead th').allInnerTexts()).map((text) => text.trim()),
-      ['วิชา', 'ผู้สอน', 'ช่วงที่สะดวก', 'คาบที่ได้', 'ห้อง'],
-    );
+    // Five columns of data and a sixth holding แก้ไข, whose heading is for
+    // screen readers only — so its text is compared by position, not counted
+    // on to appear in the rendered list.
+    const headers = (await page.locator('thead th').allInnerTexts()).map((text) => text.trim());
+    assert.deepEqual(headers.slice(0, 5), ['วิชา', 'ผู้สอน', 'ช่วงที่สะดวก', 'คาบที่ได้', 'ห้อง']);
+    assert.equal(headers.length, 6);
     const cell = page.locator('tbody tr').first().locator('td').first();
     // ชื่อวิชาและชื่อบริษัทยังเป็นลิงก์คนละที่ แม้อยู่ในเซลล์เดียวกัน
     await cell.getByRole('link', { name: 'Soft Square', exact: true }).waitFor();
     assert.match(await cell.innerText(), /SW Dev for CMMI Standard[\s\S]*Soft Square[\s\S]*21105801/);
     await go('/courses/list?view=checklist');
     await page.locator('select.checklist-select').first().waitFor();
-    // หนึ่งคอลัมน์วิชา + แปดขั้นของเช็กลิสต์
-    assert.equal(await page.locator('thead th').count(), 9);
+    // หนึ่งคอลัมน์วิชา + แปดขั้นของเช็กลิสต์ + คอลัมน์แก้ไข
+    assert.equal(await page.locator('thead th').count(), 10);
     assert.equal((await page.locator('thead th').first().innerText()).trim(), 'วิชา');
     assert.equal(await page.locator('thead th').filter({ hasText: 'สร้างคอร์ส MCV' }).count(), 1);
   });
@@ -456,7 +484,7 @@ try {
     await page.getByRole('button', { name: 'จัดตารางอัตโนมัติ', exact: true }).waitFor();
     assert.deepEqual((await read()).assignments, []);
   });
-  await check('deleting a room from detail can be undone after client navigation', async () => {
+  await check('deleting a room from detail takes its periods with it, and the write survives navigation', async () => {
     await seed(scheduled); const target = scheduled.assignments.find((item) => item.roomId);
     await go('/rooms/' + target.roomId);
     await page.getByRole('button', { name: 'แก้ไขห้องนี้', exact: true }).click();
@@ -464,10 +492,13 @@ try {
     await page.getByRole('button', { name: 'ยืนยันลบ', exact: true }).click();
     await page.waitForURL(base + '/elective-plan/rooms');
     assert.equal((await read()).assignments.some((item) => item.roomId === target.roomId), false);
-    const undo = page.getByRole('button', { name: 'เลิกทำรายการล่าสุด', exact: true });
-    await undo.click();
-    await page.waitForFunction(({ key, roomId }) => JSON.parse(localStorage.getItem(key)).assignments.some((item) => item.roomId === roomId), { key, roomId: target.roomId });
-    assert.deepEqual((await read()).assignments, scheduled.assignments);
+    await noUndo();
+    // The client-side navigation the delete just did is the thing that used to
+    // lose it: the store lives above the layout, so the write has to still be
+    // there on the next page without a reload.
+    await go('/');
+    assert.equal((await read()).assignments.some((item) => item.roomId === target.roomId), false);
+    await seed(scheduled);
   });
   await check('worker cancellation keeps the prior plan intact', async () => {
     await go('/');
@@ -482,19 +513,20 @@ try {
     assert.deepEqual(await read(), before);
     await page.reload();
   });
-  await check('valid backup import and reset can both be undone', async () => {
+  await check('a valid backup imports over the plan, and คืนค่าเริ่มต้น empties it', async () => {
     await go('/');
     const before = await read();
     const imported = { ...before, checklists: { [courseId]: { mcvJoinCode: 'IMPORTED' } } };
     await page.locator('input[type=file]').setInputFiles({ name: 'plan.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(imported)) });
     await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).checklists['plan-21105801']?.mcvJoinCode === 'IMPORTED', key);
-    await page.getByRole('button', { name: 'เลิกทำรายการล่าสุด', exact: true }).click();
-    await page.waitForFunction((key) => !JSON.parse(localStorage.getItem(key)).checklists['plan-21105801']?.mcvJoinCode, key);
+    // The file replaced the paperwork and left the timetable alone.
     assert.deepEqual((await read()).assignments, before.assignments);
     await page.getByRole('button', { name: 'คืนค่าเริ่มต้น', exact: true }).click();
     await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).assignments.length === 0, key);
-    await page.getByRole('button', { name: 'เลิกทำรายการล่าสุด', exact: true }).click();
-    await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).assignments.length > 0, key);
+    // Each of these replaces the whole plan, and neither is offered a way back:
+    // the window.confirm in front of it is the guard, which is why both ask.
+    await noUndo();
+    await seed(before); await go('/');
     assert.deepEqual((await read()).assignments, before.assignments);
   });
   await check('unreadable backup files preserve the current plan and report a recoverable error', async () => {
