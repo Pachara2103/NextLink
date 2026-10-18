@@ -58,7 +58,13 @@ try {
     if (path === '/api/v1/auth/me') body = user;
     else if (path === '/api/v1/auth/login' && method === 'POST') body = { accessToken: 'local-test-only', tokenType: 'bearer', user };
     else if (path === '/api/v1/health') body = { status: 'ok', models: true, ready: true, bootId: 'fixture', startedAt: '2026-09-12T00:00:00Z' };
-    else if (method === 'GET' && ['/api/v1/line/groups', '/api/v1/companies', '/api/v1/contacts', '/api/v1/employees', '/api/v1/notes', '/api/v1/line/update_logs', '/api/v1/chat_histories'].includes(path)) body = { items: [] };
+  // Every read the console makes on these pages, answered with an empty list.
+  // A path that is not here is not quietly ignored: it is recorded and fails
+  // the run at the end, which is how a page that started calling something new
+  // gets noticed. That also means this list has to grow with the console —
+  // สรุปข้อมูลจากไลน์ (line/summary-drafts) was added to the sidebar and the
+  // list was not, so every run after it failed here naming the endpoint.
+    else if (method === 'GET' && ['/api/v1/line/groups', '/api/v1/companies', '/api/v1/contacts', '/api/v1/employees', '/api/v1/notes', '/api/v1/line/update_logs', '/api/v1/chat_histories', '/api/v1/line/summary-drafts'].includes(path)) body = { items: [] };
     else { unexpectedApi.push(`${method} ${path}`); return route.fulfill({ status: 500, json: { detail: 'Unexpected test request' } }); }
     await route.fulfill({ json: body });
   });
@@ -582,7 +588,7 @@ try {
       const navBox = await activeNav.boundingBox();
       assert.ok(navBox.x >= 0 && navBox.x + navBox.width <= 390, 'active mobile destination is visible after reload');
     }
-    assert.deepEqual(errors, []); assert.deepEqual(failedAssets, []); assert.deepEqual(unexpectedApi, []);
+    assert.deepEqual(errors, []); assert.deepEqual(failedAssets, []); assert.deepEqual(unexpectedApi, [], 'the console called an API the fixture does not know — add it to the route table above');
   });
   await check('theme works with blocked localStorage and unsafe login return paths stay local', async () => {
     await page.goto(base + '/login?next=https%3A%2F%2Fexample.com');
