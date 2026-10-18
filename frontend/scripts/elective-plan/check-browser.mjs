@@ -74,11 +74,6 @@ try {
    * wording change failed here as a fifteen-second timeout naming a button that
    * no longer exists, rather than as anything about the theme.
    */
-  const pickTheme = async (value) => {
-    await page.getByRole('radio', { name: value === 'classic' ? /สีดั้งเดิม|สว่าง/ : /มืด/ }).filter({ visible: true }).first().click();
-    await page.waitForFunction(value => document.documentElement.dataset.theme === value, value);
-  };
-
   /**
    * Choose a theme on a page that has no switch on it.
    *
@@ -96,6 +91,23 @@ try {
       try { localStorage.setItem('nextlink.theme', value); } catch { /* blocked store */ }
     }, value);
   };
+  const themeControl = (value) =>
+    page.getByRole('radio', { name: value === 'classic' ? /สีดั้งเดิม|สว่าง/ : /มืด/ }).filter({ visible: true }).first();
+
+  const chooseTheme = async (value) => {
+    // Press the switch where there is one — the sidebar on a wide window, the
+    // mobile menu on a narrow one. The sign-in page has neither, and there the
+    // theme is set the way the app itself stores it rather than by hunting for
+    // a control that is not on that page.
+    if (await themeControl(value).count() === 0) {
+      await presetTheme(value);
+      await page.reload();
+    } else {
+      await themeControl(value).click();
+    }
+    await page.waitForFunction(value => document.documentElement.dataset.theme === value, value);
+  };
+
   const themeIs = async (value) => assert.equal(await page.locator('html').getAttribute('data-theme'), value);
   await check('planner deep links require sign-in and return to the requested page', async () => {
     await page.goto(base + '/elective-plan/courses/list?view=checklist');
@@ -149,7 +161,7 @@ try {
   const scheduled = await read();
   await check('both themes reach the whole console, planner dialogs and cross-tab preferences', async () => {
     for (const theme of ['classic', 'dark']) {
-      await pickTheme(theme);
+      await chooseTheme(theme);
       await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
       await page.screenshot({ path: `output/browser/planner-${theme}.png`, fullPage: true });
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'planner fits the sidebar layout');
@@ -188,7 +200,7 @@ try {
     }
     const other = await context.newPage(); watch(other); await other.goto(base + '/');
     await other.locator('aside').waitFor();
-    await pickTheme('classic');
+    await chooseTheme('classic');
     await other.waitForFunction(() => document.documentElement.dataset.theme === 'classic');
     await other.reload(); await other.locator('aside').waitFor();
     assert.equal(await other.locator('html').getAttribute('data-theme'), 'classic');
