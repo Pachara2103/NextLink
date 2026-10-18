@@ -639,7 +639,12 @@ try {
       companyTh: 'บริษัททดสอบโน้ต', companyEn: null, aliases: [], hasCompany: true, pictureUrl: null };
     let note = { id: 930, companyId: 920, employeeId: null, companyTh: group.companyTh,
       companyEn: null, aliases: [], type: 'elective', sentiment: 'neutral', source: 'external',
-      content: 'โน้ตทดสอบ year semester', year, semester: 2,
+      // `academicYear`, not `year`: the column and every caller were renamed
+      // (academic_year on the wire's backend side). A fixture that still says
+      // `year` renders the card but gives the year filter nothing to match, so
+      // the note vanishes behind the filter this check sets — which reads as
+      // the text never appearing rather than as a field name.
+      content: 'โน้ตทดสอบ year semester', academicYear: year, semester: 2,
       createdAt: '2026-09-12T00:00:00Z', updatedAt: '2026-09-12T00:00:00Z' };
     const updates = [];
     await page.route('**/api/v1/line/groups', route => route.fulfill({ json: { items: [group] } }));
@@ -651,9 +656,10 @@ try {
     await page.route('**/api/v1/notes/930', async route => {
       assert.equal(route.request().method(), 'PUT');
       const payload = route.request().postDataJSON();
-      assert.equal(payload.year, year - 1);
+      assert.equal(payload.academicYear, year - 1);
       assert.equal(payload.semester, 3);
-      assert.equal('academicYear' in payload || 'academic_year' in payload || 'term' in payload, false);
+      // The old spellings must not come back alongside the new one.
+      assert.equal('year' in payload || 'academic_year' in payload || 'term' in payload, false);
       updates.push(payload);
       note = { ...note, ...payload };
       await route.fulfill({ json: { status: 'success' } });
@@ -676,7 +682,7 @@ try {
       const dialog = page.getByRole('dialog');
       const yearField = dialog.getByRole('combobox', { name: 'ปีการศึกษา', exact: true });
       const semesterField = dialog.getByRole('combobox', { name: 'ภาคเรียน', exact: true });
-      assert.equal(await yearField.inputValue(), String(note.year));
+      assert.equal(await yearField.inputValue(), String(note.academicYear));
       assert.equal(await semesterField.inputValue(), String(note.semester));
       await yearField.selectOption(String(year - 1));
       await semesterField.selectOption('3');
