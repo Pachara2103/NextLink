@@ -1,18 +1,34 @@
 import { decodePlan, emptyDocument, legacyKeysFor, storageKeyFor, type PlanData, type PlanDocument } from "./plan-document.ts";
-import type { PlanPayload } from "./plan-types.ts";
+import type { ArchivedTerm, PlanPayload, TermMeta } from "./plan-types.ts";
 
 export type Persistence = {
   read: (key: string) => string | null;
   write: (key: string, value: string) => void;
   exclusive: <T>(name: string, work: () => Promise<T>) => Promise<T>;
 };
+/**
+ * What either store publishes, so a component never has to know which one it
+ * is reading. `payload`, `terms` and `archives` are constants here — a bundled
+ * plan is the file it was built from — and state on the server-backed store.
+ */
 export type PlanSnapshot = {
+  payload: PlanPayload;
   document: PlanDocument;
   ready: boolean;
-  status: "loading" | "saved" | "saving" | "error";
+  /**
+   * `"draft"` is the week board holding edits that have not been sent. It is
+   * only ever reached on the shared plan; a plan kept in this browser is
+   * written at the press, so there is nothing to wait for.
+   */
+  status: "loading" | "saved" | "saving" | "error" | "draft";
   error: string | null;
   recoveryRaw: string | null;
-  canUndo: boolean;
+  /** How many board edits are waiting for บันทึก, and what they were. */
+  unsaved: number;
+  unsavedLabels: string[];
+  /** Every term the switcher offers. Read from the API; bundled in seed mode. */
+  terms: TermMeta[];
+  archives: ArchivedTerm[];
 };
 type Mutation = (document: PlanDocument) => PlanData | Promise<PlanData>;
 
@@ -24,7 +40,6 @@ export class PlanStore {
   private queue: Promise<unknown> = Promise.resolve();
   private baseRaw: string | null | undefined;
   private dirty = false;
-  private undoEntry: { before: PlanDocument; afterRevision: number } | null = null;
 
   readonly payload: PlanPayload;
   private persistence: Persistence;
@@ -32,7 +47,7 @@ export class PlanStore {
     this.payload = payload;
     this.persistence = persistence;
     this.key = storageKeyFor(payload.term.id);
-    this.snapshot = { document: emptyDocument(payload), ready: false, status: "loading", error: null, recoveryRaw: null, canUndo: false };
+    this.snapshot = { payload, document: emptyDocument(payload), ready: false, status: "loading", error: null, recoveryRaw: null, unsaved: 0, unsavedLabels: [], terms: [], archives: [] };
   }
   getSnapshot = () => this.snapshot;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
@@ -63,10 +78,8 @@ export class PlanStore {
     if (this.dirty || this.snapshot.status === "saving") return;
     try {
       const latest = this.readCurrent();
-      const changed = latest.raw !== this.baseRaw;
       this.baseRaw = latest.raw;
-      if (changed) this.undoEntry = null;
-      this.publish({ document: latest.document, ready: true, status: "saved", error: null, recoveryRaw: null, canUndo: Boolean(this.undoEntry) });
+      this.publish({ document: latest.document, ready: true, status: "saved", error: null, recoveryRaw: null });
     } catch (error) {
       let recoveryRaw: string | null = null;
       try { recoveryRaw = this.persistence.read(this.key) ?? this.readLegacy(); } catch { /* storage itself may be blocked */ }
@@ -93,7 +106,7 @@ export class PlanStore {
         before = this.dirty ? this.snapshot.document : latest.document;
         this.baseRaw = latest.raw;
         const data = await mutation(before);
-        const proposed = { ...before, ...data, version: 4, termId: this.payload.term.id, dataset: this.payload.dataset,
+        const proposed = { ...before, ...data, version: 5, termId: this.payload.term.id, dataset: this.payload.dataset,
           seedRevision: this.payload.seedRevision, revision: before.revision + 1, editedAt: new Date().toISOString() };
         // Commands and imported backups pass the same schema boundary.
         candidate = decodePlan(JSON.stringify(proposed), this.payload).document;
@@ -101,8 +114,7 @@ export class PlanStore {
         this.persistence.write(this.key, raw);
         this.baseRaw = raw;
         this.dirty = false;
-        this.undoEntry = { before, afterRevision: candidate.revision };
-        this.publish({ document: candidate, status: "saved", error: null, canUndo: true });
+        this.publish({ document: candidate, status: "saved", error: null });
         return true;
       });
     } catch (error) {
@@ -110,8 +122,7 @@ export class PlanStore {
       // a stale revision never replaces the currently displayed document.
       if (candidate && before) {
         this.dirty = true;
-        this.undoEntry = { before, afterRevision: candidate.revision };
-        this.publish({ document: candidate, canUndo: true });
+        this.publish({ document: candidate });
       }
       this.publish({ status: candidate || !before || this.dirty ? "error" : "saved", error: error instanceof Error ? error.message : "บันทึกไม่สำเร็จ กรุณาสำรองแผน" });
       return false;
@@ -120,26 +131,18 @@ export class PlanStore {
 
   retry = async (): Promise<boolean> => {
     if (!this.dirty) { this.refresh(); return this.snapshot.status === "saved"; }
-    const previous = this.undoEntry;
-    const saved = await this.mutate((document) => document);
-    // Retrying persistence is not a new user edit. Keep the original undo.
-    if (saved && previous) {
-      this.undoEntry = { before: previous.before, afterRevision: this.snapshot.document.revision };
-      this.publish({ canUndo: true });
-    }
-    return saved;
+    return this.mutate((document) => document);
   };
 
-  undo = async (): Promise<boolean> => {
-    const entry = this.undoEntry;
-    if (!entry) return false;
-    const success = await this.mutate((current) => {
-      if (current.revision !== entry.afterRevision) throw new Error("แผนเปลี่ยนจากแท็บอื่นแล้ว จึงเลิกทำรายการเก่านี้ไม่ได้");
-      return entry.before;
-    });
-    if (success) { this.undoEntry = null; this.publish({ canUndo: false }); }
-    return success;
-  };
+  /**
+   * Nothing to send: a plan kept in this browser is already written.
+   *
+   * Both stores answer the same calls so the board can offer the same two
+   * buttons without asking which plan it is looking at — here they are simply
+   * never reachable, because `unsaved` stays at zero.
+   */
+  save = (): Promise<boolean> => Promise.resolve(true);
+  discard = (): Promise<boolean> => Promise.resolve(true);
 
   replace = (data: PlanData, expectedRevision: number): Promise<boolean> => this.mutate((current) => {
     if (current.revision !== expectedRevision) throw new Error("แผนมีการเปลี่ยนแปลง กรุณาตรวจแผนล่าสุดก่อนแทนที่");
@@ -156,8 +159,8 @@ export class PlanStore {
       const document = { ...emptyDocument(this.payload), revision: 1, editedAt: new Date().toISOString() };
       const encoded = JSON.stringify(document);
       this.persistence.write(this.key, encoded);
-      this.baseRaw = encoded; this.dirty = false; this.undoEntry = null;
-      this.publish({ document, ready: true, status: "saved", error: null, recoveryRaw: null, canUndo: false });
+      this.baseRaw = encoded; this.dirty = false;
+      this.publish({ document, ready: true, status: "saved", error: null, recoveryRaw: null });
       return true;
     })).catch((error: unknown) => {
       this.publish({ status: "error", error: error instanceof Error ? error.message : "กู้คืนไม่สำเร็จ" });
@@ -168,7 +171,7 @@ export class PlanStore {
   };
 
   /** Explicit discard, after the UI offers a backup; never done by a storage event. */
-  reload = () => { this.dirty = false; this.undoEntry = null; this.publish({ status: "loading", canUndo: false }); this.refresh(); };
+  reload = () => { this.dirty = false; this.publish({ status: "loading" }); this.refresh(); };
   reportError = (error: string) => this.publish({ error });
 }
 

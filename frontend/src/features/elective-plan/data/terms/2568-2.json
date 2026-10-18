@@ -24,7 +24,6 @@
         "WED_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 40,
       "capacity": 40,
       "weeks": 10,
       "notes": null
@@ -42,7 +41,6 @@
         "FRI_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 45,
       "capacity": 42,
       "weeks": 10,
       "notes": "ปีนี้ได้ศุกร์เช้า ทีมเดินทางมาคนละวันกับ 21105801"
@@ -60,7 +58,6 @@
         "THU_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 40,
       "capacity": 40,
       "weeks": 10,
       "notes": null
@@ -79,7 +76,6 @@
         "FRI_PM"
       ],
       "sessionsPerWeek": 2,
-      "minSeats": 45,
       "capacity": 45,
       "weeks": 9,
       "notes": "ต้องได้ 2 คาบ/สัปดาห์ ได้พุธบ่ายกับศุกร์บ่าย"
@@ -98,7 +94,6 @@
         "FRI_EVE"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 60,
       "capacity": 60,
       "weeks": 8,
       "notes": null
@@ -116,7 +111,6 @@
         "SAT_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 0,
       "capacity": 40,
       "weeks": 10,
       "notes": null
@@ -134,7 +128,6 @@
         "FRI_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 45,
       "capacity": 44,
       "weeks": 10,
       "notes": null
@@ -153,7 +146,6 @@
         "SAT_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 30,
       "capacity": 28,
       "weeks": 8,
       "notes": null
@@ -171,7 +163,6 @@
         "SAT_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 0,
       "capacity": 50,
       "weeks": 10,
       "notes": null
@@ -189,7 +180,6 @@
         "TUE_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 35,
       "capacity": 33,
       "weeks": 10,
       "notes": "เปิดครั้งแรกในเทอมนี้"
@@ -207,7 +197,6 @@
         "THU_EVE"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 30,
       "capacity": 30,
       "weeks": 9,
       "notes": null
@@ -226,7 +215,6 @@
         "SAT_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 55,
       "capacity": 52,
       "weeks": 10,
       "notes": null
@@ -244,7 +232,6 @@
         "THU_EVE"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 40,
       "capacity": 40,
       "weeks": 10,
       "notes": "ได้ห้องตึก 4 หลังยื่นเรื่องกับคณะ"
@@ -262,7 +249,6 @@
         "WED_EVE"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 40,
       "capacity": 38,
       "weeks": 8,
       "notes": null
@@ -280,7 +266,6 @@
         "SAT_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 30,
       "capacity": 26,
       "weeks": 8,
       "notes": null

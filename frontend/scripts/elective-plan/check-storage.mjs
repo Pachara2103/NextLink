@@ -26,7 +26,7 @@ await check('two stale tabs merge concurrent field edits under a shared lock', a
   assert.equal(a.getSnapshot().document.checklists[id].mentorAdded, 'DONE');
   assert.equal(a.getSnapshot().document.checklists[id].studentsAdded, 'DONE');
   assert.equal(a.getSnapshot().document.revision, 2);
-  assert.equal(a.getSnapshot().canUndo, false);
+  assert.equal(a.getSnapshot().unsaved, 0);
 });
 await check('quota failure keeps a recoverable draft and retry persists it', async () => {
   const persistence = disk(); const store = new PlanStore(payload, persistence); store.load(); persistence.fail = true;
@@ -37,8 +37,6 @@ await check('quota failure keeps a recoverable draft and retry persists it', asy
   store.refresh(); assert.equal(store.getSnapshot().document.checklists[id].mcvJoinCode, 'ABC123');
   persistence.fail = false; assert.equal(await store.retry(), true);
   assert.equal(decodePlan(persistence.read(store.key), payload).document.checklists[id].mcvJoinCode, 'ABC123');
-  assert.equal(await store.undo(), true);
-  assert.deepEqual(store.getSnapshot().document.checklists, {});
 });
 await check('unsaved draft cannot overwrite a later change from another tab', async () => {
   const persistence = disk(); const a = new PlanStore(payload, persistence), b = new PlanStore(payload, persistence); a.load(); b.load();
@@ -69,19 +67,24 @@ await check('legacy migration preserves edits and isolates terms', async () => {
   const store = new PlanStore(payload, persistence); store.load();
   assert.equal(store.getSnapshot().document.checklists[id].mcvJoinCode, 'OLD');
   await store.mutate(patch('mentorAdded', 'DONE'));
-  assert.equal(JSON.parse(persistence.read(store.key)).version, 4);
+  assert.equal(JSON.parse(persistence.read(store.key)).version, 5);
   assert.ok(persistence.read(LEGACY_STORAGE_KEY));
   const nextTerm = new PlanStore({ ...payload, term: { id: '2569-2' } }, persistence); nextTerm.load();
   assert.deepEqual(nextTerm.getSnapshot().document.checklists, {});
   assert.throws(() => decodePlan(persistence.read(store.key), { ...payload, term: { id: '2569-2' } }));
 });
-await check('undo survives consumer changes and refuses stale undo after another tab writes', async () => {
-  const persistence = disk(); const a = new PlanStore(payload, persistence), b = new PlanStore(payload, persistence); a.load(); b.load();
-  await a.mutate(patch('mcvJoinCode', 'FIRST')); const consume = () => a.getSnapshot(); assert.equal(consume().canUndo, true);
-  assert.equal(await a.undo(), true); assert.deepEqual(a.getSnapshot().document.checklists, {});
-  await a.mutate(patch('mcvJoinCode', 'SECOND')); await b.mutate(patch('studentsAdded', 'DONE'));
-  assert.equal(await a.undo(), false);
-  assert.equal(decodePlan(persistence.read(a.key), payload).document.checklists[id].studentsAdded, 'DONE');
+// There is no step back any more, on either store. What is checked instead is
+// that the two calls the board's buttons make are answered rather than missing,
+// so one component can drive either store without asking which it has.
+await check('a plan kept in this browser reports nothing waiting to be saved', async () => {
+  const persistence = disk(); const store = new PlanStore(payload, persistence); store.load();
+  await store.mutate(patch('mcvJoinCode', 'FIRST'));
+  assert.equal(store.getSnapshot().unsaved, 0);
+  assert.deepEqual(store.getSnapshot().unsavedLabels, []);
+  assert.equal(await store.save(), true);
+  assert.equal(await store.discard(), true);
+  // Neither call touches the document: it was written when it was pressed.
+  assert.equal(store.getSnapshot().document.checklists[id].mcvJoinCode, 'FIRST');
 });
 await check('schema rejects duplicate sessions, invalid overrides and unknown room references', async () => {
   const base = emptyDocument(payload);
@@ -91,29 +94,49 @@ await check('schema rejects duplicate sessions, invalid overrides and unknown ro
 });
 // A plan written before courses could be typed in is still one of these; it is
 // read under the key that release used and rewritten under this one.
+const [V4_KEY, V3_KEY] = legacyKeysFor(payload.term.id);
 const v3 = (extra = {}) => JSON.stringify({
   version: 3, termId: payload.term.id, dataset: payload.dataset, seedRevision: 'older', revision: 4,
   editedAt: '2026-09-01T10:00:00+07:00', assignments: [], courseOverrides: { [id]: { capacity: 55 } },
   roomEdits: { overrides: {}, added: [], removed: [] }, checklists: { [id]: { mentorAdded: 'DONE' } }, ...extra,
 });
-await check('a version 3 plan is read from its own key and saved back as version 4', async () => {
-  const persistence = disk(); persistence.values.set(legacyKeysFor(payload.term.id)[0], v3());
+await check('a version 3 plan is read from its own key and saved back as version 5', async () => {
+  const persistence = disk(); persistence.values.set(V3_KEY, v3());
   const store = new PlanStore(payload, persistence); store.load();
   assert.equal(store.getSnapshot().document.courseOverrides[id].capacity, 55);
   assert.equal(store.getSnapshot().document.checklists[id].mentorAdded, 'DONE');
   assert.deepEqual(store.getSnapshot().document.courseEdits, { added: [], removed: [] });
   assert.equal(await store.mutate(patch('studentsAdded', 'DONE')), true);
   const written = JSON.parse(persistence.read(storageKeyFor(payload.term.id)));
-  assert.equal(written.version, 4);
+  assert.equal(written.version, 5);
   assert.equal(written.revision, 5);
   assert.equal(written.courseOverrides[id].capacity, 55);
   // The old key is left alone: an older build open in another tab still works.
-  assert.equal(persistence.read(legacyKeysFor(payload.term.id)[0]), v3());
+  assert.equal(persistence.read(V3_KEY), v3());
+});
+// Version 5 renamed a room's `tier` to `type`, following the column. A v4 plan
+// still says `tier`, and a validator that only knows the new word would refuse
+// the whole document — losing every edit in it — rather than one field.
+await check('a version 4 room edit saying tier is read as type', async () => {
+  const persistence = disk();
+  persistence.values.set(V4_KEY, JSON.stringify({
+    version: 4, termId: payload.term.id, dataset: payload.dataset, seedRevision: 'older', revision: 2,
+    editedAt: '2026-09-01T10:00:00+07:00', assignments: [], courseOverrides: {}, courseEdits: { added: [], removed: [] },
+    roomEdits: { overrides: { [rooms.rooms[0].id]: { tier: 'NEEDS_APPROVAL' } }, added: [], removed: [] },
+    checklists: {},
+  }));
+  const store = new PlanStore(payload, persistence); store.load();
+  assert.equal(store.getSnapshot().status, 'saved', store.getSnapshot().error ?? '');
+  assert.deepEqual(store.getSnapshot().document.roomEdits.overrides[rooms.rooms[0].id], { type: 'NEEDS_APPROVAL' });
+  assert.equal(await store.mutate(patch('mentorAdded', 'DONE')), true);
+  const written = JSON.parse(persistence.read(storageKeyFor(payload.term.id)));
+  assert.equal(written.version, 5);
+  assert.deepEqual(written.roomEdits.overrides[rooms.rooms[0].id], { type: 'NEEDS_APPROVAL' });
 });
 const local = (over = {}) => ({
   id: 'plan-99999999', courseCode: '99999999', title: 'วิชาใหม่', category: 'ทดสอบ', provider: 'บริษัททดสอบ',
   instructor: 'อาจารย์ทดสอบ', coordinator: null, deliveryMode: 'ON_SITE', availability: ['MON_AM'],
-  sessionsPerWeek: 1, minSeats: 30, capacity: 30, weeks: 10, notes: null, ...over,
+  section: 1, sessionsPerWeek: 1, capacity: 30, weeks: 10, notes: null, ...over,
 });
 await check('a course typed in here is schedulable, and a malformed one is refused', async () => {
   const base = emptyDocument(payload);

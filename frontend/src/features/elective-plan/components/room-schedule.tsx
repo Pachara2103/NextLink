@@ -25,8 +25,9 @@ import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
  * this page out of reach of the keyboard and off the phone entirely, in a
  * codebase that has otherwise gone to some trouble about both.
  */
-export function RoomSchedule({ payload, roomId }: { payload: PlanPayload; roomId: string }) {
+export function RoomSchedule({ roomId }: { roomId: string }) {
   const plan = usePlanState();
+  const payload = plan.payload;
   const router = useRouter();
   const { toast, show, dismiss, holdTimer, resumeTimer } = useStatusToast();
   const [assignSlot, setAssignSlot] = useState<SlotId | null>(null);
@@ -67,7 +68,7 @@ export function RoomSchedule({ payload, roomId }: { payload: PlanPayload; roomId
     if (!await plan.place(courseId, slotId, course.deliveryMode === "ONLINE" ? null : room.id)) return;
     setAssignSlot(null);
     setAnnouncement(`เพิ่ม ${course.title} ลง ${slotLabel(slotId)} แล้ว`);
-    show(`เพิ่ม ${course.title} ลง${slotLabel(slotId)}`, plan.undo);
+    show(`เพิ่ม ${course.title} ลง${slotLabel(slotId)}`);
   };
 
   const moveTo = async (slotId: SlotId) => {
@@ -76,7 +77,7 @@ export function RoomSchedule({ payload, roomId }: { payload: PlanPayload; roomId
     if (!await plan.move(moving.id, slotId, moving.roomId === null ? null : room.id)) return;
     setMovingId(null);
     setAnnouncement(`ย้าย ${course?.title ?? ""} ไป ${slotLabel(slotId)} แล้ว`);
-    show(`ย้าย ${course?.title ?? ""} ไป${slotLabel(slotId)}`, plan.undo);
+    show(`ย้าย ${course?.title ?? ""} ไป${slotLabel(slotId)}`);
   };
 
   const dropOn = async (slotId: SlotId, assignmentId: string) => {
@@ -85,7 +86,7 @@ export function RoomSchedule({ payload, roomId }: { payload: PlanPayload; roomId
     const course = coursesById.get(target.courseId);
     if (!await plan.move(assignmentId, slotId, target.roomId === null ? null : room.id)) return;
     setAnnouncement(`ย้าย ${course?.title ?? ""} ไป ${slotLabel(slotId)} แล้ว`);
-    show(`ย้าย ${course?.title ?? ""} ไป${slotLabel(slotId)}`, plan.undo);
+    show(`ย้าย ${course?.title ?? ""} ไป${slotLabel(slotId)}`);
   };
 
   const capacity = 18 - room.blockedSlots.length;
@@ -109,7 +110,7 @@ export function RoomSchedule({ payload, roomId }: { payload: PlanPayload; roomId
           <p className="intro-copy">
             {room.seatsIsEstimated ? "ประมาณ " : ""}
             {formatNumber(room.seats)} ที่นั่ง · ใช้ไปแล้ว {formatNumber(inThisRoom.length)} จาก {formatNumber(capacity)} คาบ
-            {room.tier === "NEEDS_APPROVAL" ? " · ห้องนี้ต้องยื่นเรื่องขอใช้กับคณะวิศวะก่อน" : ""}
+            {room.type === "NEEDS_APPROVAL" ? " · ห้องนี้ต้องยื่นเรื่องขอใช้กับคณะวิศวะก่อน" : ""}
           </p>
         </div>
         <div className="intro-badges">
@@ -121,7 +122,7 @@ export function RoomSchedule({ payload, roomId }: { payload: PlanPayload; roomId
               <span className="scope-chip-label">ความจุ</span> ยังไม่ยืนยัน
             </span>
           ) : null}
-          {room.tier === "NEEDS_APPROVAL" ? <span className="status-pill tone-orange">ต้องขออนุมัติ</span> : null}
+          {room.type === "NEEDS_APPROVAL" ? <span className="status-pill tone-orange">ต้องขออนุมัติ</span> : null}
         </div>
       </div>
 
@@ -210,7 +211,7 @@ export function RoomSchedule({ payload, roomId }: { payload: PlanPayload; roomId
                       onRemove={async () => {
                         if (!await plan.remove(assignment.id)) return;
                         setAnnouncement(`เอา ${course.title} ออกจาก ${slotLabel(slotId)} แล้ว`);
-                        show(`เอา ${course.title} ออกจากตาราง`, plan.undo);
+                        show(`เอา ${course.title} ออกจากตาราง`);
                       }}
                     />
                   );
@@ -269,7 +270,7 @@ export function RoomSchedule({ payload, roomId }: { payload: PlanPayload; roomId
         assignedCount={plan.assignmentsInRoom(room.id)}
         onSave={async (draft) => {
           if (!await plan.updateRoom(room.id, draft)) return;
-          show(`บันทึก ${draft.name} แล้ว`, plan.undo);
+          show(`บันทึก ${draft.name} แล้ว`);
           setRoomForm(null);
         }}
         onDelete={async () => {
@@ -283,7 +284,6 @@ export function RoomSchedule({ payload, roomId }: { payload: PlanPayload; roomId
             losing > 0
               ? `ลบ ${room.name} แล้ว · ${formatNumber(losing)} คาบกลับไปเป็นวิชาที่ยังไม่ได้จัด`
               : `ลบ ${room.name} แล้ว`,
-            plan.undo,
           );
         }}
         onClose={() => setRoomForm(null)}
@@ -299,7 +299,6 @@ export function RoomSchedule({ payload, roomId }: { payload: PlanPayload; roomId
             reason
               ? `กัน${slotLabel(booking.slotId)}ไว้ให้ ${reason}`
               : `ปลดการกัน${slotLabel(booking.slotId)}แล้ว`,
-            plan.undo,
           );
           setBooking(null);
         }}

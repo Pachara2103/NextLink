@@ -43,7 +43,13 @@ try {
     if (path === '/api/v1/auth/login' && method === 'POST') body = { accessToken: 'local-fixture-only', tokenType: 'bearer', user };
     else if (path === '/api/v1/auth/logout' && method === 'POST') return route.fulfill({ status: 204 });
     else if (path === '/api/v1/health') body = { status: 'ok', models: true, ready: true, bootId: 'dashboard-fixture', startedAt: '2026-09-14T00:00:00Z' };
-    else if (method === 'GET' && ['/api/v1/line/groups', '/api/v1/companies', '/api/v1/contacts', '/api/v1/employees', '/api/v1/notes', '/api/v1/line/update_logs', '/api/v1/chat_histories'].includes(path)) body = { items: [] };
+  // Every read the console makes on these pages, answered with an empty list.
+  // A path that is not here is not quietly ignored: it is recorded and fails
+  // the run at the end, which is how a page that started calling something new
+  // gets noticed. That also means this list has to grow with the console —
+  // สรุปข้อมูลจากไลน์ (line/summary-drafts) was added to the sidebar and the
+  // list was not, so every run after it failed here naming the endpoint.
+    else if (method === 'GET' && ['/api/v1/line/groups', '/api/v1/companies', '/api/v1/contacts', '/api/v1/employees', '/api/v1/notes', '/api/v1/line/update_logs', '/api/v1/chat_histories', '/api/v1/line/summary-drafts'].includes(path)) body = { items: [] };
     else { unexpectedApi.push(`${method} ${path}`); return route.fulfill({ status: 500, json: { detail: 'Unexpected API in integration check' } }); }
     await route.fulfill({ json: body });
   });
@@ -54,8 +60,10 @@ try {
   page.on('dialog', dialog => allowDiscard ? dialog.accept() : dialog.dismiss());
   const paths = ['', '/electives', '/mou', '/internship', '/cooperative', '/capstone', '/friday-activities'];
   const go = async path => { await page.goto(base + '/dashboard' + path); await page.locator('.app-shell[data-ready="true"]').waitFor(); };
+  // Role `radio` and a substring of the accessible name — see the same helper in
+   // scripts/elective-plan/check-browser.mjs for why neither is exact.
   const theme = async value => {
-    await page.getByRole('button', { name: value === 'classic' ? 'สีดั้งเดิม' : 'โหมดมืด', exact: true }).filter({ visible: true }).click();
+    await page.getByRole('radio', { name: value === 'classic' ? /สีดั้งเดิม|สว่าง/ : /มืด/ }).filter({ visible: true }).first().click();
     await page.waitForFunction(value => document.documentElement.dataset.theme === value, value);
   };
   const login = async () => {
@@ -329,7 +337,7 @@ try {
     await page.waitForURL('**/login?next=*');
     assert.equal(await page.locator('.nextlink-dashboard').count(), 0);
   });
-  assert.deepEqual(unexpectedApi, [], 'demo edits never write to real business APIs or run AI');
+  assert.deepEqual(unexpectedApi, [], 'demo edits never write to real business APIs or run AI — a GET listed here instead means the fixture route table is missing a read the console now makes');
   assert.deepEqual(errors, [], 'no browser runtime errors');
   assert.deepEqual(failedAssets, [], 'no broken chunks');
   await writeFile(`${output}/${additionsOnly ? 'additions-results' : 'results'}.json`, JSON.stringify({ passed: results.length, results, errors, failedAssets, unexpectedApi, backend: 'intercepted fixtures; not a live DB test' }, null, 2));

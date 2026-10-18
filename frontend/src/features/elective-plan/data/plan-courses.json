@@ -15,14 +15,13 @@
       "coordinator": {
         "name": "คุณนลิน",
         "email": "narin.softsquare@example.com",
-        "lineId": "mock_softsquare_narin"
+        "phone": "088-471-2580"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
         "WED_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 40,
       "capacity": 40,
       "weeks": 10,
       "notes": "บริษัทแจ้งว่าสะดวกพุธเช้าช่วงเดียว วิทยากรติดงานประจำวันอื่น"
@@ -37,7 +36,7 @@
       "coordinator": {
         "name": "คุณพิมพ์ชนก",
         "email": "pimchanok.softsquare@example.com",
-        "lineId": "mock_softsquare_pim"
+        "phone": "088-450-2182"
       },
       "deliveryMode": "HYBRID",
       "availability": [
@@ -45,7 +44,6 @@
         "FRI_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 45,
       "capacity": 45,
       "weeks": 10,
       "notes": "ถ้าได้พุธบ่ายจะสะดวกที่สุด เพราะทีมเดียวกับ 21105801 เดินทางมาวันเดียว"
@@ -60,7 +58,7 @@
       "coordinator": {
         "name": "คุณเตนล์",
         "email": "ten.stelligence@example.com",
-        "lineId": "mock_stelligence_ten"
+        "phone": "080-264-6216"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
@@ -68,7 +66,6 @@
         "THU_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 40,
       "capacity": 40,
       "weeks": 10,
       "notes": "ครอบคลุม RPA, Data Fabric, Predictive AI, GenAI, RAG และ Knowledge Graph"
@@ -83,7 +80,7 @@
       "coordinator": {
         "name": "คุณภัทร",
         "email": "phat.playtorium@example.com",
-        "lineId": "mock_playtorium_phat"
+        "phone": "088-851-8077"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
@@ -92,7 +89,6 @@
         "FRI_PM"
       ],
       "sessionsPerWeek": 2,
-      "minSeats": 45,
       "capacity": 45,
       "weeks": 9,
       "notes": "ต้องได้ 2 คาบต่อสัปดาห์ และขอให้คนละวันกัน"
@@ -107,7 +103,7 @@
       "coordinator": {
         "name": "คุณกิตติ",
         "email": "kitti.cyberdefense@example.com",
-        "lineId": "mock_cyberdefense_kitti"
+        "phone": "082-984-9826"
       },
       "deliveryMode": "HYBRID",
       "availability": [
@@ -116,7 +112,6 @@
         "FRI_EVE"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 60,
       "capacity": 60,
       "weeks": 8,
       "notes": "รับ 60 คน จึงลงได้เฉพาะห้อง 64 ที่นั่งขึ้นไป"
@@ -131,7 +126,7 @@
       "coordinator": {
         "name": "คุณอรทัย",
         "email": "orathai.datapulse@example.com",
-        "lineId": "mock_datapulse_orathai"
+        "phone": "089-149-2012"
       },
       "deliveryMode": "ONLINE",
       "availability": [
@@ -139,7 +134,6 @@
         "SAT_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 0,
       "capacity": 40,
       "weeks": 10,
       "notes": "สอนออนไลน์ล้วน ไม่ใช้ห้อง"
@@ -154,7 +148,7 @@
       "coordinator": {
         "name": "คุณศุภชัย",
         "email": "supachai.cloudnexa@example.com",
-        "lineId": "mock_cloudnexa_supachai"
+        "phone": "082-706-4855"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
@@ -162,7 +156,6 @@
         "FRI_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 45,
       "capacity": 45,
       "weeks": 10,
       "notes": "สะดวกพุธเช้าเป็นอันดับแรก ถ้าไม่ได้ขอเป็นศุกร์บ่าย"
@@ -177,7 +170,7 @@
       "coordinator": {
         "name": "คุณมินตรา",
         "email": "mintra.designcraft@example.com",
-        "lineId": "mock_designcraft_mintra"
+        "phone": "087-954-1270"
       },
       "deliveryMode": "HYBRID",
       "availability": [
@@ -186,7 +179,6 @@
         "SAT_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 30,
       "capacity": 30,
       "weeks": 8,
       "notes": "เป็น workshop กลุ่มเล็ก ห้อง 30 ที่นั่งพอ"
@@ -201,7 +193,7 @@
       "coordinator": {
         "name": "คุณวริศรา",
         "email": "warisara.brightworks@example.com",
-        "lineId": "mock_brightworks_warisara"
+        "phone": "089-426-5197"
       },
       "deliveryMode": "ONLINE",
       "availability": [
@@ -209,7 +201,6 @@
         "SAT_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 0,
       "capacity": 50,
       "weeks": 10,
       "notes": "สอนออนไลน์ล้วน ไม่ใช้ห้อง"
@@ -224,7 +215,7 @@
       "coordinator": {
         "name": "คุณรวิ",
         "email": "rawi.graphmind@example.com",
-        "lineId": "mock_graphmind_rawi"
+        "phone": "088-974-9333"
       },
       "deliveryMode": "HYBRID",
       "availability": [
@@ -232,7 +223,6 @@
         "TUE_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 35,
       "capacity": 35,
       "weeks": 10,
       "notes": "หมวดเดียวกับ 21105803 ควรเลี่ยงไม่ให้ชนกัน"
@@ -247,7 +237,7 @@
       "coordinator": {
         "name": "คุณเอมี่",
         "email": "amy.pixelforge@example.com",
-        "lineId": "mock_pixelforge_amy"
+        "phone": "086-375-5185"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
@@ -255,7 +245,6 @@
         "THU_EVE"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 30,
       "capacity": 30,
       "weeks": 9,
       "notes": "วิทยากรอยู่ต่างจังหวัด ขอคาบบ่ายหรือเย็นเท่านั้น"
@@ -270,7 +259,7 @@
       "coordinator": {
         "name": "คุณศุภชัย",
         "email": "supachai.cloudnexa@example.com",
-        "lineId": "mock_cloudnexa_supachai"
+        "phone": "082-706-4855"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
@@ -279,7 +268,6 @@
         "SAT_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 55,
       "capacity": 55,
       "weeks": 10,
       "notes": "ผู้สอนคนเดียวกับ 21105807 จึงสอนสองวิชาในคาบเดียวกันไม่ได้"
@@ -294,14 +282,13 @@
       "coordinator": {
         "name": "คุณปาริชาต",
         "email": "parichat.innovex@example.com",
-        "lineId": "mock_innovex_parichat"
+        "phone": "089-540-2102"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
         "TUE_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 40,
       "capacity": 40,
       "weeks": 10,
       "notes": "Innovex ส่งวิทยากรได้คนเดียว และว่างเฉพาะอังคารบ่าย"
@@ -316,14 +303,13 @@
       "coordinator": {
         "name": "คุณปาริชาต",
         "email": "parichat.innovex@example.com",
-        "lineId": "mock_innovex_parichat"
+        "phone": "089-540-2102"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
         "TUE_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 35,
       "capacity": 35,
       "weeks": 10,
       "notes": "วิทยากรคนเดียวกับ 21105813 และว่างคาบเดียวกัน — ตั้งใจให้จัดไม่ลงเพื่อดูหน้าจอตอนติดปัญหา"
@@ -338,7 +324,7 @@
       "coordinator": {
         "name": "คุณธิดา",
         "email": "thida.sensora@example.com",
-        "lineId": "mock_sensora_thida"
+        "phone": "086-871-8604"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
@@ -346,7 +332,6 @@
         "THU_AM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 35,
       "capacity": 35,
       "weeks": 9,
       "notes": "ต้องมีปลั๊กไฟพอสำหรับบอร์ดทดลอง"
@@ -361,7 +346,7 @@
       "coordinator": {
         "name": "คุณภัทร",
         "email": "phat.playtorium@example.com",
-        "lineId": "mock_playtorium_phat"
+        "phone": "088-851-8077"
       },
       "deliveryMode": "ON_SITE",
       "availability": [
@@ -369,7 +354,6 @@
         "WED_EVE"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 40,
       "capacity": 40,
       "weeks": 8,
       "notes": "บริษัทเดียวกับ 21105804 แต่คนละวิทยากร"
@@ -384,7 +368,7 @@
       "coordinator": {
         "name": "คุณสิรี",
         "email": "siree.chainworks@example.com",
-        "lineId": "mock_chainworks_siree"
+        "phone": "084-189-2759"
       },
       "deliveryMode": "HYBRID",
       "availability": [
@@ -392,7 +376,6 @@
         "SAT_PM"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 30,
       "capacity": 30,
       "weeks": 8,
       "notes": null
@@ -407,7 +390,7 @@
       "coordinator": {
         "name": "คุณวริศรา",
         "email": "warisara.brightworks@example.com",
-        "lineId": "mock_brightworks_warisara"
+        "phone": "089-426-5197"
       },
       "deliveryMode": "ONLINE",
       "availability": [
@@ -415,7 +398,6 @@
         "THU_EVE"
       ],
       "sessionsPerWeek": 1,
-      "minSeats": 0,
       "capacity": 60,
       "weeks": 10,
       "notes": "สอนออนไลน์ล้วน ไม่ใช้ห้อง"

@@ -24,6 +24,8 @@ export type CourseChecklist = {
   teachingHoursLetter: ReceiptStatus;
   /** แจ้งให้ อ. พิเศษ ขอสิทธิ์เป็น instructor กับ MCV */
   mcvInstructorRequest: DoneStatus;
+  /** สร้างคอร์สใน MCV */
+  mcvCourseCreated: DoneStatus;
   /** ดึงอาจารย์พี่เลี้ยง */
   mentorAdded: DoneStatus;
   /** ดึงอาจารย์พิเศษเข้า */
@@ -56,7 +58,7 @@ export const DONE_ORDER: DoneStatus[] = ["NOT_DONE", "DONE"];
 
 export type ChecklistField =
   | { key: "invitationLetter" | "teachingHoursLetter"; kind: "receipt"; label: string; short: string }
-  | { key: "mcvInstructorRequest" | "mentorAdded" | "guestLecturerAdded" | "studentsAdded"; kind: "done"; label: string; short: string }
+  | { key: "mcvInstructorRequest" | "mcvCourseCreated" | "mentorAdded" | "guestLecturerAdded" | "studentsAdded"; kind: "done"; label: string; short: string }
   | { key: "mcvJoinCode"; kind: "code"; label: string; short: string };
 
 /**
@@ -84,6 +86,8 @@ export const CHECKLIST_FIELDS: ChecklistField[] = [
     label: "แจ้งให้ อ. พิเศษ ขอสิทธิ์เป็น instructor กับ MCV",
     short: "ขอสิทธิ์ instructor",
   },
+  // ก่อนดึงใครเข้า MCV ต้องมีคอร์สให้ดึงเข้าก่อน
+  { key: "mcvCourseCreated", kind: "done", label: "สร้างคอร์สใน MCV", short: "สร้างคอร์ส MCV" },
   { key: "mentorAdded", kind: "done", label: "ดึงอาจารย์พี่เลี้ยง", short: "อาจารย์พี่เลี้ยง" },
   { key: "guestLecturerAdded", kind: "done", label: "ดึงอาจารย์พิเศษเข้า", short: "ดึง อ. พิเศษ เข้า" },
   { key: "mcvJoinCode", kind: "code", label: "รหัส Join MCV สำหรับนิสิต", short: "รหัส Join MCV" },
@@ -95,6 +99,7 @@ export const EMPTY_CHECKLIST: CourseChecklist = {
   invitationLetter: "NOT_RECEIVED",
   teachingHoursLetter: "NOT_RECEIVED",
   mcvInstructorRequest: "NOT_DONE",
+  mcvCourseCreated: "NOT_DONE",
   mentorAdded: "NOT_DONE",
   guestLecturerAdded: "NOT_DONE",
   mcvJoinCode: "",
@@ -119,6 +124,7 @@ export function readChecklist(stored: Partial<CourseChecklist> | undefined): Cou
     invitationLetter: receipt(stored.invitationLetter, "NOT_RECEIVED"),
     teachingHoursLetter: receipt(stored.teachingHoursLetter, "NOT_RECEIVED"),
     mcvInstructorRequest: done(stored.mcvInstructorRequest),
+    mcvCourseCreated: done(stored.mcvCourseCreated),
     mentorAdded: done(stored.mentorAdded),
     guestLecturerAdded: done(stored.guestLecturerAdded),
     mcvJoinCode: typeof stored.mcvJoinCode === "string" ? stored.mcvJoinCode : "",
@@ -140,7 +146,7 @@ export function isFieldDone(checklist: CourseChecklist, field: ChecklistField): 
   return checklist.mcvJoinCode.trim().length > 0;
 }
 
-/** How much of the paperwork is finished, out of all seven steps. */
+/** How much of the paperwork is finished, out of every step on the list. */
 export function checklistProgress(checklist: CourseChecklist): { done: number; total: number } {
   return {
     done: CHECKLIST_FIELDS.filter((field) => isFieldDone(checklist, field)).length,
@@ -172,6 +178,8 @@ export function checklistPatch(field: ChecklistField, value: string): Partial<Co
       return { teachingHoursLetter: receipt };
     case "mcvInstructorRequest":
       return { mcvInstructorRequest: done };
+    case "mcvCourseCreated":
+      return { mcvCourseCreated: done };
     case "mentorAdded":
       return { mentorAdded: done };
     case "guestLecturerAdded":
