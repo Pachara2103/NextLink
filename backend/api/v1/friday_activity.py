@@ -8,6 +8,8 @@ from schemas.friday_activity import (
     ActivityStatus, FridayActivity, FridayActivityCreate, FridayActivityList,
     FridayActivityUpdate, FridayHistory, FridayOptions, FridayTransition, Term,
 )
+from schemas.friday_followup import FollowupResult, NoteList, NoteVersionList, NoteWrite, TaskList, TaskWrite
+from services import friday_followup as followup
 from services import friday_activity as service
 from services.sessions import SessionIdentity
 
@@ -56,5 +58,48 @@ def transition_activity(activity_id: ActivityId, payload: FridayTransition, user
 
 
 @router.get("/{activity_id}/history", response_model=FridayHistory)
-def history(activity_id: ActivityId, user: SessionIdentity = Depends(friday_staff)):
-    return service.get_history(activity_id)
+def history(activity_id: ActivityId, user: SessionIdentity = Depends(friday_staff),
+    before_id: str | None = Query(default=None, alias="beforeId", pattern=r"^[1-9][0-9]{0,18}$"),
+    limit: int = Query(default=50, ge=1, le=100)):
+    return service.get_history(activity_id,before_id,limit)
+
+
+@router.get("/{activity_id}/notes", response_model=NoteList)
+def notes(activity_id: ActivityId, user: SessionIdentity = Depends(friday_staff),
+    before_id: str | None = Query(default=None, alias="beforeId", pattern=r"^[1-9][0-9]{0,18}$"),
+    limit: int = Query(default=50, ge=1, le=100)):
+    return followup.list_items(activity_id,"note",before_id,limit)
+
+
+@router.post("/{activity_id}/notes", response_model=FollowupResult, status_code=201)
+def create_note(activity_id: ActivityId, payload: NoteWrite, user: SessionIdentity = Depends(friday_staff)):
+    return followup.write_item(activity_id,"note",payload,user.id)
+
+
+@router.put("/{activity_id}/notes/{note_id}", response_model=FollowupResult)
+def update_note(activity_id: ActivityId, note_id: ActivityId, payload: NoteWrite, user: SessionIdentity = Depends(friday_staff)):
+    return followup.write_item(activity_id,"note",payload,user.id,note_id)
+
+
+@router.get("/{activity_id}/notes/{note_id}/versions", response_model=NoteVersionList)
+def note_versions(activity_id: ActivityId, note_id: ActivityId, user: SessionIdentity = Depends(friday_staff),
+    before_version: int | None = Query(default=None, alias="beforeVersion", ge=1, le=2147483647),
+    limit: int = Query(default=50, ge=1, le=100)):
+    return followup.note_versions(activity_id,note_id,before_version,limit)
+
+
+@router.get("/{activity_id}/tasks", response_model=TaskList)
+def tasks(activity_id: ActivityId, user: SessionIdentity = Depends(friday_staff),
+    before_id: str | None = Query(default=None, alias="beforeId", pattern=r"^[1-9][0-9]{0,18}$"),
+    limit: int = Query(default=50, ge=1, le=100)):
+    return followup.list_items(activity_id,"task",before_id,limit)
+
+
+@router.post("/{activity_id}/tasks", response_model=FollowupResult, status_code=201)
+def create_task(activity_id: ActivityId, payload: TaskWrite, user: SessionIdentity = Depends(friday_staff)):
+    return followup.write_item(activity_id,"task",payload,user.id)
+
+
+@router.put("/{activity_id}/tasks/{task_id}", response_model=FollowupResult)
+def update_task(activity_id: ActivityId, task_id: ActivityId, payload: TaskWrite, user: SessionIdentity = Depends(friday_staff)):
+    return followup.write_item(activity_id,"task",payload,user.id,task_id)

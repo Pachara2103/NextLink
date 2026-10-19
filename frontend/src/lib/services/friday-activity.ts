@@ -10,7 +10,7 @@ export type FridayActivityRecord = FridayEditable & { id: string; companies: { i
 export type FridayListQuery = { academicYear: number; term: FridayTerm; status?: string; companyId?: string; search?: string; page: number; pageSize: number };
 export type FridayListResponse = { items: FridayActivityRecord[]; total: number; page: number; pageSize: number; summary: { total: number; completed: number; companies: number; attended: number | null; unknownAttendance: number }; source: "postgresql"; lastUpdated: string | null };
 export type FridayOptions = { companies: { id: string; name: string }[]; people: { namespace: "employee" | "contact"; sourceId: string; name: string; companyId: string | null }[]; owners: { id: string; name: string }[]; periods: { academicYear: number; term: FridayTerm }[] };
-export type FridayHistoryEntry = { id: string; activityId: string; actorUserId: string | null; actorName: string | null; operation: string; reason: string | null; before: FridayActivityRecord | null; after: FridayActivityRecord | null; occurredAt: string; recordedAt: string };
+export type FridayHistoryEntry = { id: string; activityId: string; actorUserId: string | null; actorName: string | null; operation: string; reason: string | null; detail?: { kind: "note" | "task"; before: { body?: string; title?: string; status?: string; assigneeName?: string; dueDate?: string } | null; after: { body?: string; title?: string; status?: string; assigneeName?: string; dueDate?: string } } | null; before: FridayActivityRecord | null; after: FridayActivityRecord | null; occurredAt: string; recordedAt: string };
 
 const base = "/api/v1/friday-activities";
 export const fridayActivityService = {
@@ -21,7 +21,7 @@ export const fridayActivityService = {
   },
   options: () => getJson<FridayOptions>(`${base}/options`),
   get: (id: string) => getJson<FridayActivityRecord>(`${base}/${encodeURIComponent(id)}`),
-  history: (id: string) => getJson<{ items: FridayHistoryEntry[] }>(`${base}/${encodeURIComponent(id)}/history`),
+  history: (id: string, cursor?: string) => getJson<{ items: FridayHistoryEntry[]; nextCursor: string | null }>(`${base}/${encodeURIComponent(id)}/history${cursor ? `?beforeId=${encodeURIComponent(cursor)}` : ""}`),
   create: (payload: FridayEditable & { idempotencyKey: string }) => postJson<FridayActivityRecord>(base, payload),
   update: (id: string, payload: FridayEditable & { expectedRevision: number; reason?: string | null }) => putJson<FridayActivityRecord>(`${base}/${encodeURIComponent(id)}`, payload),
   transition: (id: string, payload: { expectedRevision: number; status: FridayStatus; reason: string | null }) => postJson<FridayActivityRecord>(`${base}/${encodeURIComponent(id)}/transitions`, payload),

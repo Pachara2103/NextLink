@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {checkFollowups} from './check-followups.mjs';
 import {createRequire} from 'node:module';
 import {mkdir, mkdtemp, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -76,7 +77,7 @@ const go=async(p,suffix='?year=2569&term=1')=>{await p.goto(base+'/dashboard/fri
 const login=async(p,user)=>{await p.goto(base+'/dashboard/friday-activities?year=2569&term=1');await p.waitForURL('**/login?next=*');await p.locator('input[name=username]').fill(user);await p.locator('input[name=password]').fill('friday-ui-fixture-password');await p.getByRole('button',{name:'เข้าสู่ระบบ',exact:true}).click();await ready(p);};
 const mutation=async(p,method,path,action)=>{const promise=p.waitForResponse(r=>new URL(r.url()).pathname===path&&r.request().method()===method);const [,r]=await Promise.all([action(),promise]);const body=await r.json();apiResults.push({method,path,status:r.status(),id:body.id,revision:body.revision});return {response:r,body};};
 const open=async(p,title)=>{await p.getByRole('button',{name:'ดูรายละเอียด '+title,exact:true}).filter({visible:true}).first().click();const d=p.getByRole('dialog');await d.getByRole('button',{name:'แก้ไขข้อมูล',exact:true}).waitFor();return d;};
-const close=async p=>p.getByRole('dialog').getByRole('button',{name:'ปิดรายละเอียด',exact:true}).click();
+const close=async p=>{await p.getByRole('dialog').getByRole('button',{name:'ปิดรายละเอียด',exact:true}).click();await p.getByRole('dialog').waitFor({state:'hidden'});};
 const dbSql=sql=>execFileSync(python,['-c',`import psycopg2,json,os\nc=psycopg2.connect(os.environ['TEST_DATABASE_URL'])\nwith c:\n with c.cursor() as r:\n  r.execute(${JSON.stringify(sql)})\n  print(json.dumps(r.fetchall() if r.description else [],default=str))\nc.close()`],{encoding:'utf8',env:{...process.env,TEST_DATABASE_URL:databaseUrl.href}}).trim();
 let record,title='QA Friday shared activity';
 try {
@@ -87,7 +88,7 @@ try {
   await d.getByRole('checkbox',{name:'บริษัท ทดสอบฟรายเดย์ อัลฟา',exact:true}).check();
   await d.getByRole('checkbox',{name:/ผู้ประสานงาน อัลฟา QA/}).check();
   await d.getByLabel('วันที่จัด (ค.ศ.)',{exact:true}).fill('2026-10-23');await d.getByLabel('เวลาเริ่ม',{exact:true}).fill('13:00');await d.getByLabel('เวลาสิ้นสุด',{exact:true}).fill('15:00');await d.getByLabel('สถานที่',{exact:true}).fill('QA Shared Hall');await d.getByLabel('จำนวนจอง',{exact:true}).fill('0');
-  const r=await mutation(pa,'POST','/api/v1/friday-activities',()=>d.getByRole('button',{name:'บันทึกกิจกรรม',exact:true}).click());assert.equal(r.response.status(),201);record=r.body;assert.equal(record.companyIds[0],'1');assert.equal(record.people[0].namespace,'contact');assert.equal(record.sessions[0].capacity,null);assert.equal(record.sessions[0].booked,0);assert.equal(record.sessions[0].attended,null);await d.getByText('บันทึกกิจกรรมลงฐานข้อมูลกลางแล้ว',{exact:true}).waitFor();await close(pa);await ready(pa);
+  const r=await mutation(pa,'POST','/api/v1/friday-activities',()=>d.getByRole('button',{name:'บันทึกกิจกรรม',exact:true}).click());assert.equal(r.response.status(),201);record=r.body;assert.equal(record.companyIds[0],'1');assert.equal(record.people[0].namespace,'contact');assert.equal(record.sessions[0].capacity,null);assert.equal(record.sessions[0].booked,0);assert.equal(record.sessions[0].attended,null);await d.getByRole('button',{name:'แก้ไขข้อมูล',exact:true}).waitFor();await close(pa);await ready(pa);
  });
  await check('reload and Bob independent session read same stable activity ID',async()=>{await go(pa);await login(pb,'bob');for(const p of [pa,pb]){const rr=p.waitForResponse(r=>new URL(r.url()).pathname===`/api/v1/friday-activities/${record.id}`&&r.request().method()==='GET');await open(p,title);assert.equal((await (await rr).json()).id,record.id);} });
  await check('stale Bob save returns409 and retains typed draft',async()=>{
@@ -134,6 +135,7 @@ try {
   assert.equal(rows.length,3);assert.equal(rows[0][0],Number(record.id));assert.equal(rows[0][2],'completed');assert.equal(rows[0][7],0);assert.equal(rows[0][8],null);assert.equal(rows[1][7],null);assert.equal(rows[2][7],0);assert.ok(rows.every(r=>r[4]===2026&&r[5]==='FIRST'));
   const audit=JSON.parse(dbSql('SELECT u.username,e.operation,e.reason,e.activity_id FROM friday_audit_events e JOIN users u ON u.id=e.actor_user_id ORDER BY e.id'));assert.ok(audit.some(r=>r[0]==='alice'&&r[1]==='create'));assert.ok(audit.some(r=>r[0]==='bob'&&r[1]==='update'));assert.ok(audit.some(r=>r[1]==='transition'&&r[2]==='QA complete verified zero attendance'));assert.ok(audit.some(r=>r[2]==='QA delayed initial history regression'));assert.equal(audit.length,12);await writeFile(output+'/database-evidence.json',JSON.stringify({rows,audit,counts:JSON.parse(dbSql('SELECT (SELECT count(*) FROM friday_import_batches),(SELECT count(*) FROM friday_import_receipts),(SELECT count(*) FROM friday_import_source_links),(SELECT count(*) FROM friday_import_audit)'))},null,2));
  });
+ await checkFollowups({pa,pb,a,browser,base,record,title,check,ready,collect,dbSql,output,setPhase:value=>{phase=value;}});
  assert.equal(errors.length,0,'no framework or page errors');assert.equal(consoleMessages.filter(m=>m.phase!=='expected-api-failure'&&m.type==='error'&&!m.text.includes('409')).length,0,'no unexpected application console errors');
  await writeFile(output+'/results.json',JSON.stringify({passed:true,environment:{base,backend:'explicit isolated Friday harness behind Next rewrite',browser:'Playwright Chromium; Browser plugin not available',viewports:['1440x1000','390x844'],primaryFlowApiInterception:false,timingRegression:'one initial history response fetched from real API and delivered after real post-save history; no fabricated payload',ancillaryFixture:'empty LINE groups directory only; health tests local PG without AI/Neo4j'},results,apiResults,errors,consoleMessages,networkFailures},null,2));
  console.log('ALL PASS '+results.length);console.log('Evidence: '+output);

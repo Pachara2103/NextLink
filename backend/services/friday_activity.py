@@ -137,10 +137,10 @@ def _children(conn, activity_id, payload, names):
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)""", (*values, activity_id))
 
 
-def _audit(conn, before, after, actor, operation, reason=None):
-    _execute(conn, """INSERT INTO friday_audit_events(activity_id,actor_user_id,operation,reason,before_data,after_data,recorded_at,occurred_at)
-        VALUES (%s,%s,%s,%s,%s,%s,clock_timestamp(),clock_timestamp())""", (after.id, actor, operation, reason,
-        Json(_json(before)) if before else None, Json(_json(after))))
+def _audit(conn, before, after, actor, operation, reason=None, detail=None):
+    _execute(conn, """INSERT INTO friday_audit_events(activity_id,actor_user_id,operation,reason,before_data,after_data,recorded_at,occurred_at,detail)
+        VALUES (%s,%s,%s,%s,%s,%s,clock_timestamp(),clock_timestamp(),%s)""", (after.id, actor, operation, reason,
+        Json(_json(before)) if before else None, Json(_json(after)), Json(detail) if detail else None))
 
 
 def _revision(before, expected):
@@ -311,16 +311,18 @@ def get_options():
         return result
 
 
-def get_history(activity_id):
+def get_history(activity_id, before_id=None, limit=50):
     _valid_id(activity_id)
+    if before_id is not None:
+        _valid_id(before_id)
     with nl_db.get_connection() as conn:
         _execute(conn, "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
         if not _rows(conn,"SELECT id FROM friday_activities WHERE id=%s",(activity_id,)):
             raise NotFoundError(message="ไม่พบกิจกรรม Friday ที่ระบุ")
         rows = _rows(conn, """SELECT e.id::text AS id,e.activity_id::text AS activity_id,e.actor_user_id::text AS actor_user_id,
             COALESCE(NULLIF(u.display_name,''),u.username) AS actor_name,e.operation,e.reason,
-            e.before_data AS before,e.after_data AS after,e.occurred_at,e.recorded_at
-            FROM friday_audit_events e JOIN users u ON u.id=e.actor_user_id WHERE e.activity_id=%s ORDER BY e.id DESC""", (activity_id,))
-        result = FridayHistory(items=rows)
+            e.before_data AS before,e.after_data AS after,e.occurred_at,e.recorded_at,e.detail
+            FROM friday_audit_events e JOIN users u ON u.id=e.actor_user_id WHERE e.activity_id=%s AND (%s IS NULL OR e.id<%s) ORDER BY e.id DESC LIMIT %s""", (activity_id,before_id,before_id,limit+1))
+        result = FridayHistory(items=rows[:limit], next_cursor=rows[limit-1]["id"] if len(rows) > limit else None)
         conn.rollback()
         return result

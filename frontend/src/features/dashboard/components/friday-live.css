@@ -16,3 +16,10 @@
 .nextlink-dashboard .friday-live-dialog .cap-checkboxes .course-edit-grid label { display: grid; align-items: start; }
 .nextlink-dashboard .friday-live-dialog .edit-save-error { color: var(--nd-red, #a52d3a); line-height: 1.65; }
 @media (max-width: 620px) { .nextlink-dashboard .friday-live-dialog .course-edit-grid { grid-template-columns: 1fr; } .nextlink-dashboard .friday-live-actions > button { flex: 1 1 150px; } }
+
+.nextlink-dashboard .friday-followup-card, .nextlink-dashboard .friday-followup-editor, .nextlink-dashboard .friday-followup-versions { border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin: 14px 0; min-width: 0; overflow-wrap: anywhere; }
+.nextlink-dashboard .friday-followup-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+.nextlink-dashboard .friday-followups h4 { margin: 18px 0 12px; font-size: 16px; }
+.nextlink-dashboard .friday-followups .friday-live-actions { margin: 14px 0 0; }
+.nextlink-dashboard .friday-followups .status-pill { margin-right: 8px; }
+.nextlink-dashboard .friday-followups textarea { width: 100%; min-width: 0; resize: vertical; }

@@ -54,7 +54,7 @@ try {
     sessions: [{ id: `${id}-session`, sessionDate: '2026-10-16', startTime: '09:00', endTime: '12:00', location: 'Fixture Room', status: 'held', capacity: 30, booked: 20, attended }],
     status: 'completed', revision: 1, createdAt: stamp, updatedAt: stamp,
   });
-  for (const record of [fixtureRecord('fixture-friday-1', 'Fixture Cloud Workshop'), fixtureRecord('fixture-friday-2', 'Fixture Zero Attendance', 2026, 'FIRST', 0), fixtureRecord('fixture-friday-past', 'Fixture Past Term', 2025, 'SECOND', 8), fixtureRecord('fixture-friday-zero', 'Fixture Historical Zero', 2023, 'FIRST', 0)]) fridayRecords.set(record.id, record);
+  for (const record of [fixtureRecord('1', 'Fixture Cloud Workshop'), fixtureRecord('2', 'Fixture Zero Attendance', 2026, 'FIRST', 0), fixtureRecord('3', 'Fixture Past Term', 2025, 'SECOND', 8), fixtureRecord('4', 'Fixture Historical Zero', 2023, 'FIRST', 0)]) fridayRecords.set(record.id, record);
   const rememberFriday = (item, operation, before, reason = null) => {
     const entries = fridayHistory.get(item.id) ?? [];
     entries.push({ id: `fixture-history-${entries.length + 1}`, activityId: item.id, actorUserId: '901', actorName: 'Fixture staff', operation, reason, before: before ? structuredClone(before) : null, after: structuredClone(item), recordedAt: stamp, occurredAt: stamp });
@@ -75,9 +75,10 @@ try {
       return route.fulfill({ json: { items: items.slice((pageNumber - 1) * pageSize, pageNumber * pageSize), total: items.length, page: pageNumber, pageSize,
         summary: { total: items.length, completed: items.filter(r => r.status === 'completed').length, companies: new Set(items.filter(r => r.status !== 'cancelled').flatMap(r => r.companyIds)).size, attended: known.length ? known.reduce((sum, s) => sum + s.attended, 0) : null, unknownAttendance: sessions.length - known.length }, source: 'postgresql', lastUpdated: items.length ? stamp : null } });
     }
-    const match = path.match(/^\/api\/v1\/friday-activities\/([^/]+)(?:\/(history|transitions))?$/);
+    const match = path.match(/^\/api\/v1\/friday-activities\/([^/]+)(?:\/(history|transitions|notes|tasks))?$/);
     if (match && fridayRecords.has(match[1])) {
       const before = fridayRecords.get(match[1]);
+      if (method === 'GET' && ['notes', 'tasks'].includes(match[2])) return route.fulfill({ json: { items: [], nextCursor: null } });
       if (method === 'GET' && match[2] === 'history') return route.fulfill({ json: { items: fridayHistory.get(before.id) ?? [] } });
       if (method === 'GET' && !match[2]) return route.fulfill({ json: before });
       if ((method === 'PUT' && !match[2]) || (method === 'POST' && match[2] === 'transitions')) {
@@ -96,7 +97,7 @@ try {
       const { idempotencyKey, ...payload } = route.request().postDataJSON();
       assert.match(idempotencyKey, /^[0-9a-f-]{36}$/i, 'create has an idempotency key');
       if (fridayWriteStatus !== 200) return route.fulfill({ status: fridayWriteStatus, json: { detail: 'Fixture write unavailable' } });
-      const item = { ...payload, id: `fixture-created-${fridayRecords.size}`, status: 'draft', revision: 1, companies: fridayOptions.companies.filter(c => payload.companyIds.includes(c.id)), createdAt: stamp, updatedAt: stamp };
+      const item = { ...payload, id: String(fridayRecords.size + 1), status: 'draft', revision: 1, companies: fridayOptions.companies.filter(c => payload.companyIds.includes(c.id)), createdAt: stamp, updatedAt: stamp };
       fridayRecords.set(item.id, item); rememberFriday(item, 'create', null);
       return route.fulfill({ status: 201, json: item });
     }
@@ -309,7 +310,7 @@ try {
     await dialog.getByRole('checkbox', { name: /Fixture central coordinator/ }).check();
     await dialog.getByLabel('จำนวนมาจริง', { exact: true }).fill('0');
     await dialog.getByRole('button', { name: 'บันทึกกิจกรรม', exact: true }).click();
-    await dialog.getByText('บันทึกกิจกรรมลงฐานข้อมูลกลางแล้ว', { exact: true }).waitFor();
+    await dialog.getByRole('button', { name: 'แก้ไขข้อมูล', exact: true }).waitFor();
     let created = [...fridayRecords.values()].find(r => r.title === 'Fixture New Friday');
     assert.equal(created.academicYear, 2026); assert.equal(created.term, 'FIRST');
     assert.equal(created.sessions[0].attended, 0); assert.equal(created.people[0].namespace, 'contact');
@@ -327,6 +328,10 @@ try {
     assert.deepEqual(await storage(), localBefore, 'Friday writes never populate local demo storage');
     await page.screenshot({ path: `${output}/friday-manual-history.png` });
     await page.reload(); await page.locator('.app-shell[data-ready="true"]').waitFor();
+    assert.equal(new URL(page.url()).searchParams.get('activityId'), created.id);
+    await fridayDialog().getByRole('heading', { name: 'Fixture New Friday Edited', exact: true }).waitFor();
+    await fridayDialog().getByRole('button', { name: 'ปิดรายละเอียด', exact: true }).click();
+    await fridayDialog().waitFor({ state: 'hidden' });
     await page.getByRole('searchbox').fill('Fixture New Friday Edited');
     await openFriday('Fixture New Friday Edited');
     await fridayDialog().getByText('Fixture central coordinator · ผู้ประสานงาน', { exact: true }).waitFor();
@@ -361,8 +366,9 @@ try {
     assert.equal([...fridayRecords.values()].some(r => r.title === 'Fixture Write Retry'), false);
     fridayWriteStatus = 200;
     await fridayDialog().getByRole('button', { name: 'บันทึกกิจกรรม', exact: true }).click();
-    await fridayDialog().getByText('บันทึกกิจกรรมลงฐานข้อมูลกลางแล้ว', { exact: true }).waitFor();
+    await fridayDialog().getByRole('button', { name: 'แก้ไขข้อมูล', exact: true }).waitFor();
     await fridayDialog().getByRole('button', { name: 'ปิดรายละเอียด', exact: true }).click();
+    await fridayDialog().waitFor({ state: 'hidden' });
     fridayListStatus = 503;
     await page.reload();
     await page.getByText('อ่านรายการกิจกรรมไม่สำเร็จ', { exact: true }).waitFor();

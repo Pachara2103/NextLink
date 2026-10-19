@@ -44,6 +44,17 @@ Friday foreign keys restrict deletion of referenced companies, people, users,
 and activities, preserving historical provenance. Use cancellation and status
 changes through the application instead of deleting business history.
 
+`20261019_001_friday_followups.sql` adds notes, immutable note-version snapshots,
+assigned tasks and audit detail. Upgrade an existing F1 database with the normal
+runner; do not bootstrap it again or edit the previous SQL files. Existing
+activities, revisions, audit snapshots and mutation receipts are preserved.
+The regression suite exercises this upgrade with existing F1 data.
+
+The main branch's elective module also requires `electives.sql`, which remains
+a separate legacy migration and is not included by the numbered Friday runner.
+Follow the elective module's setup instructions for that schema. Applying only
+the Friday migrations does not establish elective production readiness.
+
 Regression tests require `TEST_DATABASE_URL` and `NEXTLINK_DATABASE_URL` pointing
 to the same disposable loopback database named `nextlink_security_test*`, with
 `PYTHON_DOTENV_DISABLED=1`. The test suite must never target an application or

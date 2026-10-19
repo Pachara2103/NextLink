@@ -73,6 +73,26 @@ def test_upgrade_existing_users_does_not_promote_them():
         assert run_sql(connection, "SELECT company_th FROM companies", fetch=True) == [("Existing company",)]
 
 
+def test_followup_upgrade_preserves_existing_friday_data_and_receipts(tmp_path):
+    for name in ("init.sql", "security.sql", "20261015_001_friday_core.sql", "20261015_002_friday_imports.sql"):
+        shutil.copy(MIGRATIONS / name, tmp_path / name)
+    with temporary_schema() as (connection, _):
+        apply_migrations(connection, bootstrap=True, directory=tmp_path)
+        run_sql(connection, """INSERT INTO users(username,password,role) VALUES ('existing','hash','staff');
+            INSERT INTO academic_periods(academic_year,term) VALUES (2026,'FIRST');
+            INSERT INTO friday_activities(period_id,title,owner_user_id,revision) VALUES (1,'Existing Friday',1,7);
+            INSERT INTO friday_audit_events(activity_id,actor_user_id,operation,after_data) VALUES (1,1,'create','{"title":"Existing Friday"}');
+            INSERT INTO friday_mutation_receipts(actor_user_id,operation,idempotency_key,request_hash,activity_id,response_data)
+                VALUES (1,'create','existing-key',repeat('a',64),1,'{"title":"Original response"}');""")
+        assert apply_migrations(connection) == ["20261019_001_friday_followups.sql"]
+        assert apply_migrations(connection) == []
+        assert run_sql(connection,"SELECT title,revision FROM friday_activities",fetch=True) == [("Existing Friday",7)]
+        assert run_sql(connection,"SELECT after_data,detail FROM friday_audit_events",fetch=True) == [({"title":"Existing Friday"},None)]
+        assert run_sql(connection,"SELECT response_data FROM friday_mutation_receipts",fetch=True) == [({"title":"Original response"},)]
+        for table in ("friday_notes", "friday_note_versions", "friday_tasks"):
+            assert run_sql(connection,f"SELECT count(*) FROM {table}",fetch=True) == [(0,)]
+
+
 def test_checksum_drift_stops_upgrade_before_any_new_sql(tmp_path):
     with temporary_schema() as (connection, _):
         apply_migrations(connection, bootstrap=True)

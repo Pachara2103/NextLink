@@ -6,12 +6,13 @@ import { useAuth } from "@/store/auth-store";
 import { fridayActivityService, type FridayActivityRecord, type FridayEditable, type FridayHistoryEntry, type FridayOptions, type FridayStatus } from "@/lib/services/friday-activity";
 import type { AcademicPeriod } from "../lib/academic-period";
 import { LIVE_FRIDAY_FORMATS, LIVE_FRIDAY_STATUSES, LIVE_FRIDAY_TRANSITIONS, fridayEditable, fridayLiveCount, fridayLiveDate, fridayLiveError, fridayLiveTimestamp, fridayNewDraft } from "../lib/friday-api";
+import { FridayLiveFollowups } from "./friday-live-followups";
 import { FridayLiveForm } from "./friday-live-form";
 import { useUnsavedChanges } from "../lib/use-unsaved-changes";
 
-const historyLabels: Record<string, string> = { create: "สร้างกิจกรรม", update: "แก้ไขกิจกรรม", transition: "เปลี่ยนสถานะ", "import.create": "นำเข้าและสร้างกิจกรรม", "import.update": "นำเข้าและแก้ไขกิจกรรม", "import.transition": "เปลี่ยนสถานะจากการนำเข้า" };
+const historyLabels: Record<string, string> = { "note.create": "เพิ่มบันทึก", "note.update": "แก้ไขบันทึก", "task.create": "สร้างงานติดตาม", "task.update": "แก้ไขงานติดตาม", create: "สร้างกิจกรรม", update: "แก้ไขกิจกรรม", transition: "เปลี่ยนสถานะ", "import.create": "นำเข้าและสร้างกิจกรรม", "import.update": "นำเข้าและแก้ไขกิจกรรม", "import.transition": "เปลี่ยนสถานะจากการนำเข้า" };
 
-export function FridayLiveDetail({ id, period, options, onClose, beforeWrite, onMutation }: { id: string | null; period: AcademicPeriod; options: FridayOptions; onClose: () => void; beforeWrite: () => void; onMutation: () => void }) {
+export function FridayLiveDetail({ id, period, options, onClose, beforeWrite, onMutation, onCreated }: { id: string | null; period: AcademicPeriod; options: FridayOptions; onClose: () => void; beforeWrite: () => void; onMutation: () => void; onCreated: (id: string) => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const inFlight = useRef(false);
   const historyGeneration = useRef(0);
@@ -25,21 +26,26 @@ export function FridayLiveDetail({ id, period, options, onClose, beforeWrite, on
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [history, setHistory] = useState<FridayHistoryEntry[]>([]);
+  const [historyCursor, setHistoryCursor] = useState<string | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [followupState, setFollowupState] = useState({ dirty: false, busy: false, uncertain: false });
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [latest, setLatest] = useState<FridayActivityRecord | null>(null);
   const [nextStatus, setNextStatus] = useState<FridayStatus | "">("");
   const [reason, setReason] = useState("");
   const [editReason, setEditReason] = useState("");
   const [idempotencyKey] = useState(() => crypto.randomUUID());
-  const dirty = editing && draft !== null && (Boolean(editReason) || JSON.stringify(draft) !== JSON.stringify(record ? fridayEditable(record) : fridayNewDraft(period, defaultOwnerId)));
-  useUnsavedChanges(dirty || saving);
+  const dirty = followupState.dirty || Boolean(reason || nextStatus) || (editing && draft !== null && (Boolean(editReason) || JSON.stringify(draft) !== JSON.stringify(record ? fridayEditable(record) : fridayNewDraft(period, defaultOwnerId))));
+  useUnsavedChanges(dirty || saving || followupState.busy);
 
-  const refreshHistory = useCallback(async (activityId: string) => {
+  const refreshHistory = useCallback(async (activityId: string, cursor?: string) => {
     const requestGeneration = ++historyGeneration.current;
+    setHistoryLoading(true);
     try {
-      const result = await fridayActivityService.history(activityId);
-      if (historyGeneration.current === requestGeneration) { setHistory(result.items); setHistoryError(null); }
+      const result = await fridayActivityService.history(activityId, cursor);
+      if (historyGeneration.current === requestGeneration) { setHistory(previous => cursor ? [...previous, ...result.items] : result.items); setHistoryCursor(result.nextCursor ?? null); setHistoryError(null); }
     } catch (cause) { if (historyGeneration.current === requestGeneration) setHistoryError(fridayLiveError(cause)); }
+    finally { if (historyGeneration.current === requestGeneration) setHistoryLoading(false); }
   }, []);
 
   useEffect(() => { const element = dialog.current; element?.showModal(); return () => { element?.close(); }; }, []);
@@ -50,14 +56,14 @@ export function FridayLiveDetail({ id, period, options, onClose, beforeWrite, on
     const historyTask = window.setTimeout(() => void refreshHistory(id), 0);
     return () => { current = false; window.clearTimeout(historyTask); historyGeneration.current += 1; };
   }, [id, refreshHistory]);
-  function requestClose() { if (inFlight.current) return; if (dirty && !window.confirm("ปิดแบบฟอร์มและทิ้งการแก้ไขที่ยังไม่ได้บันทึกหรือไม่?")) return; onClose(); }
+  function requestClose() { if (inFlight.current || followupState.busy) return; if (followupState.uncertain) { setError("กรุณาตรวจผลคำสั่งบันทึกที่ยังไม่ทราบผลก่อนปิดรายละเอียด"); return; } if (dirty && !window.confirm("ปิดแบบฟอร์มและทิ้งการแก้ไขที่ยังไม่ได้บันทึกหรือไม่?")) return; onClose(); }
   async function handleFailure(cause: unknown) {
     setError(fridayLiveError(cause));
     if (cause instanceof ApiError && cause.status === 409 && record) {
       try { setLatest(await fridayActivityService.get(record.id)); } catch { setError(`${fridayLiveError(cause)} · อ่านฉบับล่าสุดไม่สำเร็จ กรุณาลองตรวจอีกครั้ง`); }
     }
   }
-  function accepted(item: FridayActivityRecord, message: string) { setRecord(item); setDraft(fridayEditable(item)); setLatest(null); setError(null); setNotice(message); setEditing(false); setNextStatus(""); setReason(""); onMutation(); void refreshHistory(item.id); }
+  function accepted(item: FridayActivityRecord, message: string) { setRecord(previous => previous && previous.revision > item.revision ? previous : item); setDraft(fridayEditable(item)); setLatest(null); setError(null); setNotice(message); setEditing(false); setNextStatus(""); setReason(""); onMutation(); void refreshHistory(item.id); if (!id) onCreated(item.id); }
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!draft || inFlight.current) return;
@@ -77,7 +83,7 @@ export function FridayLiveDetail({ id, period, options, onClose, beforeWrite, on
     finally { inFlight.current = false; setSaving(false); }
   }
   return <dialog ref={dialog} className="course-dialog friday-dialog friday-live-dialog" aria-labelledby="friday-live-title" onCancel={event => { event.preventDefault(); requestClose(); }} onClick={event => { if (event.target === event.currentTarget) requestClose(); }}>
-    <div><div className="dialog-header"><div><p className="section-kicker">Friday Activity · ฐานข้อมูลกลาง</p><h2 id="friday-live-title">{record?.title ?? (id ? "รายละเอียดกิจกรรม" : "สร้างกิจกรรมใหม่")}</h2></div><div className="dialog-header-actions">{record && !editing && <button className="secondary-button" type="button" disabled={saving} onClick={() => { setDraft(fridayEditable(record)); setEditing(true); setNotice(null); }}>แก้ไขข้อมูล</button>}<button className="icon-button" type="button" aria-label="ปิดรายละเอียด" onClick={requestClose} disabled={saving}>×</button></div></div>
+    <div><div className="dialog-header"><div><p className="section-kicker">Friday Activity · ฐานข้อมูลกลาง</p><h2 id="friday-live-title">{record?.title ?? (id ? "รายละเอียดกิจกรรม" : "สร้างกิจกรรมใหม่")}</h2></div><div className="dialog-header-actions">{record && !editing && <button className="secondary-button" type="button" disabled={saving || followupState.dirty || followupState.busy} onClick={() => { setDraft(fridayEditable(record)); setEditing(true); setNotice(null); }}>แก้ไขข้อมูล</button>}<button className="icon-button" type="button" aria-label="ปิดรายละเอียด" onClick={requestClose} disabled={saving || followupState.busy}>×</button></div></div>
       <div className="dialog-content" tabIndex={0}>
         {loading && <p role="status">กำลังอ่านกิจกรรมจากฐานข้อมูลกลาง…</p>}
         {error && <p className="edit-save-error" role="alert">{error}</p>}
@@ -90,9 +96,10 @@ export function FridayLiveDetail({ id, period, options, onClose, beforeWrite, on
           <section className="detail-section"><h3>บริษัทที่ร่วมกิจกรรม</h3><p>{record.companies.map(company => company.name).join(" · ") || "ยังไม่กำหนดบริษัท"}</p></section>
           <section className="detail-section"><h3>ผู้ประสานงาน / วิทยากร</h3>{record.people.length ? <ul>{record.people.map((person, index) => <li key={person.id ?? index}>{person.name} · {person.role === "speaker" ? "วิทยากร" : "ผู้ประสานงาน"}{person.namespace === "guest" ? " · ผู้ร่วมกิจกรรมภายนอก" : ""}</li>)}</ul> : <p className="panel-caption">ยังไม่กำหนดรายชื่อ</p>}</section>
           <section className="detail-section"><h3>รอบจัดกิจกรรม ({record.sessions.length})</h3>{record.sessions.map((session, index) => <article className="friday-live-session" key={session.id ?? index}><strong>รอบที่ {index + 1} · {fridayLiveDate(session.sessionDate)}</strong><p>{session.startTime ?? "ยังไม่ระบุเวลาเริ่ม"} - {session.endTime ?? "ยังไม่ระบุเวลาสิ้นสุด"} · {session.location || "ยังไม่ระบุสถานที่"}</p><p>{session.status === "held" ? "จัดแล้ว" : session.status === "cancelled" ? "ยกเลิก" : "วางแผน"} · รับ {fridayLiveCount(session.capacity)} · จอง {fridayLiveCount(session.booked)} · มาจริง {fridayLiveCount(session.attended)}</p></article>)}{record.sessions.length === 0 && <p className="panel-caption">ยังไม่มีรอบจัดกิจกรรม</p>}<p className="panel-caption">— หมายถึงยังไม่ทราบ · จำนวนมาจริงนับเป็นคน-ครั้ง</p></section>
-          <section className="detail-section"><h3>เปลี่ยนสถานะกิจกรรม</h3><form className="course-edit-grid" onSubmit={transition}><label><span>สถานะถัดไป</span><select required value={nextStatus} disabled={saving || Boolean(latest)} onChange={event => setNextStatus(event.target.value as FridayStatus | "")}><option value="">เลือกสถานะ</option>{LIVE_FRIDAY_TRANSITIONS[record.status].map(status => <option value={status} key={status}>{LIVE_FRIDAY_STATUSES[status]}</option>)}</select></label><label><span>เหตุผล / บันทึกการติดตาม</span><input required maxLength={2000} value={reason} disabled={saving || Boolean(latest)} onChange={event => setReason(event.target.value)} /></label><button className="primary-button" type="submit" disabled={saving || !nextStatus || !reason.trim() || Boolean(latest)}>{saving ? "กำลังบันทึก…" : "บันทึกสถานะ"}</button></form></section>
+          <section className="detail-section"><h3>เปลี่ยนสถานะกิจกรรม</h3><form className="course-edit-grid" onSubmit={transition}><label><span>สถานะถัดไป</span><select required value={nextStatus} disabled={saving || Boolean(latest) || followupState.dirty || followupState.busy} onChange={event => setNextStatus(event.target.value as FridayStatus | "")}><option value="">เลือกสถานะ</option>{LIVE_FRIDAY_TRANSITIONS[record.status].map(status => <option value={status} key={status}>{LIVE_FRIDAY_STATUSES[status]}</option>)}</select></label><label><span>เหตุผล / บันทึกการติดตาม</span><input required maxLength={2000} value={reason} disabled={saving || Boolean(latest) || followupState.dirty || followupState.busy} onChange={event => setReason(event.target.value)} /></label><button className="primary-button" type="submit" disabled={saving || !nextStatus || !reason.trim() || Boolean(latest) || followupState.dirty || followupState.busy}>{saving ? "กำลังบันทึก…" : "บันทึกสถานะ"}</button></form></section>
         </>}
-        {record && <section className="detail-section"><h3>ประวัติการบันทึก</h3>{historyError && <p role="alert">อ่านประวัติไม่สำเร็จ: {historyError}</p>}{history.length === 0 && !historyError && <p className="panel-caption">ยังไม่มีประวัติที่อ่านได้</p>}<ol className="friday-live-history">{history.map(entry => <li key={entry.id}><strong>{historyLabels[entry.operation] ?? "บันทึกกิจกรรม"}</strong><p>{entry.actorName || "เจ้าหน้าที่"} · {fridayLiveTimestamp(entry.recordedAt)}</p>{entry.reason && <p>{entry.reason}</p>}{entry.before?.status && entry.after?.status && entry.before.status !== entry.after.status && <p>{LIVE_FRIDAY_STATUSES[entry.before.status]} -&gt; {LIVE_FRIDAY_STATUSES[entry.after.status]}</p>}{entry.before?.title !== entry.after?.title && <p>{entry.before?.title || "ยังไม่มีชื่อ"} -&gt; {entry.after?.title || "ยังไม่มีชื่อ"}</p>}</li>)}</ol></section>}
+        {record && !editing && <FridayLiveFollowups record={record} options={options} disabled={saving || Boolean(latest) || Boolean(nextStatus || reason)} onState={setFollowupState} beforeWrite={() => { historyGeneration.current++; setHistoryLoading(false); beforeWrite(); }} onSaved={item => accepted(item, "อัปเดตบันทึกและงานติดตามแล้ว")} />}
+        {record && <section className="detail-section"><h3>ประวัติการบันทึก</h3>{historyError && <p role="alert">อ่านประวัติไม่สำเร็จ: {historyError}</p>}{history.length === 0 && !historyError && <p className="panel-caption">ยังไม่มีประวัติที่อ่านได้</p>}<ol className="friday-live-history">{history.map(entry => <li key={entry.id}><strong>{historyLabels[entry.operation] ?? "บันทึกกิจกรรม"}</strong><p>{entry.actorName || "เจ้าหน้าที่"} · {fridayLiveTimestamp(entry.recordedAt)}</p>{entry.reason && <p>{entry.reason}</p>}{entry.detail && <details><summary>ข้อมูลที่บันทึก</summary><p className="friday-followup-text">{entry.detail.after.body ?? entry.detail.after.title}</p>{entry.detail.kind === "task" && <p>ผู้รับผิดชอบ: {entry.detail.after.assigneeName} · กำหนดส่ง: {fridayLiveDate(entry.detail.after.dueDate ?? null)} · สถานะ: {entry.detail.after.status === "done" ? "เสร็จแล้ว" : entry.detail.after.status === "cancelled" ? "ยกเลิก" : "รอดำเนินการ"}</p>}{entry.detail.before && <p className="friday-followup-text">ฉบับก่อน: {entry.detail.before.body ?? entry.detail.before.title}{entry.detail.before.status && ` · ${entry.detail.before.status}`}</p>}</details>}{entry.before?.status && entry.after?.status && entry.before.status !== entry.after.status && <p>{LIVE_FRIDAY_STATUSES[entry.before.status]} -&gt; {LIVE_FRIDAY_STATUSES[entry.after.status]}</p>}{entry.before?.title !== entry.after?.title && <p>{entry.before?.title || "ยังไม่มีชื่อ"} -&gt; {entry.after?.title || "ยังไม่มีชื่อ"}</p>}</li>)}</ol>{historyCursor && <button type="button" className="secondary-button" disabled={historyLoading || saving || followupState.busy} onClick={() => void refreshHistory(record.id, historyCursor)}>อ่านประวัติเพิ่มเติม</button>}{historyError && <button type="button" className="text-button" disabled={saving || followupState.busy} onClick={() => void refreshHistory(record.id)}>ลองอ่านประวัติอีกครั้ง</button>}</section>}
       </div>
       {editing && draft && <div className="dialog-edit-footer"><button className="secondary-button" type="button" disabled={saving} onClick={() => { if (dirty && !window.confirm("ยกเลิกการแก้ไขที่ยังไม่ได้บันทึกหรือไม่?")) return; if (!record) onClose(); else { setDraft(fridayEditable(record)); setEditing(false); setError(null); } }}>ยกเลิก</button><button className="primary-button" form="friday-live-edit" type="submit" disabled={saving || !draft.title.trim() || Boolean(latest)}>{saving ? "กำลังบันทึก…" : "บันทึกกิจกรรม"}</button></div>}
     </div>

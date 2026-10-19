@@ -193,6 +193,7 @@ class FridayOptions(FridayModel):
 
 
 class FridayAuditEvent(FridayModel):
+    detail: dict | None = None
     id: str
     activity_id: str
     actor_user_id: str
@@ -207,3 +208,4 @@ class FridayAuditEvent(FridayModel):
 
 class FridayHistory(FridayModel):
     items: list[FridayAuditEvent]
+    next_cursor: str | None = None
