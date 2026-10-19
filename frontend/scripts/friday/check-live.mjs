@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {checkFollowups} from './check-followups.mjs';
+import {checkReviewRegressions} from './check-review-regressions.mjs';
 import {createRequire} from 'node:module';
 import {mkdir, mkdtemp, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -136,6 +137,7 @@ try {
   const audit=JSON.parse(dbSql('SELECT u.username,e.operation,e.reason,e.activity_id FROM friday_audit_events e JOIN users u ON u.id=e.actor_user_id ORDER BY e.id'));assert.ok(audit.some(r=>r[0]==='alice'&&r[1]==='create'));assert.ok(audit.some(r=>r[0]==='bob'&&r[1]==='update'));assert.ok(audit.some(r=>r[1]==='transition'&&r[2]==='QA complete verified zero attendance'));assert.ok(audit.some(r=>r[2]==='QA delayed initial history regression'));assert.equal(audit.length,12);await writeFile(output+'/database-evidence.json',JSON.stringify({rows,audit,counts:JSON.parse(dbSql('SELECT (SELECT count(*) FROM friday_import_batches),(SELECT count(*) FROM friday_import_receipts),(SELECT count(*) FROM friday_import_source_links),(SELECT count(*) FROM friday_import_audit)'))},null,2));
  });
  await checkFollowups({pa,pb,a,browser,base,record,title,check,ready,collect,dbSql,output,setPhase:value=>{phase=value;}});
+ await checkReviewRegressions({pa,a,base,record,title,check,ready,dbSql,output,setPhase:value=>{phase=value;}});
  assert.equal(errors.length,0,'no framework or page errors');assert.equal(consoleMessages.filter(m=>m.phase!=='expected-api-failure'&&m.type==='error'&&!m.text.includes('409')).length,0,'no unexpected application console errors');
  await writeFile(output+'/results.json',JSON.stringify({passed:true,environment:{base,backend:'explicit isolated Friday harness behind Next rewrite',browser:'Playwright Chromium; Browser plugin not available',viewports:['1440x1000','390x844'],primaryFlowApiInterception:false,timingRegression:'one initial history response fetched from real API and delivered after real post-save history; no fabricated payload',ancillaryFixture:'empty LINE groups directory only; health tests local PG without AI/Neo4j'},results,apiResults,errors,consoleMessages,networkFailures},null,2));
  console.log('ALL PASS '+results.length);console.log('Evidence: '+output);

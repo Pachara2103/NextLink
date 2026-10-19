@@ -19,7 +19,7 @@ export function fridayLiveError(error: unknown): string {
     if (error.status === 401) return "การเข้าสู่ระบบหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง";
     if (error.status === 403) return "บัญชีนี้ไม่มีสิทธิ์ดำเนินการ Friday Activity กรุณาติดต่อผู้ดูแลระบบ";
     if (error.status === 409) return "มีผู้แก้ไขข้อมูลนี้แล้ว แบบฟอร์มของคุณยังอยู่ กรุณาตรวจฉบับล่าสุดก่อนบันทึกอีกครั้ง";
-    if (error.status === 503) return "ฐานข้อมูล Friday Activity ยังไม่พร้อม กรุณาลองใหม่ ข้อมูลยังไม่ได้บันทึก";
+    if (error.status === 503) return "เซิร์ฟเวอร์ Friday Activity ยังไม่พร้อม กรุณาลองอีกครั้ง";
     if (error.detail && error.detail.length < 350 && !/^[[{<]/.test(error.detail)) return error.detail;
     return `ดำเนินการไม่สำเร็จ (HTTP ${error.status}) กรุณาตรวจข้อมูลแล้วลองใหม่`;
   }

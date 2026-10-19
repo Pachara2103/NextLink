@@ -174,6 +174,7 @@ def test_staff_revocation_protects_every_followup_route(friday_client):
     path = f"{BASE}/{activity['id']}"
     item = friday_client.post(path+"/notes",headers=headers,json=note()).json()["item"]
     routes = [("get",path+"/notes",None),("get",path+"/tasks",None),
+        ("get",path+"/notes/"+item["id"],None),("get",path+"/tasks/1",None),
         ("get",path+"/notes/"+item["id"]+"/versions",None),
         ("post",path+"/notes",note(2)),("put",path+"/notes/"+item["id"],note(2,reason="edit")),
         ("post",path+"/tasks",task(2)),("put",path+"/tasks/1",task(2))]
@@ -183,3 +184,44 @@ def test_staff_revocation_protects_every_followup_route(friday_client):
         assert friday_client.request(method,url,headers=headers,json=data).status_code == 403
     execute("UPDATE users SET is_active=false WHERE id=1")
     assert friday_client.get(path+"/notes",headers=headers).status_code == 401
+
+
+@pytest.mark.parametrize("collection,payload", [("notes",note),("tasks",task)])
+def test_single_followup_read_finds_older_item_and_enforces_activity_scope(friday_client,collection,payload):
+    headers = sign_in(friday_client)
+    activity,other = create(friday_client,headers),create(friday_client,headers)
+    path = f"{BASE}/{activity['id']}/{collection}"
+    oldest = friday_client.post(path,headers=headers,json=payload()).json()["item"]
+    for revision in range(2,52):
+        assert friday_client.post(path,headers=headers,json=payload(revision)).status_code == 201
+    assert oldest["id"] not in [x["id"] for x in friday_client.get(path,headers=headers).json()["items"]]
+    result = friday_client.get(path+"/"+oldest["id"],headers=headers)
+    assert result.status_code == 200
+    assert result.json()["item"] == oldest
+    assert result.json()["activity"]["revision"] == 52
+    assert friday_client.get(f"{BASE}/{other['id']}/{collection}/{oldest['id']}",headers=headers).status_code == 404
+    assert friday_client.get(path+"/999999999",headers=headers).status_code == 404
+    assert friday_client.get(path+"/9223372036854775808",headers=headers).status_code == 400
+
+
+def test_single_followup_and_revision_use_one_read_snapshot(friday_client,monkeypatch):
+    from services import friday_followup
+    headers = sign_in(friday_client)
+    activity = create(friday_client,headers)
+    path = f"{BASE}/{activity['id']}/notes"
+    original = friday_client.post(path,headers=headers,json=note()).json()
+    read = friday_followup._read
+    changed = False
+    def concurrent_read(conn,kind,activity_id,item_id=None,**kwargs):
+        nonlocal changed
+        if not changed:
+            changed = True
+            # Commit another writer after get_item reads the parent revision.
+            updated = friday_client.put(path+"/"+original["item"]["id"],headers=headers,
+                json=note(2,body="concurrently corrected",reason="correction"))
+            assert updated.status_code == 200
+        return read(conn,kind,activity_id,item_id,**kwargs)
+    monkeypatch.setattr(friday_followup,"_read",concurrent_read)
+    result = friday_client.get(path+"/"+original["item"]["id"],headers=headers).json()
+    assert result == original
+    assert friday_client.get(f"{BASE}/{activity['id']}",headers=headers).json()["revision"] == 3

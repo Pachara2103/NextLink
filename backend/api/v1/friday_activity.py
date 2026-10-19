@@ -81,6 +81,11 @@ def update_note(activity_id: ActivityId, note_id: ActivityId, payload: NoteWrite
     return followup.write_item(activity_id,"note",payload,user.id,note_id)
 
 
+@router.get("/{activity_id}/notes/{note_id}", response_model=FollowupResult)
+def get_note(activity_id: ActivityId, note_id: ActivityId, user: SessionIdentity = Depends(friday_staff)):
+    return followup.get_item(activity_id,"note",note_id)
+
+
 @router.get("/{activity_id}/notes/{note_id}/versions", response_model=NoteVersionList)
 def note_versions(activity_id: ActivityId, note_id: ActivityId, user: SessionIdentity = Depends(friday_staff),
     before_version: int | None = Query(default=None, alias="beforeVersion", ge=1, le=2147483647),
@@ -103,3 +108,8 @@ def create_task(activity_id: ActivityId, payload: TaskWrite, user: SessionIdenti
 @router.put("/{activity_id}/tasks/{task_id}", response_model=FollowupResult)
 def update_task(activity_id: ActivityId, task_id: ActivityId, payload: TaskWrite, user: SessionIdentity = Depends(friday_staff)):
     return followup.write_item(activity_id,"task",payload,user.id,task_id)
+
+
+@router.get("/{activity_id}/tasks/{task_id}", response_model=FollowupResult)
+def get_task(activity_id: ActivityId, task_id: ActivityId, user: SessionIdentity = Depends(friday_staff)):
+    return followup.get_item(activity_id,"task",task_id)

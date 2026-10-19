@@ -51,6 +51,20 @@ def list_items(activity_id, kind, before_id=None, limit=50):
         return result
 
 
+def get_item(activity_id, kind, item_id):
+    # Pair the item with the aggregate revision from one snapshot, even when
+    # this older item is no longer in the first page of the collection.
+    with nl_db.get_connection() as conn:
+        _execute(conn, "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+        activity = _activity(conn, activity_id)
+        items = _read(conn, kind, activity_id, item_id)
+        if not items:
+            raise NotFoundError(message="ไม่พบรายการในกิจกรรมนี้")
+        result = FollowupResult(activity=activity, item=items[0])
+        conn.rollback()
+        return result
+
+
 def note_versions(activity_id, note_id, before_version=None, limit=50):
     _valid_id(activity_id)
     with nl_db.get_connection() as conn:

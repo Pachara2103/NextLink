@@ -8,7 +8,7 @@ import { fridayLiveDate, fridayLiveError, fridayLiveTimestamp } from "../lib/fri
 
 type NoteDraft = { type: "note"; id: string | null; revision: number; reason: string; fields: NoteFields };
 type TaskDraft = { type: "task"; id: string | null; revision: number; reason: string; fields: TaskFields };
-type Draft = NoteDraft | TaskDraft;
+type Draft = (NoteDraft | TaskDraft) & { original?: FridayNote | FridayTask };
 type Command = { type: "note"; id: string | null; payload: NoteFields & FollowupWrite } | { type: "task"; id: string | null; payload: TaskFields & FollowupWrite };
 const statusLabels = { open: "รอดำเนินการ", done: "เสร็จแล้ว", cancelled: "ยกเลิก" };
 const emptyPage = <T,>(): FollowupPage<T> => ({ items: [], nextCursor: null });
@@ -34,10 +34,11 @@ export function FridayLiveFollowups({ record, options, disabled, onState, before
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
   const [uncertain, setUncertain] = useState(false);
-  const [latest, setLatest] = useState<FridayActivityRecord | null>(null);
+  const [latest, setLatest] = useState<{ activity: FridayActivityRecord; item: FridayNote | FridayTask | null } | null>(null);
   const [versions, setVersions] = useState<{ id: string; items: NoteVersion[]; nextCursor: number | null } | null>(null);
   const [versionsError, setVersionsError] = useState<string | null>(null);
   const [versionsLoading, setVersionsLoading] = useState(false);
+  const conflictPanel = useRef<HTMLDivElement>(null);
   const generation = useRef(0);
   const versionGeneration = useRef(0);
   const inFlight = useRef(false);
@@ -46,6 +47,8 @@ export function FridayLiveFollowups({ record, options, disabled, onState, before
   const invalidateReads = useCallback(() => { generation.current++; versionGeneration.current++; }, []);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; invalidateReads(); }; }, [invalidateReads]);
   useEffect(() => { onState({ dirty: draft !== null, busy, uncertain }); }, [draft, busy, uncertain, onState]);
+
+  useEffect(() => { if (latest) conflictPanel.current?.scrollIntoView({ block: "start" }); }, [latest]);
 
   const reload = useCallback(async () => {
     const request = ++generation.current;
@@ -108,7 +111,12 @@ export function FridayLiveFollowups({ record, options, disabled, onState, before
       setUncertain(ambiguous);
       if (!ambiguous) pending.current = null;
       if (cause instanceof ApiError && cause.status === 409) {
-        try { const current = await fridayActivityService.get(record.id); if (mounted.current) setLatest(current); }
+        try {
+          const current = command.id
+            ? await (command.type === "note" ? api.note(record.id, command.id) : api.task(record.id, command.id))
+            : { activity: await fridayActivityService.get(record.id), item: null };
+          if (mounted.current) setLatest(current);
+        }
         catch { if (mounted.current) setError("อ่านฉบับล่าสุดไม่สำเร็จ ร่างยังอยู่ กรุณาลองบันทึกอีกครั้งเพื่อตรวจใหม่"); }
         await reload();
       }
@@ -116,7 +124,7 @@ export function FridayLiveFollowups({ record, options, disabled, onState, before
   }
   const locked = busy || uncertain || disabled;
   const cannotStart = disabled || busy || draft !== null || loading || Boolean(loadError);
-  const currentItem = draft?.id ? (draft.type === "note" ? notes.items : tasks.items).find(item => item.id === draft.id) : null;
+  const currentItem = latest?.item ?? draft?.original;
   const requiresReason = draft?.type === "note" ? Boolean(draft.id) : Boolean(draft?.id && currentItem && "status" in currentItem && currentItem.status !== draft.fields.status && (draft.fields.status === "cancelled" || currentItem.status !== "open"));
   const overdue = (task: FridayTask) => task.status === "open" && task.dueDate < new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   return <section className="detail-section friday-followups" aria-label="บันทึกและงานติดตาม">
@@ -130,7 +138,7 @@ export function FridayLiveFollowups({ record, options, disabled, onState, before
     {uncertain && <p role="alert">ยังยืนยันผลบันทึกไม่ได้ แบบฟอร์มถูกพักไว้ กด “ตรวจผลและลองคำสั่งเดิม” เพื่อป้องกันรายการซ้ำ</p>}
     {draft && <form onSubmit={save} className="friday-followup-editor" aria-label={draft.type === "note" ? "แบบฟอร์มบันทึก" : "แบบฟอร์มงานติดตาม"}>
       <h4>{draft.id ? "แก้ไข" : "เพิ่ม"}{draft.type === "note" ? "บันทึก" : "งานติดตาม"}</h4>
-      {latest && <div className="friday-live-conflict" role="alert"><strong>มีข้อมูลฉบับใหม่ · รุ่น {latest.revision}</strong><p>{latest.title} · แก้ไข {fridayLiveTimestamp(latest.updatedAt)}</p><p>ร่างของคุณยังอยู่ ตรวจรายการปัจจุบันด้านล่างก่อนบันทึกอีกครั้ง</p>{currentItem && <details open><summary>รายการฉบับปัจจุบัน</summary>{"body" in currentItem ? <NoteContent note={currentItem} /> : <p>{currentItem.title} · {statusLabels[currentItem.status]} · {currentItem.assigneeName} · {fridayLiveDate(currentItem.dueDate)}</p>}</details>}<button type="button" className="secondary-button" disabled={busy || loading || Boolean(loadError)} onClick={() => { onSaved(latest); setDraft({ ...draft, revision: latest.revision }); setLatest(null); setError(null); }}>ตรวจแล้ว ใช้ร่างนี้กับรุ่นล่าสุด</button></div>}
+      {latest && <div ref={conflictPanel} className="friday-live-conflict" role="alert"><strong>มีข้อมูลฉบับใหม่ · รุ่น {latest.activity.revision}</strong><p>{latest.activity.title} · แก้ไข {fridayLiveTimestamp(latest.activity.updatedAt)}</p><p>ร่างของคุณยังอยู่ ตรวจรายการปัจจุบันด้านล่างก่อนบันทึกอีกครั้ง</p>{currentItem && <details open><summary>รายการฉบับปัจจุบัน</summary>{"body" in currentItem ? <NoteContent note={currentItem} /> : <><p>{currentItem.title} · {statusLabels[currentItem.status]} · {currentItem.assigneeName} · {fridayLiveDate(currentItem.dueDate)}</p><p className="friday-followup-text">{currentItem.description || "ยังไม่มีรายละเอียดงาน"}</p></>}</details>}<button type="button" className="secondary-button" disabled={busy || loading || Boolean(loadError)} onClick={() => { onSaved(latest.activity); setDraft({ ...draft, revision: latest.activity.revision, original: latest.item ?? draft.original }); setLatest(null); setError(null); }}>ตรวจแล้ว ใช้ร่างนี้กับรุ่นล่าสุด</button></div>}
       <fieldset disabled={locked} className="friday-live-fields"><div className="course-edit-grid">
         {draft.type === "note" ? <>
           <label><span>ประเภทบันทึก</span><select value={draft.fields.kind} onChange={e => setDraft({ ...draft, fields: { ...draft.fields, kind: e.target.value as NoteFields["kind"] } })}><option value="fact">ข้อเท็จจริง</option><option value="comment">ความคิดเห็น</option></select></label>
@@ -150,13 +158,13 @@ export function FridayLiveFollowups({ record, options, disabled, onState, before
     </form>}
     <h4>ข้อเท็จจริงและความคิดเห็น</h4>
     {!notes.items.length && !loading && !loadError && <p className="panel-caption">ยังไม่มีบันทึก</p>}
-    {notes.items.map(note => <article key={note.id} className="friday-followup-card" aria-label={`บันทึก ${note.id}`}><NoteContent note={note} /><p className="panel-caption">บันทึกโดย {note.authorName} · {fridayLiveTimestamp(note.recordedAt)} · ฉบับ {note.version}{note.version > 1 && ` · แก้ไขโดย ${note.updatedByName} ${fridayLiveTimestamp(note.updatedAt)}`}</p><div className="friday-live-actions"><button className="text-button" type="button" disabled={cannotStart} onClick={() => start({ type: "note", id: note.id, revision: record.revision, reason: "", fields: { kind: note.kind, body: note.body, reference: note.reference, occurredAt: note.occurredAt } })}>แก้ไขบันทึก {note.id}</button><button className="text-button" type="button" disabled={busy || versionsLoading} onClick={() => void showVersions(note.id)}>ประวัติบันทึก {note.id}</button></div></article>)}
+    {notes.items.map(note => <article key={note.id} className="friday-followup-card" aria-label={`บันทึก ${note.id}`}><NoteContent note={note} /><p className="panel-caption">บันทึกโดย {note.authorName} · {fridayLiveTimestamp(note.recordedAt)} · ฉบับ {note.version}{note.version > 1 && ` · แก้ไขโดย ${note.updatedByName} ${fridayLiveTimestamp(note.updatedAt)}`}</p><div className="friday-live-actions"><button className="text-button" type="button" disabled={cannotStart} onClick={() => start({ type: "note", id: note.id, original: note, revision: record.revision, reason: "", fields: { kind: note.kind, body: note.body, reference: note.reference, occurredAt: note.occurredAt } })}>แก้ไขบันทึก {note.id}</button><button className="text-button" type="button" disabled={busy || versionsLoading} onClick={() => void showVersions(note.id)}>ประวัติบันทึก {note.id}</button></div></article>)}
     {notes.nextCursor && <button className="secondary-button" type="button" disabled={loading || busy} onClick={() => void more("note")}>อ่านบันทึกเพิ่มเติม</button>}
     {versionsError && <p role="alert">อ่านประวัติบันทึกไม่สำเร็จ: {versionsError}</p>}
     {versions && <section aria-label="ฉบับก่อนหน้าของบันทึก" className="friday-followup-versions"><h4>ประวัติบันทึก {versions.id}</h4>{versions.items.map(v => <article className="friday-followup-card" key={v.version}><strong>ฉบับ {v.version} · {v.editorName} · {fridayLiveTimestamp(v.recordedAt)}</strong><NoteContent note={v.snapshot} />{v.reason && <p>เหตุผล: {v.reason}</p>}</article>)}{versions.nextCursor && <button className="secondary-button" type="button" disabled={versionsLoading || busy} onClick={() => void showVersions(versions.id, versions.nextCursor!)}>อ่านฉบับก่อนหน้าเพิ่มเติม</button>}<button className="text-button" type="button" onClick={() => { versionGeneration.current++; setVersions(null); setVersionsLoading(false); }}>ปิดประวัติบันทึก</button></section>}
     <h4>งานติดตาม</h4>
     {!tasks.items.length && !loading && !loadError && <p className="panel-caption">ยังไม่มีงานติดตาม</p>}
-    {tasks.items.map(task => <article className="friday-followup-card" key={task.id} aria-label={`งานติดตาม ${task.id}`}><strong>{task.title}</strong><p><span className={`status-pill ${task.status === "done" ? "tone-green" : "tone-neutral"}`}>{statusLabels[task.status]}</span>{overdue(task) && <span className="status-pill tone-orange">เลยกำหนด</span>}</p><p>ผู้รับผิดชอบ: {task.assigneeName} · กำหนดส่ง: {fridayLiveDate(task.dueDate)}</p>{task.description && <p className="friday-followup-text">{task.description}</p>}<p className="panel-caption">สร้างโดย {task.authorName} · {fridayLiveTimestamp(task.recordedAt)} · แก้ไขโดย {task.updatedByName} · ฉบับ {task.version}</p><button className="text-button" type="button" disabled={cannotStart} onClick={() => start({ type: "task", id: task.id, revision: record.revision, reason: "", fields: { title: task.title, description: task.description, assigneeUserId: task.assigneeUserId, dueDate: task.dueDate, status: task.status } })}>แก้ไขงานติดตาม {task.id}</button></article>)}
+    {tasks.items.map(task => <article className="friday-followup-card" key={task.id} aria-label={`งานติดตาม ${task.id}`}><strong>{task.title}</strong><p><span className={`status-pill ${task.status === "done" ? "tone-green" : "tone-neutral"}`}>{statusLabels[task.status]}</span>{overdue(task) && <span className="status-pill tone-orange">เลยกำหนด</span>}</p><p>ผู้รับผิดชอบ: {task.assigneeName} · กำหนดส่ง: {fridayLiveDate(task.dueDate)}</p>{task.description && <p className="friday-followup-text">{task.description}</p>}<p className="panel-caption">สร้างโดย {task.authorName} · {fridayLiveTimestamp(task.recordedAt)} · แก้ไขโดย {task.updatedByName} · ฉบับ {task.version}</p><button className="text-button" type="button" disabled={cannotStart} onClick={() => start({ type: "task", id: task.id, original: task, revision: record.revision, reason: "", fields: { title: task.title, description: task.description, assigneeUserId: task.assigneeUserId, dueDate: task.dueDate, status: task.status } })}>แก้ไขงานติดตาม {task.id}</button></article>)}
     {tasks.nextCursor && <button className="secondary-button" type="button" disabled={loading || busy} onClick={() => void more("task")}>อ่านงานติดตามเพิ่มเติม</button>}
   </section>;
 }

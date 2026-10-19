@@ -38,8 +38,8 @@ try {
   // Deliberately synthetic API state. These regressions exercise the rendered
   // live-data contract; a separate suite verifies actual PostgreSQL persistence.
   const fridayOptions = {
-    companies: [{ id: 'fixture-company-cloud', name: 'Fixture Cloud Company' }, { id: 'fixture-company-data', name: 'Fixture Data Company' }],
-    people: [{ namespace: 'contact', sourceId: 'fixture-contact', name: 'Fixture central coordinator', companyId: 'fixture-company-cloud' }],
+    companies: [{ id: '101', name: 'Fixture Cloud Company' }, { id: '102', name: 'Fixture Data Company' }],
+    people: [{ namespace: 'contact', sourceId: 'fixture-contact', name: 'Fixture central coordinator', companyId: '101' }],
     owners: [{ id: '901', name: 'ผู้ทดสอบ Dashboard' }],
     periods: [{ academicYear: 2026, term: 'FIRST' }, { academicYear: 2025, term: 'SECOND' }, { academicYear: 2023, term: 'FIRST' }],
   };
@@ -50,7 +50,7 @@ try {
   const stamp = '2026-10-15T10:00:00Z';
   const fixtureRecord = (id, title, academicYear = 2026, term = 'FIRST', attended = null) => ({
     id, title, academicYear, term, description: 'Synthetic browser regression fixture', domain: 'Cloud', format: 'talk', ownerUserId: '901',
-    companyIds: ['fixture-company-cloud'], companies: [fridayOptions.companies[0]], people: [],
+    companyIds: ['101'], companies: [fridayOptions.companies[0]], people: [],
     sessions: [{ id: `${id}-session`, sessionDate: '2026-10-16', startTime: '09:00', endTime: '12:00', location: 'Fixture Room', status: 'held', capacity: 30, booked: 20, attended }],
     status: 'completed', revision: 1, createdAt: stamp, updatedAt: stamp,
   });
@@ -278,7 +278,7 @@ try {
     assert.equal(await fridayKpi('กิจกรรมทั้งหมด').innerText(), '2');
     assert.equal(await fridayKpi('ผู้เข้าร่วมจริง').innerText(), '0');
     assert.match(await page.locator('article.kpi-card').last().innerText(), /ขาดจำนวน 1 รอบ/);
-    await page.getByRole('combobox', { name: 'บริษัท', exact: true }).selectOption('fixture-company-data');
+    await page.getByRole('combobox', { name: 'บริษัท', exact: true }).selectOption('102');
     await page.getByText('ไม่พบกิจกรรมที่ตรงกับตัวกรอง', { exact: true }).filter({ visible: true }).waitFor();
     await page.getByRole('button', { name: 'ล้างตัวกรอง', exact: true }).click();
     await openFriday('Fixture Cloud Workshop');
@@ -361,11 +361,12 @@ try {
     await fridayDialog().getByRole('combobox', { name: 'เจ้าหน้าที่ผู้รับผิดชอบ *', exact: true }).selectOption('901');
     fridayWriteStatus = 503;
     await fridayDialog().getByRole('button', { name: 'บันทึกกิจกรรม', exact: true }).click();
-    await fridayDialog().getByRole('alert').waitFor();
+    await fridayDialog().getByRole('alert').filter({ hasText: 'ยังยืนยันผลสร้างกิจกรรมไม่ได้' }).waitFor();
+    assert.equal(await fridayDialog().getByLabel('ชื่อกิจกรรม *', { exact: true }).isDisabled(), true);
     assert.equal(await fridayDialog().getByLabel('ชื่อกิจกรรม *', { exact: true }).inputValue(), 'Fixture Write Retry');
     assert.equal([...fridayRecords.values()].some(r => r.title === 'Fixture Write Retry'), false);
     fridayWriteStatus = 200;
-    await fridayDialog().getByRole('button', { name: 'บันทึกกิจกรรม', exact: true }).click();
+    await fridayDialog().getByRole('button', { name: 'ตรวจผลและลองคำสั่งเดิม', exact: true }).click();
     await fridayDialog().getByRole('button', { name: 'แก้ไขข้อมูล', exact: true }).waitFor();
     await fridayDialog().getByRole('button', { name: 'ปิดรายละเอียด', exact: true }).click();
     await fridayDialog().waitFor({ state: 'hidden' });
