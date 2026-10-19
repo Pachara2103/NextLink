@@ -1,11 +1,11 @@
 import { cookies } from "next/headers";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
-import { PlanProvider } from "@/features/elective-plan/lib/use-plan-state";
-import { getPlanPayload } from "@/features/elective-plan/lib/plan-data";
 import type { Metadata } from "next";
 import { Anuphan, Bai_Jamjuree, IBM_Plex_Mono } from "next/font/google";
 import { IconSprite } from "@/components/icons";
 import { AuthProvider } from "@/store/auth-store";
+import { planSource } from "@/features/elective-plan/lib/plan-data";
+import { PlanProvider } from "@/features/elective-plan/lib/use-plan-state";
 import "./globals.css";
 
 const anuphan = Anuphan({
@@ -47,7 +47,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         {/* Both the login page and the console read the same session. */}
         <ThemeProvider initialTheme={theme}>
           <AuthProvider>
-            <PlanProvider payload={getPlanPayload()}>{children}</PlanProvider>
+            <PlanProvider source={planSource()}>{children}</PlanProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

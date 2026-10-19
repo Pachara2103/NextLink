@@ -24,6 +24,7 @@ export async function checkAdditions({ page, context, base, go, check, theme, ou
     assert.match(await page.locator('main').innerText(), /ย้อนหลังสำหรับทดสอบ/);
     assert.doesNotMatch(await page.locator('main').innerText(), /ติดตามกำหนดโอนเบี้ยเลี้ยง/);
     await go('/mou?q=เมฆา'); await openFirst();
+    await dialog().getByText('Shared synthetic coordinator', { exact: true }).waitFor();
     assert.match(await dialog().innerText(), /Shared synthetic coordinator/);
     assert.match(await dialog().innerText(), /02-000-1234/);
     // Friday now selects from the central API directory. Browser-only contacts

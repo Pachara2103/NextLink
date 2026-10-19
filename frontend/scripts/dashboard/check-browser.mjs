@@ -12,7 +12,7 @@ const socket = createServer(); socket.listen(0, '127.0.0.1'); await once(socket,
 const port = socket.address().port; await new Promise(resolve => socket.close(resolve));
 const base = `http://127.0.0.1:${port}`;
 const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '-H', '127.0.0.1', '-p', String(port)], {
-  env: { ...process.env, NODE_ENV: 'production', API_ORIGIN: 'http://127.0.0.1:18999' }, stdio: ['ignore', 'pipe', 'pipe'],
+  env: { ...process.env, NODE_ENV: 'production', PLAN_SOURCE: 'seed', API_ORIGIN: 'http://127.0.0.1:18999' }, stdio: ['ignore', 'pipe', 'pipe'],
 });
 let logs = ''; server.stdout.on('data', b => { logs += b; }); server.stderr.on('data', b => { logs += b; });
 let browser, page;
@@ -113,7 +113,13 @@ try {
     if (path === '/api/v1/auth/login' && method === 'POST') body = { accessToken: 'local-fixture-only', tokenType: 'bearer', user };
     else if (path === '/api/v1/auth/logout' && method === 'POST') return route.fulfill({ status: 204 });
     else if (path === '/api/v1/health') body = { status: 'ok', models: true, ready: true, bootId: 'dashboard-fixture', startedAt: '2026-09-14T00:00:00Z' };
-    else if (method === 'GET' && ['/api/v1/line/summary-drafts', '/api/v1/line/groups', '/api/v1/companies', '/api/v1/contacts', '/api/v1/employees', '/api/v1/notes', '/api/v1/line/update_logs', '/api/v1/chat_histories'].includes(path)) body = { items: [] };
+  // Every read the console makes on these pages, answered with an empty list.
+  // A path that is not here is not quietly ignored: it is recorded and fails
+  // the run at the end, which is how a page that started calling something new
+  // gets noticed. That also means this list has to grow with the console —
+  // สรุปข้อมูลจากไลน์ (line/summary-drafts) was added to the sidebar and the
+  // list was not, so every run after it failed here naming the endpoint.
+    else if (method === 'GET' && ['/api/v1/line/groups', '/api/v1/companies', '/api/v1/contacts', '/api/v1/employees', '/api/v1/notes', '/api/v1/line/update_logs', '/api/v1/chat_histories', '/api/v1/line/summary-drafts'].includes(path)) body = { items: [] };
     else { unexpectedApi.push(`${method} ${path}`); return route.fulfill({ status: 500, json: { detail: 'Unexpected API in integration check' } }); }
     await route.fulfill({ json: body });
   });
@@ -125,7 +131,7 @@ try {
   const paths = ['', '/electives', '/mou', '/internship', '/cooperative', '/capstone', '/friday-activities'];
   const go = async path => { await page.goto(base + '/dashboard' + path); await page.locator('.app-shell[data-ready="true"]').waitFor(); assert.match(await page.title(), /NextLink/); assert.equal(await page.locator('nextjs-portal').count(), 0); };
   const theme = async value => {
-    await page.getByRole('radio', { name: value === 'classic' ? 'โหมดสว่าง (สีดั้งเดิม)' : 'โหมดมืด', exact: true }).filter({ visible: true }).click();
+    await page.getByRole('radio', { name: value === 'classic' ? /สีดั้งเดิม|สว่าง/ : /มืด/ }).filter({ visible: true }).first().click();
     await page.waitForFunction(value => document.documentElement.dataset.theme === value, value);
   };
   const login = async () => {

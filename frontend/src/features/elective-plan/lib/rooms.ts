@@ -1,4 +1,4 @@
-import type { PlanRoom, RoomTier } from "./plan-types.ts";
+import type { PlanRoom, RoomType } from "./plan-types.ts";
 import { slotRank, type SlotId } from "./slots.ts";
 
 /**
@@ -18,7 +18,7 @@ import { slotRank, type SlotId } from "./slots.ts";
  */
 
 export type RoomOverride = Partial<
-  Pick<PlanRoom, "name" | "building" | "floor" | "seats" | "seatsIsEstimated" | "tier" | "blockedSlots">
+  Pick<PlanRoom, "name" | "building" | "floor" | "seats" | "seatsIsEstimated" | "type" | "blockedSlots">
 >;
 
 /**
@@ -42,7 +42,7 @@ export type RoomDraft = {
   floor: string;
   seats: number;
   seatsIsEstimated: boolean;
-  tier: RoomTier;
+  type: RoomType;
 };
 
 /** Rooms are 18 periods a week; a number far above that is a typo, not a hall. */
@@ -55,7 +55,7 @@ export function roomDraftFrom(room: PlanRoom): RoomDraft {
     floor: room.floor,
     seats: room.seats,
     seatsIsEstimated: room.seatsIsEstimated,
-    tier: room.tier,
+    type: room.type,
   };
 }
 
@@ -123,7 +123,7 @@ export function addRoom(edits: RoomEdits, draft: RoomDraft, taken: Iterable<stri
     floor: draft.floor.trim(),
     seats: draft.seats,
     seatsIsEstimated: draft.seatsIsEstimated,
-    tier: draft.tier,
+    type: draft.type,
     blockedSlots: [],
   };
   return { edits: { ...edits, added: [...edits.added, room] }, id };

@@ -84,18 +84,226 @@ are required because the scheduler treats them as resources — two courses with
 the same lecturer cannot share a period, and blank names would read as one very
 busy lecturer. `scripts/elective-plan/check-courses.mjs` covers these rules and
 the merge/routing behaviour; it runs as part of `npm run check:planner`, which is
-now 98 domain checks, and the browser suite is 26 scenarios.
+now 125 domain checks, and `npm run check:browser` is 36 scenarios across the two
+stores (29 on the bundled plan, 7 on the shared one).
 
-### Plan document version 4
+### Sections, one capacity, and one class per room
 
-`courseEdits` makes the stored plan version 4, written to
-`nextlink.plan.v4.<termId>`. A version 3 document is read from
-`nextlink.plan.v3.<termId>` (and version 1/2 from `nextlink.plan.v1`), shown with
-no added courses, and saved back under the version 4 key when anything is next
-saved; the older key is left in place, so an older build still open in another
-tab keeps working from the plan it knows. Backups exported before this change
+A course code is no longer an identity on its own: the same course taught to a
+second group is a second row with the same code and a different `section`. The
+form asks for it, the uniqueness rule is code + section, the id carries the
+section from the second one on (`plan-21105801-2`), and the table prints
+"ตอน 2" only where there is one — most courses have a single section, and
+"ตอน 1" on every row is a word that says nothing.
+
+`minSeats` is gone; `capacity` is the only number. The staff filling the form
+know the real seat count, and a separate "smallest room this fits in" was a
+second place for the same fact to be wrong. Room fitting, the "room is too
+small" conflict and the "reduce the intake" suggestion all read `capacity` now,
+and the bundled seed files no longer carry the field. A plan saved while it
+still existed opens unchanged — the schema accepts the key and drops it.
+
+Dropping a class into a room that already holds one at that period is refused
+where the drop happens, rather than accepted and reported as a conflict
+afterwards. Two classes in one room at one time is not a state worth saving,
+and `elective_sessions` does not accept the row either.
+
+The paperwork checklist has an eighth step, "สร้างคอร์สใน MCV", between asking
+for instructor rights and inviting anyone in — the course has to exist before
+anybody can be added to it. The course and company columns became one cell in
+both tables to pay for the extra column.
+
+### Plan document version 5
+
+`courseEdits` made the stored plan version 4; renaming a room's `tier` to `type`,
+following the column, makes it version 5, written to `nextlink.plan.v5.<termId>`.
+A version 4 document is read from `nextlink.plan.v4.<termId>` (version 3 from
+`nextlink.plan.v3.<termId>`, version 1/2 from `nextlink.plan.v1`) and its room
+edits are renamed on the way in by `readStoredRoomPatch` — one line, in one
+place, so the validator stays a statement about the current shape only. Without
+it a v4 document would fail validation whole and lose every edit in it over one
+renamed field. Each is shown as it is and saved back under the version 5 key when
+anything is next saved; the older key is left in place, so an older build still
+open in another tab keeps working from the plan it knows. Backups exported before this change
 import unchanged. Plans still belong to the browser origin: a course added on one
 machine reaches another only through **สำรองแผน JSON** and **นำเข้าแผน**.
+
+## The shared plan
+
+The planner now has two stores behind one interface, chosen per process by
+`PLAN_SOURCE` and read in `planSource()` (`lib/plan-data.ts`):
+
+| `PLAN_SOURCE` | store | plan lives in |
+|---|---|---|
+| unset (default) | `RemotePlanStore` | `/api/v1/electives` → postgres |
+| `seed` | `PlanStore` | bundled JSON + localStorage |
+
+### What is sent at the press, and what waits for บันทึก
+
+Every command carries a `scope`. `"now"` is the default and sends at the press;
+`"timetable"` draws the change and waits for the board's บันทึก, so it has no
+`send` of its own.
+
+| scope | commands | why |
+|---|---|---|
+| `timetable` | place, move, remove, retime, จัดตารางใหม่, ล้างที่ยังไม่ล็อก | laying out a week is twenty drags that are one decision, and half of those positions are ones the planner is only trying out |
+| `now` | course add/edit/delete, availability, rooms, room bookings, checklist, lock/unlock | each is one decision, finished when it is pressed |
+
+บันทึก sends the finished week as **one** request — `PUT /sessions`, the same
+transactional swap จัดตารางใหม่ already used, which the server applies whole or
+refuses whole. A refusal leaves the edits on screen with the reason beside them,
+which is the only state they can be corrected from. ยกเลิก restores the week the
+server last confirmed, and only the week: the courses and rooms were saved at the
+press and are not that button's to undo. While anything is waiting, the focus
+refresh is suppressed — a read would replace the edits with the server's week,
+which is the one thing บันทึก exists to prevent.
+
+Locking is `now` even though the control sits on a card: a lock is a statement
+about a row the server already has — it is what the bulk swap leaves alone — so
+it cannot be applied to a card that has not been saved yet.
+
+There is no เลิกทำ anywhere on the page. A step back was right when the plan was
+one person's document with a revision history behind it; on a plan several people
+write to, the state it would restore may already have been built on by somebody
+else, so the button promised something it could not do. ยกเลิก is the honest
+version of the same idea: it discards edits that were never sent.
+
+### Any term, including one that has ended
+
+An ended term is read-only in no sense but the planning one. The backend has no
+guard against writing to an `archived` term: backfilling terms that ran before
+this page existed is the reason the history is worth reading at all, and
+`current`/`archived` now says which term is being planned, not what may be
+written. The courses tab keeps its add button on a past term and names that
+term's row explicitly (`TermMeta.serverId`), because the store is holding the
+term being planned and "the term being looked at" is that page's business alone —
+so the new course is written to the right term and read back from the archives
+rather than drawn under the wrong term's name. The checklist view still
+disappears on a past term: its paperwork was either done or it was not.
+
+`seed` is an explicit opt-in, not a fallback: a planner that quietly dropped to a
+mock when the API was down would look like it was working while saving nothing.
+It is what `check-browser.mjs` drives and what makes the page openable with no
+backend running.
+
+**Every control is one request.** The offline store writes the whole document
+under a lock, which is right for one writer and wrong for several: the last
+whole-document write would erase everything the others did since their read. On
+the shared plan each command changes the screen first (using the same pure rules
+— `placeAssignment`, `validateCourseDraft`), sends its one request, folds in
+whatever the server decided that the screen could not know (above all the row's
+real id), and on failure puts the screen back and says why in the backend's own
+words. `lib/plan-commands.ts` is that table, one entry per control.
+
+**Ids.** The database counts in integers, every domain id in this app is a
+string. `lib/plan-api.ts` is the only place both vocabularies appear; a row
+drawn before the server has named it gets a placeholder that `serverId()`
+refuses, so a request built from one fails here rather than reaching
+`/electives/NaN`. `reconcile*` in `lib/plan-state.ts` then swaps in the real row,
+matched by the three UNIQUE constraints in `migrations/electives.sql`.
+
+**Undo** is one step, offered in the toast that confirms the change. A permanent
+button was right when the plan was one person's document with a revision history
+behind it; on a shared plan there is no history to walk back, only the step just
+taken and only while nobody has built on it. `RemoteCommand.inverse` builds that
+step *after* the server has answered, and returns null where taking it back
+honestly is not possible — deleting a course takes its periods and paperwork
+with it.
+
+**What is hidden on the shared plan**: สำรองแผน JSON, นำเข้าแผน, คืนค่าเริ่มต้น,
+and the permanent เลิกทำรายการล่าสุด. A file on one person's disk is not a backup
+of a table everyone writes to, and importing one would mean one person's
+afternoon replacing everybody's.
+
+The provider stays at the root of the app so that an edit which could not be
+saved survives a trip to another screen and back, but the plan is only read once
+a planner page is on screen — `PlanShell` calls `plan.load()`.
+
+### Setting up a database
+
+The quickest route is `docker compose up -d` from the repo root, which brings up
+`nextlink-postgres` (5432, database `nextlink`), `nextlink-line-db` (5433,
+database `line`) and `nextlink-neo4j` (7474/7687) and runs the migrations on
+first start. By hand, the order matters:
+
+```sh
+psql -d nextlink -f backend/migrations/init.sql
+psql -d nextlink -f backend/migrations/security.sql
+psql -d nextlink -f backend/migrations/electives.sql
+psql -d nextlink -f backend/migrations/elective_seed.sql
+```
+
+`electives.sql` references `companies` and `employees`, and the seed references
+the `elective_*` tables, so alphabetical order fails on the first file — which is
+exactly what the postgres image does with `/docker-entrypoint-initdb.d`, and why
+`docker/nextlink-init.sh` is the one place that decides the order.
+
+`backend/migrations/local/` is separate on purpose: `line_local.sql` creates
+cut-down `line_groups` / `line_messages` tables so the console opens without
+Neon, and the real LINE database already has those names under a different
+schema. It must never be run against it. See that folder's README.
+
+The `.env` values for this stack (`backend/.env`):
+
+```ini
+NEXTLINK_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/nextlink
+LINE_DATABASE_URL=postgresql://postgres:postgres@localhost:5433/line
+NEO4J_URI=bolt://localhost:7687
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=nextlink-dev
+NEO4J_DATABASE=neo4j
+PG_POOL_MIN=1
+PG_POOL_MAX=10
+CORS_ORIGINS=http://localhost:3000
+HOST=127.0.0.1
+PORT=8000
+AUTH_SECRET=<any long random string>
+GOOGLE_API_KEY=<kept as it is>
+```
+
+### An account to sign in with
+
+The seed creates rooms and a term, not a user, so a fresh database has nothing
+to sign in as. `users.password` holds a **bcrypt hash** and
+`services/user.py::login` compares with `bcrypt.checkpw`, so a row inserted with
+a plain-text password does not fail as "wrong password" — it fails as a 500 with
+`stored hash is unusable`, which is a much harder thing to work out from the
+login screen. Use the script rather than SQL:
+
+```sh
+cd backend
+.venv/Scripts/python create_user.py admin --display "เจ้าหน้าที่ภาค"
+```
+
+It asks for the password twice without echoing it, enforces the same eight-
+character minimum `update_password` does (so an account created today can
+change its own password tomorrow), and reports a name that is already taken as
+exactly that. `--password-from-env NAME` reads it from the environment instead,
+for a machine-setup script.
+
+`NEO4J_URI` is `bolt://` rather than `neo4j+s://`: the local container speaks
+plain bolt with no certificate, and the `+s` scheme fails the handshake. The two
+database URLs must point at different ports — that is why the LINE container is
+published on 5433 rather than sharing 5432, so `LINE_DATABASE_URL` can never
+quietly end up on the `nextlink` database.
+
+The last file is what makes the page openable at all: a database with the tables
+but no rows has no current term (`GET /plan` answers 404) and no room columns to
+drag a class into. It creates the term from the date it is run — Chula's ภาคต้น
+starts in August, so January–July still counts as the academic year that began
+last August — and the sixteen rooms the department uses every term: จุฬาพัฒน์ 4
+and 5 as `ready`, ตึก 3 / ตึก 4 / ตึกร้อยปี as `needs_approval` with estimated
+seat counts.
+
+Every insert is `ON CONFLICT DO NOTHING`, so running it again adds nothing and
+overwrites nothing: a room whose seat count was corrected in the UI, or that was
+taken out of service, stays as the UI left it. It also will not reopen a term
+somebody deliberately archived — it says so instead, and points at
+`POST /api/v1/electives/terms`. `backend/tests/check_elective.py` covers all
+three behaviours.
+
+Room numbers came from `data/plan-rooms.json`, which from here on is the dev
+fixture only. The table is the real list; rooms are edited through the planner.
 
 ## Verification
 
@@ -109,6 +317,12 @@ API_ORIGIN=http://127.0.0.1:18999 npm run build
 npx playwright install chromium
 npm run check:browser
 ```
+
+`check:browser` runs both suites: `check-browser.mjs` starts the server with
+`PLAN_SOURCE=seed` and drives the bundled plan; `check-browser-api.mjs` starts it
+without that variable and drives the shared plan against a fixture API that can
+be told to refuse a write. Set `PW_CHROMIUM` to use a browser Playwright did not
+install itself.
 
 The browser script starts and stops a local production server on a free port.
 All backend API calls are intercepted with local fixtures, including login and
