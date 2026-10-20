@@ -194,34 +194,7 @@ export async function putJson<T>(
   );
 }
 
-/**
- * A multipart POST — file uploads. No Content-Type header on purpose: the
- * browser has to write it itself, because only it knows the boundary string.
- */
-export async function postForm<T>(
-  path: string,
-  body: FormData,
-  options?: RequestOptions,
-): Promise<T> {
-  return parse<T>(
-    path,
-    await send(
-      path,
-      { method: "POST", headers: authHeaders(), body },
-      options,
-    ),
-  );
-}
-
-/**
- * A partial write: the fields left out keep whatever the server has.
- *
- * Only the elective checklist needs this. Every other write in this console
- * edits one row from one form that holds all of its fields, so PUT says what
- * is meant. A checklist is a row of small controls that different people press
- * at different moments, and sending the whole row back would mean the last
- * press quietly undoes the others.
- */
+/** A partial update using the same authenticated transport as other writes. */
 export async function patchJson<T>(
   path: string,
   body: unknown,
@@ -236,6 +209,25 @@ export async function patchJson<T>(
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(body),
       },
+      options,
+    ),
+  );
+}
+
+/**
+ * A multipart POST — file uploads. No Content-Type header on purpose: the
+ * browser has to write it itself, because only it knows the boundary string.
+ */
+export async function postForm<T>(
+  path: string,
+  body: FormData,
+  options?: RequestOptions,
+): Promise<T> {
+  return parse<T>(
+    path,
+    await send(
+      path,
+      { method: "POST", headers: authHeaders(), body },
       options,
     ),
   );

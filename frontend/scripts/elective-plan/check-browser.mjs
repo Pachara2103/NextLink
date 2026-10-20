@@ -13,6 +13,7 @@ let logs = ''; server.stdout.on('data', (data) => { logs += data; }); server.std
 let browser;
 const results = [];
 const errors = [], failedAssets = [];
+const output = process.env.BROWSER_OUTPUT_DIR || 'output/browser';
 /**
  * The key the planner writes its document under, read from the source rather
  * than typed here.
@@ -29,7 +30,7 @@ const storageVersion = planDocument.match(/nextlink\.plan\.v(\d+)\.\$\{termId\}/
 if (!storageVersion) throw new Error('อ่านเวอร์ชันของ storageKeyFor จาก plan-document.ts ไม่สำเร็จ');
 const key = `nextlink.plan.v${storageVersion}.2569-1`;
 const courseId = 'plan-21105801';
-await mkdir('output/browser', { recursive: true });
+await mkdir(output, { recursive: true });
 const check = async (name, fn) => { await fn(); results.push(name); console.log('  ✓ ' + name); };
 try {
   let ready = false;
@@ -119,15 +120,15 @@ try {
     await page.goto(base + '/elective-plan/courses/list?view=checklist');
     await page.waitForURL('**/login?next=*');
     assert.equal(await page.locator('.elective-planner').count(), 0);
-    await presetTheme('classic');
-    await page.reload(); await page.locator('input[name=username]').waitFor();
-    await themeIs('classic');
-    assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(246, 247, 251)');
-    await page.screenshot({ path: 'output/browser/login-classic.png', fullPage: true });
-    await presetTheme('dark');
-    await page.reload(); await page.locator('input[name=username]').waitFor();
-    await themeIs('dark');
-    await page.screenshot({ path: 'output/browser/login-dark.png', fullPage: true });
+    // Login has no theme switch. Seed the server-rendered preference, then
+    // exercise the accessible theme controls once the authenticated frame exists.
+    for (const value of ['classic', 'dark']) {
+      await context.addCookies([{ name: 'nextlink-theme', value, url: base }]);
+      await page.reload(); await page.locator('input[name=username]').waitFor();
+      await themeIs(value);
+      assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), value === 'classic' ? 'rgb(246, 247, 251)' : 'rgb(10, 12, 14)');
+      await page.screenshot({ path: `${output}/login-${value}.png`, fullPage: true });
+    }
     await page.locator('input[name=username]').fill('planner-fixture');
     await page.locator('input[name=password]').fill('local-test-only');
     await page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click();
@@ -169,7 +170,7 @@ try {
     for (const theme of ['classic', 'dark']) {
       await chooseTheme(theme);
       await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
-      await page.screenshot({ path: `output/browser/planner-${theme}.png`, fullPage: true });
+      await page.screenshot({ path: `${output}/planner-${theme}.png`, fullPage: true });
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'planner fits the sidebar layout');
       const surface = theme === 'classic' ? 'rgb(255, 255, 255)' : 'rgb(16, 20, 24)';
       assert.equal(await page.locator('.kpi-card').first().evaluate(el => getComputedStyle(el).backgroundColor), surface);
@@ -178,7 +179,7 @@ try {
       await page.getByRole('heading', { name: /โน้ต/ }).first().waitFor();
       assert.equal(await page.locator('.elective-planner').count(), 0);
       await themeIs(theme);
-      await page.screenshot({ path: `output/browser/console-${theme}.png`, fullPage: true });
+      await page.screenshot({ path: `${output}/console-${theme}.png`, fullPage: true });
       for (const name of ['สรุปข้อมูลจากไลน์', 'กลุ่มไลน์และบริษัท', 'ผู้ติดต่อและบุคคลในบริษัท', 'โน้ตบันทึกข้อมูล', 'คุณขวัญใจ']) {
         const nav = page.locator('aside').getByRole('button', { name, exact: true });
         await nav.click();
@@ -186,10 +187,10 @@ try {
         await themeIs(theme);
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
       }
-      await page.screenshot({ path: `output/browser/agent-${theme}.png` });
+      await page.screenshot({ path: `${output}/agent-${theme}.png` });
       await page.getByRole('button', { name: 'ตั้งค่าบัญชี', exact: true }).click();
       await page.getByRole('dialog').waitFor();
-      await page.screenshot({ path: `output/browser/profile-${theme}.png` });
+      await page.screenshot({ path: `${output}/profile-${theme}.png` });
       await page.keyboard.press('Escape');
       await page.locator('aside').getByRole('link', { name: 'จัดตารางวิชาเลือก', exact: true }).click();
       await page.locator('.matrix-chip').first().waitFor();
@@ -200,7 +201,7 @@ try {
       assert.equal(await dialog.evaluate(el => getComputedStyle(el).backgroundColor), surface);
       const rect = await dialog.boundingBox();
       assert.ok(rect.x > 10 && rect.y > 0, 'native planner dialog is centered');
-      await page.screenshot({ path: `output/browser/room-dialog-${theme}.png` });
+      await page.screenshot({ path: `${output}/room-dialog-${theme}.png` });
       await page.getByRole('button', { name: 'ปิดหน้าต่าง', exact: true }).click();
       await page.getByRole('link', { name: 'ภาพรวมแผน', exact: true }).click();
     }
@@ -260,8 +261,8 @@ try {
     await go('/courses/list?q=SW%20Dev%20for%20CMMI%20Standard');
     await page.locator('.room-tag').getByText('ยังไม่มีห้อง', { exact: true }).waitFor();
     const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'ดาวน์โหลด Excel', exact: true }).click();
-    await (await pending).saveAs('output/browser/missing-room.xlsx');
-    assert.ok((await readFile('output/browser/missing-room.xlsx')).toString().includes('ยังไม่มีห้อง'));
+    await (await pending).saveAs(`${output}/missing-room.xlsx`);
+    assert.ok((await readFile(`${output}/missing-room.xlsx`)).toString().includes('ยังไม่มีห้อง'));
   });
   const blank = { ...scheduled, assignments: [], checklists: {}, revision: 0, editedAt: null };
   await seed(blank);
@@ -272,8 +273,8 @@ try {
     assert.equal(new URL(page.url()).searchParams.has('placement'), false);
     const download = page.waitForEvent('download');
     await page.getByRole('button', { name: 'ดาวน์โหลด Excel', exact: true }).click();
-    const file = await download; await file.saveAs('output/browser/checklist.xlsx');
-    const bytes = await readFile('output/browser/checklist.xlsx');
+    const file = await download; await file.saveAs(`${output}/checklist.xlsx`);
+    const bytes = await readFile(`${output}/checklist.xlsx`);
     assert.equal(bytes.subarray(0, 2).toString(), 'PK');
     assert.ok(bytes.toString().includes('SW Dev for CMMI Standard'));
   });
@@ -481,8 +482,8 @@ try {
     assert.equal((await read()).assignments.length, 0);
     assert.ok(await page.locator('.matrix-chip').count() > 0);
     const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'สำรองแผน JSON', exact: true }).click();
-    await (await pending).saveAs('output/browser/unsaved-plan.json');
-    assert.ok(JSON.parse(await readFile('output/browser/unsaved-plan.json', 'utf8')).assignments.length > 0);
+    await (await pending).saveAs(`${output}/unsaved-plan.json`);
+    assert.ok(JSON.parse(await readFile(`${output}/unsaved-plan.json`, 'utf8')).assignments.length > 0);
     await page.locator('aside').getByRole('button', { name: 'กลุ่มไลน์และบริษัท', exact: true }).click();
     await page.waitForURL(base + '/?panel=groups');
     await page.locator('aside').getByRole('link', { name: 'จัดตารางวิชาเลือก', exact: true }).click();
@@ -497,8 +498,8 @@ try {
     await page.evaluate((key) => localStorage.setItem(key, '{ corrupted'), key); await page.reload();
     await page.getByRole('button', { name: 'สำรองและเริ่มแผนใหม่', exact: true }).waitFor();
     const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'สำรองและเริ่มแผนใหม่', exact: true }).click();
-    await (await pending).saveAs('output/browser/corrupt-plan.json');
-    assert.equal(await readFile('output/browser/corrupt-plan.json', 'utf8'), '{ corrupted');
+    await (await pending).saveAs(`${output}/corrupt-plan.json`);
+    assert.equal(await readFile(`${output}/corrupt-plan.json`, 'utf8'), '{ corrupted');
     await page.getByRole('button', { name: 'จัดตารางอัตโนมัติ', exact: true }).waitFor();
     assert.deepEqual((await read()).assignments, []);
   });
@@ -562,12 +563,12 @@ try {
   await check('archive export, mobile layout and all production assets remain usable' , async () => {
     await go('/courses/list?term=2568-2');
     const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'ดาวน์โหลด Excel', exact: true }).click();
-    await (await pending).saveAs('output/browser/archive.xlsx');
+    await (await pending).saveAs(`${output}/archive.xlsx`);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.screenshot({ path: 'output/browser/mobile.png', fullPage: true });
+    await page.screenshot({ path: `${output}/mobile.png`, fullPage: true });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
     await page.setViewportSize({ width: 1440, height: 1000 }); await go('/');
-    await page.screenshot({ path: 'output/browser/overview.png', fullPage: true });
+    await page.screenshot({ path: `${output}/overview.png`, fullPage: true });
     assert.deepEqual(errors, []); assert.deepEqual(failedAssets, []);
   });
   await check('mobile theme controls and navigation work in both palettes', async () => {
@@ -579,7 +580,7 @@ try {
       await themeIs(theme);
       await page.getByRole('navigation', { name: 'เมนูหลัก', exact: true }).getByRole('link', { name: 'จัดตารางวิชาเลือก', exact: true }).click();
       await page.getByRole('button', { name: 'สำรองแผน JSON', exact: true }).waitFor();
-      await page.screenshot({ path: `output/browser/mobile-${theme}.png`, fullPage: true });
+      await page.screenshot({ path: `${output}/mobile-${theme}.png`, fullPage: true });
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
       await page.reload();
       await page.getByRole('button', { name: 'สำรองแผน JSON', exact: true }).waitFor();
@@ -633,18 +634,13 @@ try {
     await page.keyboard.press('Escape'); assert.equal(await page.getByRole('menu').count(), 0);
     assert.deepEqual(errors, []); assert.deepEqual(unexpectedApi, []);
   });
-  await check('upstream year/semester notes can be filtered and edited in both website themes', async () => {
+  await check('upstream academicYear/semester notes can be filtered and edited in both website themes', async () => {
     const year = new Date().getFullYear() - 1;
     const group = { groupId: 'notes-fixture', displayName: 'กลุ่มทดสอบโน้ต', companyId: 920,
       companyTh: 'บริษัททดสอบโน้ต', companyEn: null, aliases: [], hasCompany: true, pictureUrl: null };
     let note = { id: 930, companyId: 920, employeeId: null, companyTh: group.companyTh,
       companyEn: null, aliases: [], type: 'elective', sentiment: 'neutral', source: 'external',
-      // `academicYear`, not `year`: the column and every caller were renamed
-      // (academic_year on the wire's backend side). A fixture that still says
-      // `year` renders the card but gives the year filter nothing to match, so
-      // the note vanishes behind the filter this check sets — which reads as
-      // the text never appearing rather than as a field name.
-      content: 'โน้ตทดสอบ year semester', academicYear: year, semester: 2,
+      content: 'โน้ตทดสอบ academicYear semester', academicYear: year, semester: 2,
       createdAt: '2026-09-12T00:00:00Z', updatedAt: '2026-09-12T00:00:00Z' };
     const updates = [];
     await page.route('**/api/v1/line/groups', route => route.fulfill({ json: { items: [group] } }));
@@ -692,17 +688,17 @@ try {
       await yearFilter.selectOption(String(year - 1));
       await semesterFilter.selectOption('3');
       await page.getByText(`แก้ไขโน้ต ${theme}`, { exact: true }).waitFor();
-      await page.screenshot({ path: `output/browser/notes-${theme}.png`, fullPage: true });
+      await page.screenshot({ path: `${output}/notes-${theme}.png`, fullPage: true });
     }
     assert.equal(updates.length, 2);
     assert.deepEqual(errors, []); assert.deepEqual(unexpectedApi, []);
   });
-  await writeFile('output/browser/results.json'   , JSON.stringify({ passed: results.length, results, errors, failedAssets }, null, 2));
-  await rm('output/browser/failure.json', { force: true });
+  await writeFile(`${output}/results.json`   , JSON.stringify({ passed: results.length, results, errors, failedAssets, unexpectedApi, backend: 'intercepted fixtures; not a live DB test' }, null, 2));
+  await Promise.all(['failure.json', 'failure.png'].map(name => rm(`${output}/${name}`, { force: true })));
   console.log(`browser: ok (${results.length} production regression checks)`);
 } catch (error) {
-  for (const context of browser?.contexts() ?? []) for (const page of context.pages()) await page.screenshot({ path: 'output/browser/failure.png' }).catch(() => {});
-  await writeFile('output/browser/failure.json', JSON.stringify({ results, error: String(error), errors, failedAssets, logs }, null, 2));
+  for (const context of browser?.contexts() ?? []) for (const page of context.pages()) await page.screenshot({ path: `${output}/failure.png` }).catch(() => {});
+  await writeFile(`${output}/failure.json`, JSON.stringify({ results, error: String(error), errors, failedAssets, logs }, null, 2));
   throw error;
 } finally {
   await browser?.close();

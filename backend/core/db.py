@@ -169,6 +169,9 @@ class PostgresPool:
         self.db_type = db_type
         self._pool = None
         self._lock = threading.Lock()
+        # psycopg2's pool fails immediately at capacity. Bound both active
+        # connections and the wait instead of rejecting a short read burst.
+        self._slots = threading.BoundedSemaphore(config.PG_POOL_MAX)
 
     @property
     def pool(self):
@@ -283,24 +286,27 @@ class PostgresPool:
 
     @contextmanager
     def get_connection(self):
-        pool = self.pool
-        conn = self._checkout(pool)
+        if not self._slots.acquire(timeout=max(0, config.PG_POOL_WAIT_SECONDS)):
+            raise AppException(status_code=503, message="ฐานข้อมูลมีคำขอพร้อมกันมาก กรุณาลองอีกครั้ง")
         try:
-            yield conn
+            pool = self.pool
+            conn = self._checkout(pool)
+            try:
+                yield conn
 
-        except AppException:
-            _safe_rollback(conn)
-            raise
+            except AppException:
+                _safe_rollback(conn)
+                raise
 
-        except Exception as e:
-            # rollback ต้องห้ามโยนทับ: ถ้า connection ตายกลางคัน มันจะโยน
-            # InterfaceError("connection already closed") ออกมาแทน error ตัวจริง
-            # แล้ว handler ข้างนอกก็ไม่ได้ DatabaseError อย่างที่ควรจะเป็น
-            # กลายเป็น 500 ดิบ ๆ แทนที่จะเป็นข้อความที่หน้าจออ่านออก
-            _safe_rollback(conn)
-            raise DatabaseError(message="เกิดข้อผิดพลาดไม่ทราบสาเหตุ") from e
+            except Exception as e:
+                # Preserve the original failure if rollback also loses a connection.
+                _safe_rollback(conn)
+                raise DatabaseError(message="เกิดข้อผิดพลาดไม่ทราบสาเหตุ") from e
+            finally:
+                self._checkin(pool, conn)
         finally:
-            self._checkin(pool, conn)
+            # Creation/checkout failures must release capacity as well.
+            self._slots.release()
 
     def close_all(self):
         if self._pool is not None:

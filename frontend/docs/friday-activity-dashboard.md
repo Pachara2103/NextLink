@@ -1,5 +1,11 @@
 # Friday Activity Dashboard
 
+> สถานะ 19 ตุลาคม 2569: route นี้ใช้ `FridayLiveDashboard` กับ PostgreSQL API แล้ว
+> รองรับการกรอก/import จริง บันทึกข้อเท็จจริง/ความคิดเห็น งานติดตาม และ URL
+> `?activityId=<id>` ภายในเว็บเดิม รายละเอียดปัจจุบันอยู่ใน
+> [Friday API และวิธีตรวจระบบ](../../backend/docs/friday-activity.md)
+> เนื้อหาด้านล่างเป็นประวัติการออกแบบหน้าตัวอย่างเดือนกันยายน ไม่ใช่สถานะของ route ปัจจุบัน
+
 เพิ่มวันที่ 14 กันยายน 2569 ใน `Graph_RAG/frontend` ที่ `/dashboard/friday-activities`
 เป็นโมดูลที่ 6 ของ Dashboard ใช้ login, ธีม, เมนู และระบบบันทึกทดลองเดิมร่วมกัน
 งานนี้ครอบคลุม Dashboard; ไม่เพิ่ม Planner หรือ NextPlus

@@ -388,4 +388,3 @@ export class RemotePlanStore {
     void this.refreshNow();
   };
 }
-
