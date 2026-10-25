@@ -38,6 +38,7 @@ LINE_DATABASE_URL = _get("LINE_DATABASE_URL")
 # handler ที่เป็น def ใน threadpool 40 threads โดย default)
 PG_POOL_MIN = _int("PG_POOL_MIN", 1)
 PG_POOL_MAX = _int("PG_POOL_MAX", 10)
+PG_POOL_WAIT_SECONDS = _int("PG_POOL_WAIT_SECONDS", 5)
 
 NEO4J_URI = _get("NEO4J_URI")
 NEO4J_USERNAME = _get("NEO4J_USERNAME")

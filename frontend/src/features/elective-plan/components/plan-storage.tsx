@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { usePathname } from "next/navigation";
+import { StatusToast, useStatusToast } from "@/features/elective-plan/components/status-toast";
 import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
 
 /** The overview — the one page that is about the plan as a whole. */
@@ -16,29 +17,59 @@ function download(raw: string, term: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/** Persistent controls live with the layout's store, including undo after navigation. */
+const STATUS: Record<string, string> = {
+  loading: "กำลังโหลดแผน…",
+  saving: "กำลังบันทึก…",
+  error: "แผนยังบันทึกไม่สำเร็จ",
+  draft: "ตารางมีการแก้ที่ยังไม่ได้บันทึก",
+};
+
+/** Persistent controls live with the layout's store, so they survive navigation. */
 export function PlanStorage() {
   const plan = usePlanState();
   const pathname = usePathname();
   const file = useRef<HTMLInputElement>(null);
+  const shared = plan.mode === "api";
   const backup = () => download(plan.recoveryRaw ?? JSON.stringify(plan.document, null, 2), plan.document.termId);
+
   /**
    * Backing up and importing are things you do to the whole plan, at the start
    * or the end of a sitting — not while ticking a checklist box or booking a
    * room. On four pages they were four copies of a control nobody was reaching
-   * for, standing next to the one everybody reaches for. Undo stays everywhere,
-   * because the action it undoes can be taken everywhere.
+   * for, standing next to the one everybody reaches for.
+   *
+   * On the shared plan they are gone entirely. A file on one person's disk is
+   * not a backup of a table everyone is writing to, and importing one would
+   * mean one person's afternoon replacing everybody's — see `resetAll` and
+   * `importPlan` in use-plan-state.ts.
    *
    * The recovery panel below keeps its own backup button on every page: it only
    * appears when the plan cannot be saved, and it is the way out of that.
    */
-  const wholePlan = pathname === OVERVIEW || pathname === `${OVERVIEW}/`;
+  const wholePlan = !shared && (pathname === OVERVIEW || pathname === `${OVERVIEW}/`);
+
+  /**
+   * No "เลิกทำ" anywhere on this page.
+   *
+   * A step back was right when the plan was one person's document with a
+   * revision history behind it. On a plan several people are writing to there
+   * is no such history: the state a step back would restore may already have
+   * been built on by somebody else, so the button would promise something it
+   * cannot do. What replaces it is the week board's บันทึก/ยกเลิก pair,
+   * which discards edits that were never sent rather than reversing ones that
+   * were.
+   */
+  const { toast, dismiss, holdTimer, resumeTimer } = useStatusToast();
+
   return (
     <section className="plan-storage" aria-label="การบันทึกแผน">
       <div className="plan-storage-actions">
         <span role="status">
           แผน {plan.term.shortLabel} · {" "}
-          {plan.planning ? "กำลังจัดตาราง…" : plan.status === "loading" ? "กำลังโหลดแผน…" : plan.status === "saving" ? "กำลังบันทึก…" : plan.status === "error" ? "แผนยังบันทึกไม่สำเร็จ" : plan.editedAt ? "บันทึกแล้วในเบราว์เซอร์นี้" : "ยังไม่มีการแก้ไขแผน"}
+          {plan.planning
+            ? "กำลังจัดตาราง…"
+            : STATUS[plan.status] ??
+              (shared ? "บันทึกแล้ว" : plan.editedAt ? "บันทึกแล้วในเบราว์เซอร์นี้" : "ยังไม่มีการแก้ไขแผน")}
         </span>
         {plan.planning ? <button type="button" className="secondary-button" onClick={plan.cancelPlanning}>ยกเลิกการจัดตาราง</button> : null}
         {wholePlan ? (
@@ -47,12 +78,14 @@ export function PlanStorage() {
             <button type="button" className="secondary-button" disabled={!plan.ready || plan.recoveryRaw !== null} onClick={() => file.current?.click()}>นำเข้าแผน</button>
           </>
         ) : null}
-        <button type="button" className="secondary-button" disabled={!plan.canUndo || plan.status === "saving"} onClick={() => void plan.undo()}>เลิกทำรายการล่าสุด</button>
+        {shared ? (
+          <button type="button" className="secondary-button" disabled={plan.status === "saving"} onClick={() => plan.reload()}>โหลดแผนล่าสุด</button>
+        ) : null}
         {wholePlan ? (
           <input ref={file} className="sr-only" type="file" accept=".json,application/json" aria-label="ไฟล์แผน JSON" onChange={async (event) => {
             const selected = event.target.files?.[0];
             event.target.value = "";
-            if (!selected || !window.confirm("แทนที่แผนปัจจุบันด้วยไฟล์นี้? สามารถเลิกทำรายการล่าสุดได้")) return;
+            if (!selected || !window.confirm("แทนที่แผนปัจจุบันด้วยไฟล์นี้? แผนเดิมจะหายไป ควรสำรองไว้ก่อน")) return;
             try {
               await plan.importPlan(await selected.text());
             } catch {
@@ -64,7 +97,11 @@ export function PlanStorage() {
       {plan.error ? (
         <div className="plan-storage-error" role="alert">
           <p>{plan.error}</p>
-          {plan.recoveryRaw !== null ? (
+          {shared ? (
+            // Nothing local was lost: the command that failed was rolled back,
+            // so the only thing to offer is another look at what the server has.
+            <button type="button" className="secondary-button" onClick={() => void plan.retry()}>ลองอีกครั้ง</button>
+          ) : plan.recoveryRaw !== null ? (
             <>
               <p>ข้อมูลเดิมยังอยู่ กดสำรองเพื่อเก็บไฟล์ต้นฉบับก่อนเริ่มแผนใหม่</p>
               <button type="button" className="secondary-button" onClick={async () => {
@@ -79,12 +116,17 @@ export function PlanStorage() {
               <button type="button" className="secondary-button" onClick={() => void plan.retry()}>ลองบันทึกอีกครั้ง</button>
             </>
           ) : null}
-          <button type="button" className="secondary-button" onClick={() => {
-            if (!window.confirm("โหลดแผนที่บันทึกไว้ล่าสุด? งานที่ยังไม่บันทึกจะถูกแทนที่")) return;
-            backup();
-            plan.reload();
-          }}>สำรองและโหลดแผนล่าสุด</button>
+          {shared ? null : (
+            <button type="button" className="secondary-button" onClick={() => {
+              if (!window.confirm("โหลดแผนที่บันทึกไว้ล่าสุด? งานที่ยังไม่บันทึกจะถูกแทนที่")) return;
+              backup();
+              plan.reload();
+            }}>สำรองและโหลดแผนล่าสุด</button>
+          )}
         </div>
+      ) : null}
+      {shared ? (
+        <StatusToast toast={toast} onDismiss={dismiss} onHold={holdTimer} onResume={resumeTimer} />
       ) : null}
     </section>
   );

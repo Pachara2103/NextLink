@@ -15,6 +15,7 @@ parsed = urlparse(TEST_URL)
 if parsed.hostname not in {"localhost", "127.0.0.1", "::1"} or not parsed.path.startswith("/nextlink_security_test"):
     raise RuntimeError("TEST_DATABASE_URL must name a disposable local nextlink_security_test database")
 os.environ["TEST_DATABASE_URL"] = TEST_URL
+os.environ["NEXTLINK_DATABASE_URL"] = TEST_URL
 os.environ["AUTH_SECRET"] = "security-regression-fixture-key-not-a-production-secret"
 os.environ["PG_POOL_MAX"] = "20"
 os.environ["PYTHON_DOTENV_DISABLED"] = "1"
@@ -25,18 +26,14 @@ from core.db import nl_db
 
 @pytest.fixture(scope="session", autouse=True)
 def database_schema():
-    with psycopg2.connect(TEST_URL) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute("""CREATE TABLE IF NOT EXISTS users (
-              id BIGSERIAL PRIMARY KEY, username TEXT NOT NULL UNIQUE,
-              password TEXT NOT NULL, display_name TEXT, updated_at TIMESTAMPTZ DEFAULT now()
-            );""")
-    # Run the actual migration twice to test a repeated deployment safely.
-    migration = (BACKEND / "migrations/security.sql").read_text()
-    with psycopg2.connect(TEST_URL) as conn:
-        with conn.cursor() as cursor:
-            cursor.execute(migration)
-            cursor.execute(migration)
+    from scripts.migrate import apply_migrations
+    # Exercise the real bootstrap + upgrade ledger, with a safe repeated run.
+    conn = psycopg2.connect(TEST_URL)
+    try:
+        apply_migrations(conn, bootstrap=True)
+        assert apply_migrations(conn, bootstrap=True) == []
+    finally:
+        conn.close()
     yield
     nl_db.close()
 
@@ -45,7 +42,7 @@ def database_schema():
 def clean_database(database_schema, monkeypatch):
     with psycopg2.connect(TEST_URL) as conn:
         with conn.cursor() as cursor:
-            cursor.execute("TRUNCATE auth_sessions, auth_login_buckets, users RESTART IDENTITY CASCADE;")
+            cursor.execute("TRUNCATE auth_sessions, auth_login_buckets, users, companies, academic_periods RESTART IDENTITY CASCADE;")
             # Low cost only in this isolated test fixture.
             hashed = bcrypt.hashpw(b"correct-password", bcrypt.gensalt(rounds=4)).decode()
             cursor.execute("INSERT INTO users(username,password) VALUES ('alice',%s),('bob',%s);", (hashed, hashed))

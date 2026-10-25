@@ -200,17 +200,17 @@ export function detectConflicts(input: {
           [assignment.id],
         );
       }
-      if (room.seats < course.minSeats) {
+      if (room.seats < course.capacity) {
         add(
           "ROOM_TOO_SMALL",
           assignment.id,
           `${room.name} เล็กเกินไป`,
-          `${course.title} รับ ${course.minSeats} คน แต่ห้องมี ${room.seats} ที่นั่ง${room.seatsIsEstimated ? " (ตัวเลขยังไม่ยืนยัน)" : ""}`,
+          `${course.title} รับ ${course.capacity} คน แต่ห้องมี ${room.seats} ที่นั่ง${room.seatsIsEstimated ? " (ตัวเลขยังไม่ยืนยัน)" : ""}`,
           [course.id],
           [assignment.id],
         );
       }
-      if (room.tier === "NEEDS_APPROVAL") {
+      if (room.type === "NEEDS_APPROVAL") {
         add(
           "NEEDS_ROOM_APPROVAL",
           assignment.id,

@@ -194,6 +194,26 @@ export async function putJson<T>(
   );
 }
 
+/** A partial update using the same authenticated transport as other writes. */
+export async function patchJson<T>(
+  path: string,
+  body: unknown,
+  options?: RequestOptions,
+): Promise<T> {
+  return parse<T>(
+    path,
+    await send(
+      path,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify(body),
+      },
+      options,
+    ),
+  );
+}
+
 /**
  * A multipart POST — file uploads. No Content-Type header on purpose: the
  * browser has to write it itself, because only it knows the boundary string.

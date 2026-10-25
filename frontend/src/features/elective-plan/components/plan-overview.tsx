@@ -14,14 +14,20 @@ import { BLOCKER_LABELS } from "@/features/elective-plan/lib/blocker-labels.ts";
 import { formatNumber } from "@/features/elective-plan/lib/format";
 import { planMetrics } from "@/features/elective-plan/lib/plan-metrics.ts";
 import { slotLabel } from "@/features/elective-plan/lib/slots.ts";
-import type { PlanCourse, PlanPayload, Suggestion } from "@/features/elective-plan/lib/plan-types.ts";
+import type { PlanCourse, Suggestion } from "@/features/elective-plan/lib/plan-types.ts";
 import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
+
+import { TermDialog } from "@/features/elective-plan/components/term-dialog";
+import { TimetableSave } from "@/features/elective-plan/components/timetable-save";
+import { electiveService } from "@/lib/services/elective";
+import type { ElectiveTermCreate } from "@/types";
 
 /** Short enough that the board is still on screen under the list. */
 const FOLLOW_UP_PAGE_SIZE = 5;
 
-export function PlanOverview({ payload }: { payload: PlanPayload }) {
+export function PlanOverview() {
   const plan = usePlanState();
+  const payload = plan.payload;
   const router = useRouter();
   const { toast, show, dismiss, holdTimer, resumeTimer } = useStatusToast();
   const [followUpOpen, setFollowUpOpen] = useState(true);
@@ -30,6 +36,7 @@ export function PlanOverview({ payload }: { payload: PlanPayload }) {
   /** The room form and the booking form, both opened from the board below. */
   const [roomForm, setRoomForm] = useState<RoomFormTarget | null>(null);
   const [booking, setBooking] = useState<BookingTarget | null>(null);
+  const [isTermDialogOpen, setIsTermDialogOpen] = useState(false);
   const boardRef = useRef<HTMLElement>(null);
   /** Where the board sat when a replan started, so it can be put back. */
   const anchorRef = useRef<number | null>(null);
@@ -43,7 +50,7 @@ export function PlanOverview({ payload }: { payload: PlanPayload }) {
   /** Companies that have not answered yet — nothing can be planned for these. */
   const awaitingAvailability = plan.courses.filter((course) => course.availability.length === 0).length;
   const needsApproval = plan.assignments.filter(
-    (item) => item.roomId && roomsById.get(item.roomId)?.tier === "NEEDS_APPROVAL",
+    (item) => item.roomId && roomsById.get(item.roomId)?.type === "NEEDS_APPROVAL",
   ).length;
 
   const { readyCapacity, roomSlotsUsed, utilisation, flaggedCourses } = planMetrics(plan.rooms, plan.assignments, plan.conflicts);
@@ -59,12 +66,12 @@ export function PlanOverview({ payload }: { payload: PlanPayload }) {
   const applySuggestion = async (suggestion: Suggestion) => {
     if (suggestion.kind === "UNLOCK_COURSE") {
       if (!await plan.unlockCourse(suggestion.courseId)) return;
-      show(`ปลดล็อก ${coursesById.get(suggestion.courseId)?.title ?? ""} แล้ว — กดจัดตารางอัตโนมัติอีกครั้ง`, plan.undo);
+      show(`ปลดล็อก ${coursesById.get(suggestion.courseId)?.title ?? ""} แล้ว — กดจัดตารางอัตโนมัติอีกครั้ง`);
       return;
     }
     if (suggestion.kind === "REDUCE_CAPACITY") {
-      if (!await plan.setCourseField(suggestion.courseId, { minSeats: suggestion.seats, capacity: suggestion.seats })) return;
-      show(`ปรับจำนวนที่รับเป็น ${suggestion.seats} คนแล้ว`, plan.undo);
+      if (!await plan.setCourseField(suggestion.courseId, { capacity: suggestion.seats })) return;
+      show(`ปรับจำนวนที่รับเป็น ${suggestion.seats} คนแล้ว`);
       return;
     }
     if (suggestion.kind === "ASK_MORE_AVAILABILITY") {
@@ -109,8 +116,17 @@ export function PlanOverview({ payload }: { payload: PlanPayload }) {
       result.unassigned.length
         ? `ยังหาแผนให้ ${formatNumber(new Set(result.unassigned.map((item) => item.courseId)).size)} วิชาไม่พบภายในขอบเขตค้นหา`
         : `จัดตารางครบทั้ง ${formatNumber(result.assignments.length)} คาบแล้ว`,
-      plan.undo,
     );
+  };
+
+  const handleCreateTerm = async (newTermPayload: ElectiveTermCreate) => {
+    if (plan.mode === "api") {
+      await electiveService.createTerm(newTermPayload);
+      show(`เปิดเทอม ${newTermPayload.semester}/${newTermPayload.year} เรียบร้อยแล้ว`);
+      plan.reload();
+    } else {
+      show("การจัดการเทอมพร้อมใช้งานเมื่อเชื่อมต่อฐานข้อมูล");
+    }
   };
 
   return (
@@ -220,7 +236,10 @@ export function PlanOverview({ payload }: { payload: PlanPayload }) {
         <div className="panel-heading">
           <div>
             <p className="section-kicker">ทั้งภาควิชา · จันทร์ถึงเสาร์</p>
-            <h3>ตารางห้องเรียนทั้งสัปดาห์</h3>
+            <div className="matrix-title-row">
+              <h3>ตารางห้องเรียนทั้งสัปดาห์</h3>
+              <TimetableSave />
+            </div>
             {/* {holding ? (
               <p className="matrix-holding">
                 กำลังวาง <strong>{holding.title}</strong> — ชี้ช่องที่ต้องการแล้วกด ช่องที่ขึ้นขอบเขียวคือวางได้
@@ -235,7 +254,7 @@ export function PlanOverview({ payload }: { payload: PlanPayload }) {
             <button
               className="secondary-button"
               type="button"
-              onClick={async () => { if (!await plan.clearUnlocked()) return; show("ล้างคาบที่ยังไม่ล็อกแล้ว", plan.undo); }}
+              onClick={async () => { if (!await plan.clearUnlocked()) return; show("ล้างคาบที่ยังไม่ล็อกแล้ว"); }}
             >
               ล้างที่ยังไม่ล็อก
             </button>
@@ -253,7 +272,7 @@ export function PlanOverview({ payload }: { payload: PlanPayload }) {
           onPlace={plan.place}
           onMove={plan.move}
           onToggleLock={plan.toggleLock}
-          onRemove={async (id) => { if (!await plan.remove(id)) return; show("เอาวิชาออกจากตารางแล้ว", plan.undo); }}
+          onRemove={async (id) => { if (!await plan.remove(id)) return; show("เอาวิชาออกจากตารางแล้ว"); }}
           onBlockedDrop={(title, slotId, blockers, roomIgnored) =>
             show(
               // An online class has no room to give, so the room it was dropped on
@@ -264,14 +283,34 @@ export function PlanOverview({ payload }: { payload: PlanPayload }) {
                     blockers.length > 0 ? ` และ ${blockers.map((code) => BLOCKER_LABELS[code]).join(" · ")}` : ""
                   }`
                 : `${title} ${blockers.map((code) => BLOCKER_LABELS[code]).join(" · ")}`,
-                // ลง${slotLabel(slotId)}แล้ว แต่
-              plan.undo,
             )
           }
           onHeldChange={onHeldChange}
           onEditRoom={(room) => setRoomForm({ room })}
           onBookSlot={(room, slotId, reason) => setBooking({ room, slotId, reason })}
         />
+      </section>
+
+      <section className="panel term-lifecycle-panel">
+        <div className="term-lifecycle-content">
+          <div className="term-lifecycle-info">
+            <p className="section-kicker">สิ้นสุดภาคการศึกษา</p>
+            <h3>จบเทอมปัจจุบันและเปิดเทอมใหม่</h3>
+            <p>
+              เมื่อวางแผนและดำเนินการสอนของ <strong>{payload.term.label}</strong> เสร็จสิ้นแล้ว
+              สามารถปิดเทอมนี้เพื่อจัดเก็บเป็นประวัติ (Archived) และเริ่มต้นรอบการวางแผนสำหรับเทอมถัดไป
+            </p>
+          </div>
+          <div className="term-lifecycle-actions">
+            <button
+              className="danger-button"
+              type="button"
+              onClick={() => setIsTermDialogOpen(true)}
+            >
+              จบเทอมปัจจุบันและเปิดเทอมใหม่…
+            </button>
+          </div>
+        </div>
       </section>
 
       <RoomDialog
@@ -281,10 +320,10 @@ export function PlanOverview({ payload }: { payload: PlanPayload }) {
         onSave={async (draft) => {
           if (roomForm?.room) {
             if (!await plan.updateRoom(roomForm.room.id, draft)) return;
-            show(`บันทึก ${draft.name} แล้ว`, plan.undo);
+            show(`บันทึก ${draft.name} แล้ว`);
           } else {
             if (!await plan.addRoom(draft)) return;
-            show(`เพิ่ม ${draft.name} เข้าตารางแล้ว`, plan.undo);
+            show(`เพิ่ม ${draft.name} เข้าตารางแล้ว`);
           }
           setRoomForm(null);
         }}
@@ -297,7 +336,6 @@ export function PlanOverview({ payload }: { payload: PlanPayload }) {
             losing > 0
               ? `ลบ ${room.name} แล้ว · ${formatNumber(losing)} คาบกลับไปเป็นวิชาที่ยังไม่ได้จัด`
               : `ลบ ${room.name} แล้ว`,
-            plan.undo,
           );
           setRoomForm(null);
         }}
@@ -314,11 +352,17 @@ export function PlanOverview({ payload }: { payload: PlanPayload }) {
             reason
               ? `กัน ${booking.room.name} ${slotLabel(booking.slotId)} ไว้ให้ ${reason}`
               : `ปลดการกัน ${booking.room.name} ${slotLabel(booking.slotId)} แล้ว`,
-            plan.undo,
           );
           setBooking(null);
         }}
         onClose={() => setBooking(null)}
+      />
+
+      <TermDialog
+        isOpen={isTermDialogOpen}
+        currentTermLabel={payload.term.label}
+        onConfirm={handleCreateTerm}
+        onClose={() => setIsTermDialogOpen(false)}
       />
 
       <StatusToast toast={toast} onDismiss={dismiss} onHold={holdTimer} onResume={resumeTimer} />

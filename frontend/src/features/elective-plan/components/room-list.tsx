@@ -13,7 +13,7 @@ import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
 /**
  * Which rooms exist, and how much of the week each still has free.
  *
- * The two tiers are shown as two lists rather than a sortable column, because
+ * The two types are shown as two lists rather than a sortable column, because
  * they are not two values of one property — a จุฬาพัฒน์ room is available and
  * an Engineering-building room is a request someone has to file. Ranking them
  * in one list invites picking the wrong one by accident.
@@ -22,8 +22,9 @@ import { usePlanState } from "@/features/elective-plan/lib/use-plan-state";
  * loses rooms between terms, and a list that can only be read goes stale the
  * first time that happens — with no way back except a code change.
  */
-export function RoomList({ payload }: { payload: PlanPayload }) {
+export function RoomList() {
   const plan = usePlanState();
+  const payload = plan.payload;
   const { toast, show, dismiss, holdTimer, resumeTimer } = useStatusToast();
   const [roomForm, setRoomForm] = useState<RoomFormTarget | null>(null);
 
@@ -32,10 +33,10 @@ export function RoomList({ payload }: { payload: PlanPayload }) {
     capacity: ALL_SLOTS.length - room.blockedSlots.length,
   });
 
-  const groups: Array<{ tier: PlanRoom["tier"]; heading: string; caption: string }> = [
-    { tier: "READY", heading: "ใช้ได้ทันที", caption: "ห้องของภาค จัดลงได้เลยโดยไม่ต้องขออนุมัติ" },
+  const groups: Array<{ type: PlanRoom["type"]; heading: string; caption: string }> = [
+    { type: "READY", heading: "ใช้ได้ทันที", caption: "ห้องของภาค จัดลงได้เลยโดยไม่ต้องขออนุมัติ" },
     {
-      tier: "NEEDS_APPROVAL",
+      type: "NEEDS_APPROVAL",
       heading: "ต้องขออนุมัติก่อนใช้",
       caption: "ห้องของคณะวิศวะ ต้องยื่นเรื่องหลายขั้นตอน ใช้เมื่อจุฬาพัฒน์ไม่พอ",
     },
@@ -64,13 +65,13 @@ export function RoomList({ payload }: { payload: PlanPayload }) {
       </div>
 
       {groups.map((group) => {
-        const rooms = plan.rooms.filter((room) => room.tier === group.tier);
+        const rooms = plan.rooms.filter((room) => room.type === group.type);
         return (
-          <section className="panel" key={group.tier}>
+          <section className="panel" key={group.type}>
             <div className="panel-heading">
               <div>
                 <p className="section-kicker">
-                  {group.tier === "READY" ? "จุฬาพัฒน์" : "อาคารคณะวิศวกรรมศาสตร์"}
+                  {group.type === "READY" ? "จุฬาพัฒน์" : "อาคารคณะวิศวกรรมศาสตร์"}
                 </p>
                 <h3>{group.heading}</h3>
               </div>
@@ -95,7 +96,7 @@ export function RoomList({ payload }: { payload: PlanPayload }) {
                       <Link className="room-card" href={`/elective-plan/rooms/${room.id}`}>
                         <span className="room-card-head">
                           <strong>{room.name}</strong>
-                          {room.tier === "NEEDS_APPROVAL" ? (
+                          {room.type === "NEEDS_APPROVAL" ? (
                             <span className="status-pill tone-orange">ต้องขออนุมัติ</span>
                           ) : null}
                         </span>
@@ -136,10 +137,10 @@ export function RoomList({ payload }: { payload: PlanPayload }) {
         onSave={async (draft) => {
           if (roomForm?.room) {
             if (!await plan.updateRoom(roomForm.room.id, draft)) return;
-            show(`บันทึก ${draft.name} แล้ว`, plan.undo);
+            show(`บันทึก ${draft.name} แล้ว`);
           } else {
             if (!await plan.addRoom(draft)) return;
-            show(`เพิ่ม ${draft.name} แล้ว`, plan.undo);
+            show(`เพิ่ม ${draft.name} แล้ว`);
           }
           setRoomForm(null);
         }}
@@ -152,7 +153,6 @@ export function RoomList({ payload }: { payload: PlanPayload }) {
             losing > 0
               ? `ลบ ${room.name} แล้ว · ${formatNumber(losing)} คาบกลับไปเป็นวิชาที่ยังไม่ได้จัด`
               : `ลบ ${room.name} แล้ว`,
-            plan.undo,
           );
           setRoomForm(null);
         }}

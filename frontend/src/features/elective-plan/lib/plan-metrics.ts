@@ -4,7 +4,7 @@ import type { Conflict } from "./conflicts.ts";
 
 /** The numerator and denominator describe the same available READY room-slots. */
 export function planMetrics(rooms: PlanRoom[], assignments: Assignment[], conflicts: Conflict[]) {
-  const available = new Set(rooms.filter((room) => room.tier === "READY").flatMap((room) =>
+  const available = new Set(rooms.filter((room) => room.type === "READY").flatMap((room) =>
     ALL_SLOTS.filter((slot) => !room.blockedSlots.some((entry) => entry.slotId === slot)).map((slot) => `${room.id}@${slot}`),
   ));
   const used = new Set(assignments.filter((item) => item.roomId && available.has(`${item.roomId}@${item.slotId}`))

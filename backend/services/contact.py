@@ -1,7 +1,9 @@
 from typing import Any
 
+from psycopg2.errors import ForeignKeyViolation
+
 from core.db import nl_db
-from core.exceptions import BadRequestError, NotFoundError
+from core.exceptions import AppException, BadRequestError, NotFoundError
 from schemas.base import ListResponse
 from schemas.contact import Contact, ContactCreate, ContactUpdate
 from utils.mapping import columns_of, rows_to_models
@@ -129,7 +131,13 @@ def delete_contact(id: int) -> None:
 
     with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
-            cursor.execute("DELETE FROM contacts WHERE id = %s;", (id,))
+            try:
+                cursor.execute("DELETE FROM contacts WHERE id = %s;", (id,))
+            except ForeignKeyViolation as exc:
+                raise AppException(
+                    message="ผู้ติดต่อนี้ถูกอ้างอิงในประวัติงาน จึงลบไม่ได้ กรุณาเปลี่ยนสถานะเป็นไม่ใช้งานแทน",
+                    status_code=409,
+                ) from exc
             if cursor.rowcount == 0:
                 raise NotFoundError(message=f"ไม่พบข้อมูลผู้ติดต่อ id = {id}")
         conn.commit()
