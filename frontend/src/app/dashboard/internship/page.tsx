@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { InternshipDashboard } from "@/features/dashboard/components/internship-dashboard";
+import { InternshipWorkspace } from "@/features/dashboard/components/internship-workspace";
 import { getInternshipDashboardData } from "@/features/dashboard/lib/internship-data";
 import { academicPeriodKey, parseAcademicPeriod, type PeriodSearchParams } from "@/features/dashboard/lib/academic-period";
 
@@ -13,5 +13,5 @@ export const metadata: Metadata = {
 export default async function InternshipPage({ searchParams }: { searchParams: Promise<PeriodSearchParams> }) {
   const period = parseAcademicPeriod(await searchParams);
   const payload = await getInternshipDashboardData("ฝึกงาน", period);
-  return <InternshipDashboard key={`${payload.track}.${academicPeriodKey(period)}`} payload={payload} />;
+  return <InternshipWorkspace key={`${payload.track}.${academicPeriodKey(period)}`} payload={payload} />;
 }

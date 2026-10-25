@@ -6,7 +6,7 @@ import { PageSections } from "@/features/dashboard/components/page-sections";
 
 import { electiveCapacity, firstIssue, isBlocked, isFollowUp, nextAction, operationalReadiness, queueSeverity, queueSeverityRank, workflowStatusLabels, type OperationalReadinessKey } from "@/features/dashboard/lib/elective-stats";
 
-import { AppNav, DashboardModuleNav } from "@/features/dashboard/components/app-nav";
+import { DashboardModuleNav } from "@/features/dashboard/components/app-nav";
 import { lazy, useDeferredValue, useMemo, useRef, useState } from "react";
 
 import { DeferredRecordDialog } from "@/features/dashboard/components/deferred-record-dialog";
@@ -246,16 +246,14 @@ export function ElectiveDashboard({ payload }: Props) {
   return (
     <div className="app-shell" data-ready={ready}>
       <header className="topbar">
-        <AppNav title="วิชาเลือก" />
+        <DashboardModuleNav />
         <div className="header-tools">
           <div className="header-meta">
-            <span>{payload.isMock ? "ข้อมูลตัวอย่าง ณ" : "ข้อมูลอัปเดต:"} {formatUpdated(payload.lastUpdated, payload.timezone)}</span>
             <LocalDataStatus source={payload.source} editedAt={editedAt} warning={warning} hasOverrides={hasOverrides} timezone={payload.timezone} onReset={resetDemoData} />
           </div>
           <AcademicPeriodSelector availableYears={payload.availableAcademicYears} />
         </div>
       </header>
-      <DashboardModuleNav />
 
       <main id="main-content" tabIndex={-1} className="page-content">
         <AcademicPeriodEmptyState hasData={payload.courses.length > 0} />

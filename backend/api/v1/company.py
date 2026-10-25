@@ -6,7 +6,7 @@ from schemas.user import AuthUser
 from schemas.base import ListResponse, StatusResponse
 from schemas.mou import ImportResult
 from core.exceptions import BadRequestError
-from services.import_data import MAX_FILE_BYTES, flush_imported, import_mou_xlsx
+from services.import_company import MAX_FILE_BYTES, flush_imported, import_mou_xlsx
 
 from services.company import get_companies, sync_create_company, sync_update_company, sync_unlink_company, sync_link_company
 

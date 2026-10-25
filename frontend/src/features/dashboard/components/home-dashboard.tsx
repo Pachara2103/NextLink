@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { CompanyOverview } from './company-overview';
-import { AppNav, DashboardModuleNav } from "@/features/dashboard/components/app-nav";
+import { DashboardModuleNav } from "@/features/dashboard/components/app-nav";
 import { DASHBOARD_ROUTES } from "@/features/dashboard/lib/navigation";
 import { AcademicPeriodSelector } from "@/features/dashboard/components/academic-period-selector";
 import { withAcademicPeriod } from "@/features/dashboard/lib/academic-period";
@@ -52,13 +52,11 @@ export function HomeDashboard() {
   return (
     <div className="app-shell" data-ready="true">
       <header className="topbar">
-        <AppNav title="Dashboard" />
+        <DashboardModuleNav />
         <div className="header-tools">
-          <div className="header-meta"><span>{DASHBOARD_ROUTES.length} โมดูลการทำงาน</span></div>
           <AcademicPeriodSelector />
         </div>
       </header>
-      <DashboardModuleNav />
 
       <main id="main-content" tabIndex={-1} className="page-content home-content">
         <section className="intro-row">

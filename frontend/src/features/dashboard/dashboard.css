@@ -816,3 +816,17 @@ html[data-theme="dark"] .nextlink-dashboard .tone-dot.tone-blue { background: va
   .nextlink-dashboard .friday-dashboard .mobile-course-card-header { flex-wrap: wrap; }
   .nextlink-dashboard .friday-dashboard .mobile-course-link { flex-basis: 100%; }
 }
+
+/* Module tabs sit in the topbar, left of the academic-period filter. The
+   header is navy in light mode and sunken in dark mode, so the tabs use
+   translucent overlays of the on-colour rather than surface tokens. */
+.nextlink-dashboard .topbar { align-items: flex-end; }
+.nextlink-dashboard .topbar .dashboard-module-nav { flex: 1 1 520px; min-width: 0; padding: 0; border: 0; background: transparent; }
+.nextlink-dashboard .topbar .dashboard-module-nav a { padding: 8px 14px; color: color-mix(in srgb, var(--nd-on-color, #fff) 74%, transparent); }
+.nextlink-dashboard .topbar .dashboard-module-nav a:hover { color: var(--nd-on-color, #fff); background: color-mix(in srgb, var(--nd-on-color, #fff) 10%, transparent); }
+.nextlink-dashboard .topbar .dashboard-module-nav a[aria-current="page"] { border-color: color-mix(in srgb, var(--nd-on-color, #fff) 32%, transparent); color: var(--nd-on-color, #fff); background: color-mix(in srgb, var(--nd-on-color, #fff) 16%, transparent); }
+.nextlink-dashboard .topbar .dashboard-module-nav a:focus-visible { outline-color: var(--nd-on-color, #fff); }
+@media (max-width: 760px) {
+  .nextlink-dashboard .topbar { align-items: stretch; }
+  .nextlink-dashboard .topbar .dashboard-module-nav { flex-basis: auto; width: 100%; }
+}
