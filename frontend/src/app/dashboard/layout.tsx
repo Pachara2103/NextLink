@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { DashboardFrame } from "@/features/dashboard/components/dashboard-frame";
 import "@/features/dashboard/dashboard.css";
+import "@/features/dashboard/internship-overview.css";
 
 export const metadata: Metadata = {
   title: "Dashboard | NextLink",

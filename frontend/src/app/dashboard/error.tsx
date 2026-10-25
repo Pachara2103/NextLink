@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { AppNav, DashboardModuleNav } from "@/features/dashboard/components/app-nav";
+import { DashboardModuleNav } from "@/features/dashboard/components/app-nav";
 
 export default function DashboardError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
@@ -11,9 +11,8 @@ export default function DashboardError({ error, reset }: { error: Error & { dige
   return (
     <div className="app-shell">
       <header className="topbar">
-        <AppNav title="โหลดข้อมูลไม่สำเร็จ" />
+        <DashboardModuleNav />
       </header>
-      <DashboardModuleNav />
       <main id="main-content" tabIndex={-1} className="page-content">
         <section className="panel">
           <div className="load-error" role="alert">

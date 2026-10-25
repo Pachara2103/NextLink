@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { AppNav, DashboardModuleNav } from './app-nav';
+import { DashboardModuleNav } from './app-nav';
 import { StorageRecoveryPanel } from './storage-recovery';
 import { LocalDataStatus } from './local-data-status';
 import { CompanyRecord } from './company-record';
@@ -18,7 +18,7 @@ export function CompanyDashboard() {
   const selected = directory.items.find(c => c.id === selectedId);
   const rows = directory.items.filter(c => [c.name, ...c.aliases, ...c.contacts.map(p => p.name)].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
   return <div className="app-shell company-dashboard" data-ready={directory.ready && history.ready}>
-    <header className="topbar"><AppNav title="ทะเบียนบริษัท" /><Link className="secondary-button" href="/dashboard">กลับภาพรวม</Link></header><DashboardModuleNav />
+    <header className="topbar"><DashboardModuleNav /><Link className="secondary-button" href="/dashboard">กลับภาพรวม</Link></header>
     <main id="main-content" tabIndex={-1} className="page-content">
       <section className="intro-row"><div><p className="section-kicker">ข้อมูลบริษัทที่ใช้ร่วมกัน</p><h2>บริษัท ผู้ประสานงาน และประวัติความร่วมมือ</h2><p className="intro-copy">ข้อมูลตัวอย่าง · บันทึกในเบราว์เซอร์แยกตามบัญชี · แก้ผู้ติดต่อที่นี่แล้วแสดงร่วมทุกโมดูลที่จับคู่ไว้</p></div></section>
       <LocalDataStatus editedAt={directory.editedAt} warning={directory.warning} hasOverrides={directory.hasOverrides} timezone="Asia/Bangkok" onReset={() => { if (window.confirm("คืนค่าทะเบียนบริษัทตั้งต้น รวมผู้ติดต่อและ Case ทุกปีในเบราว์เซอร์นี้หรือไม่?")) void directory.reset(); }} />

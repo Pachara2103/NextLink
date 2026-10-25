@@ -6,7 +6,7 @@ import type { FridayActivityRecord } from "@/lib/services/friday-activity";
 import { academicPeriodLabel, type AcademicPeriod } from "../lib/academic-period";
 import { LIVE_FRIDAY_FORMATS, LIVE_FRIDAY_STATUSES, fridayApiPeriod, fridayLiveCount, fridayLiveDate, fridayLiveTimestamp, fridayUiPeriod } from "../lib/friday-api";
 import { useFridayActivities } from "../lib/use-friday-activities";
-import { AppNav, DashboardModuleNav } from "./app-nav";
+import { DashboardModuleNav } from "./app-nav";
 import { FilterFields } from "./filter-fields";
 import { PAGE_SIZE, Pager } from "./pager";
 import { FridayLiveDetail } from "./friday-live-detail";
@@ -63,7 +63,6 @@ export function FridayLiveDashboard({ period }: { period: AcademicPeriod }) {
   function clear() { changeFilters({ search: "", status: "", companyId: "" }); }
   const summary = data?.summary;
   return <div className="app-shell friday-dashboard friday-live-dashboard" data-ready={Boolean(data) && !loading} data-source="postgresql">
-    <header className="topbar"><AppNav title="Friday Activity" /><div className="header-tools"><div className="header-meta"><span>ทะเบียนกิจกรรมจากฐานข้อมูลกลาง</span><span role="status">{loading ? "กำลังอ่านข้อมูล…" : error ? "อ่านข้อมูลไม่สำเร็จ" : data ? `ข้อมูลแก้ไขล่าสุด ${fridayLiveTimestamp(data.lastUpdated)}` : "ยังไม่ได้รับข้อมูล"}</span></div><section className="academic-period-panel" aria-label="ช่วงการศึกษาที่แสดง"><div className="academic-period-fields"><label><span>ปีการศึกษา</span><select aria-label="เลือกปีการศึกษา" value={period.year} onChange={event => changePeriod({ ...period, year: Number(event.target.value) })}>{years.map(year => <option key={year} value={year}>{year}</option>)}</select></label><label><span>ภาคการศึกษา</span><select aria-label="เลือกภาคการศึกษา" value={period.term} onChange={event => changePeriod({ ...period, term: event.target.value as AcademicPeriod["term"] })}><option value="1">เทอม 1</option><option value="2">เทอม 2</option><option value="summer">ภาคฤดูร้อน</option></select></label></div></section></div></header>
     <DashboardModuleNav />
     <main id="main-content" tabIndex={-1} className="page-content">
       <section className="intro-row"><div><p className="section-kicker">เรียนรู้ร่วมกับบริษัท</p><h2>ทะเบียน Friday Activity</h2><p className="intro-copy">สร้างกิจกรรม จัดรอบ ติดตามการติดต่อและผลการจัดงานร่วมกัน</p></div><span className="scope-chip">{academicPeriodLabel(period)}</span></section>

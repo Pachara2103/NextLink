@@ -6,7 +6,7 @@ import { PageSections } from "@/features/dashboard/components/page-sections";
 
 import { isPending, isSigned, nextAction, queueKind } from "@/features/dashboard/lib/mou-stats";
 
-import { AppNav, DashboardModuleNav } from "@/features/dashboard/components/app-nav";
+import { DashboardModuleNav } from "@/features/dashboard/components/app-nav";
 import { lazy, useDeferredValue, useMemo, useRef, useState } from "react";
 
 import { DeferredRecordDialog } from "@/features/dashboard/components/deferred-record-dialog";
@@ -221,16 +221,14 @@ export function MouDashboard({ payload }: Props) {
   return (
     <div className="app-shell mou-shell" data-ready={ready}>
       <header className="topbar">
-        <AppNav title="MOU" />
+        <DashboardModuleNav />
         <div className="header-tools">
           <div className="header-meta">
-            <span>{payload.isMock ? "ข้อมูลตัวอย่าง ณ" : "ข้อมูลอัปเดต:"} {formatUpdated(payload.lastUpdated, payload.timezone)}</span>
             <LocalDataStatus editedAt={editedAt} warning={warning} hasOverrides={hasOverrides} timezone={payload.timezone} onReset={resetDemoData} />
           </div>
           <AcademicPeriodSelector />
         </div>
       </header>
-      <DashboardModuleNav />
 
       <main id="main-content" tabIndex={-1} className="page-content">
         <AcademicPeriodEmptyState hasData={payload.companies.length > 0} />

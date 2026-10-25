@@ -2,7 +2,7 @@
 
 import { FridayMouFollowUps } from "./friday-mou-followups";
 import { lazy, useDeferredValue, useState } from "react";
-import { AppNav, DashboardModuleNav } from "./app-nav";
+import { DashboardModuleNav } from "./app-nav";
 import { AcademicPeriodEmptyState, AcademicPeriodSelector } from "./academic-period-selector";
 import { DeferredRecordDialog } from "./deferred-record-dialog";
 import { EmptyResult } from "./empty-result";
@@ -79,11 +79,10 @@ export function FridayDashboard({ activities }: { activities: FridayActivity[] }
   const empty = <EmptyResult message="ไม่พบกิจกรรมที่ตรงกับตัวกรอง" hasFilters={hasFilters} onClear={resetFilters} />;
 
   return <div className="app-shell friday-dashboard" data-ready={dataset.ready}>
-    <header className="topbar"><AppNav title="Friday Activity" /><div className="header-tools">
+    <header className="topbar"><DashboardModuleNav /><div className="header-tools">
       <div className="header-meta"><span>ข้อมูลตัวอย่าง · กิจกรรมและผลประเมิน</span><LocalDataStatus source="mock" editedAt={dataset.editedAt} warning={dataset.warning} hasOverrides={dataset.hasOverrides} timezone="Asia/Bangkok" onReset={resetData} /></div>
       <AcademicPeriodSelector availableYears={fridayYears} />
     </div></header>
-    <DashboardModuleNav />
     <main id="main-content" tabIndex={-1} className="page-content">
       <AcademicPeriodEmptyState hasData={items.length > 0} />
       <StorageWarning message={dataset.warning} /><StorageRecoveryPanel key={dataset.recovery?.raw} recovery={dataset.recovery} onRecover={dataset.recover} />

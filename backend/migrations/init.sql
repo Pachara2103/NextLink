@@ -34,18 +34,13 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS companies (
     id BIGSERIAL PRIMARY KEY,
-    -- UNIQUE: หนึ่งกลุ่ม LINE ต่อหนึ่งบริษัท
-    -- ไม่มี FK ไป line_groups: ตารางนั้นอยู่ line_db คนละฐาน (ดูหัวไฟล์)
     group_id TEXT NULL UNIQUE,
     company_th TEXT NULL,
     company_en TEXT NULL,
     aliases TEXT[] NULL DEFAULT '{}'::text[],  -- NULL ได้ ไม่ใช่ '{}' บังคับ: UPDATE ใช้ COALESCE บนคอลัมน์นี้
-    -- is_linked BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-    -- create_company_pg / update_company_pg เช็คเงื่อนไขนี้ใน Python อยู่แล้ว
-    -- CONSTRAINT ck_companies_has_name CHECK (company_th IS NOT NULL OR company_en IS NOT NULL)
     CONSTRAINT ck_companies_not_all_null CHECK (
         group_id IS NOT NULL OR 
         company_th IS NOT NULL OR 
