@@ -1,7 +1,9 @@
 from typing import Any
 
+from psycopg2.errors import ForeignKeyViolation
+
 from core.db import graph_db, nl_db
-from core.exceptions import BadRequestError, NotFoundError
+from core.exceptions import AppException, BadRequestError, NotFoundError
 from schemas.base import ListResponse
 from schemas.employee import Employee, EmployeeBase
 from services import outbox
@@ -82,15 +84,18 @@ def delete_employee_pg(id: int, conn: Any = None):
 
     if not conn:
         with nl_db.get_connection() as own:
-          with own.cursor() as cursor:
-            cursor.execute( query, {"id": id})
-            if cursor.rowcount == 0:
-                raise NotFoundError(message="ไม่พบข้อมูลคนที่ต้องการลบ")
+            delete_employee_pg(id, conn=own)
             own.commit()
             return
 
     with conn.cursor() as cursor:
-        cursor.execute( query, {"id": id})
+        try:
+            cursor.execute(query, {"id": id})
+        except ForeignKeyViolation as exc:
+            raise AppException(
+                message="บุคคลนี้ถูกอ้างอิงในประวัติงาน จึงลบไม่ได้ กรุณาเปลี่ยนสถานะเป็นไม่ใช้งานแทน",
+                status_code=409,
+            ) from exc
         if cursor.rowcount == 0:
             raise NotFoundError(message="ไม่พบข้อมูลคนที่ต้องการลบ")
 

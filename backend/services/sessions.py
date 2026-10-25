@@ -2,11 +2,12 @@
 from dataclasses import dataclass
 import time
 from uuid import uuid4
+from psycopg2 import errors
 
 from core import config
 from core.auth import issue_token, verify_token
 from core.db import nl_db
-from core.exceptions import InvalidTokenError
+from core.exceptions import AppException, InvalidTokenError
 
 
 @dataclass(frozen=True)
@@ -23,12 +24,15 @@ def create_session(user_id: str, password_hash: str) -> str:
         with conn.cursor() as cursor:
             # A concurrent password change must not turn an old password check
             # into a session bound to the new credential.
-            cursor.execute(
-                """INSERT INTO auth_sessions(session_id, user_id, password_hash, expires_at)
+            try:
+                cursor.execute(
+                    """INSERT INTO auth_sessions(session_id, user_id, password_hash, expires_at)
                    SELECT %s, id, password, to_timestamp(%s) FROM users
-                   WHERE id = %s AND password = %s RETURNING user_id;""",
-                (session_id, expires, user_id, password_hash),
-            )
+                   WHERE id = %s AND password = %s AND is_active RETURNING user_id;""",
+                    (session_id, expires, user_id, password_hash),
+                )
+            except (errors.UndefinedColumn, errors.UndefinedTable) as exc:
+                raise AppException(message="ระบบยังไม่พร้อม กรุณาให้ผู้ดูแลรัน migration ที่ตรงกับรุ่นนี้", status_code=503) from exc
             if not cursor.fetchone():
                 raise InvalidTokenError()
             cursor.execute("DELETE FROM auth_sessions WHERE session_id IN (SELECT session_id FROM auth_sessions WHERE expires_at <= now() LIMIT 100);")
@@ -40,13 +44,17 @@ def authenticate_session(token: str) -> SessionIdentity:
     payload = verify_token(token)
     with nl_db.get_connection() as conn:
         with conn.cursor() as cursor:
-            cursor.execute(
-                """SELECT u.id, u.username FROM auth_sessions s
+            try:
+                cursor.execute(
+                    """SELECT u.id, u.username FROM auth_sessions s
                    JOIN users u ON u.id = s.user_id
                    WHERE s.session_id = %s AND s.user_id = %s
-                     AND s.expires_at > now() AND s.password_hash = u.password;""",
-                (payload["sid"], payload["sub"]),
-            )
+                     AND s.expires_at > now() AND s.password_hash = u.password
+                     AND u.is_active;""",
+                    (payload["sid"], payload["sub"]),
+                )
+            except (errors.UndefinedColumn, errors.UndefinedTable) as exc:
+                raise AppException(message="ระบบยังไม่พร้อม กรุณาให้ผู้ดูแลรัน migration ที่ตรงกับรุ่นนี้", status_code=503) from exc
             row = cursor.fetchone()
         conn.rollback()  # End the read transaction before returning to the pool.
     if row is None:

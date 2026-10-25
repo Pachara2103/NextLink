@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS companies (
         group_id IS NOT NULL OR 
         company_th IS NOT NULL OR 
         company_en IS NOT NULL
-    )
+    ),
     CONSTRAINT uq_company_th UNIQUE (company_th),
     CONSTRAINT uq_company_en UNIQUE (company_en)
 );

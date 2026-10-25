@@ -95,6 +95,31 @@ export function PlanMatrix({
     onHeldChange?.(heldCourse);
   }, [heldCourse, onHeldChange]);
 
+  /**
+   * Let go of the card when the drag ends anywhere.
+   *
+   * `onDragEnd` on the card covers a drag that ends on the board. A drag
+   * released over the page chrome, outside the window, or cancelled with Esc
+   * never reaches it, and the board was left believing a card was still in
+   * hand — three hundred cells painted as drop targets, and the next click
+   * dropping a card the person thought they had put down. Escape is listened
+   * for as well because that is what a cancelled drag feels like from the
+   * keyboard, and it is also the way out of a card picked up by ⌨ เลือกช่อง.
+   */
+  useEffect(() => {
+    if (!held) return;
+    const release = () => { setHeld(null); setHover(null); };
+    const onKey = (event: globalThis.KeyboardEvent) => { if (event.key === "Escape") release(); };
+    window.addEventListener("dragend", release);
+    window.addEventListener("drop", release);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("dragend", release);
+      window.removeEventListener("drop", release);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [held]);
+
   const roomIdFor = (course: PlanCourse, columnKey: string) =>
     course.deliveryMode === "ONLINE" || columnKey === ONLINE_COLUMN ? null : columnKey;
 
@@ -139,20 +164,67 @@ export function PlanMatrix({
     setHover(null);
   };
 
-  const cellState = (slotId: SlotId, columnKey: string) => {
-    if (!heldCourse || !held) return "";
+  /**
+   * Every cell's verdict about the card being held, worked out once.
+   *
+   * This is why picking a card up used to lock the page. The verdict was
+   * computed per cell while rendering, and `placementBlockers` walks the
+   * whole timetable for each call — eighteen periods by every room plus the
+   * online column is around three hundred walks of it. That alone was
+   * survivable. What was not was `onDragOver`, which fires continuously while
+   * the pointer moves and called `setHover` every time: each of those fifty-a-
+   * second events re-rendered the board and paid for all three hundred walks
+   * again, so the drag spent its whole life behind the main thread and looked
+   * exactly like a freeze.
+   *
+   * One pass, keyed by cell, recomputed only when the held card or the
+   * timetable actually changes. The pointer moving changes neither, so moving
+   * it now costs a map lookup.
+   */
+  const dropStates = useMemo(() => {
+    const states = new Map<string, string>();
+    if (!heldCourse || !held) return states;
+
     const ignore = held.kind === "assignment" ? held.id : undefined;
-    if (held.kind === "assignment") {
-      const current = assignments.find((item) => item.id === held.id);
-      if (current && current.slotId === slotId && (current.roomId ?? ONLINE_COLUMN) === columnKey) return "";
+    // Filtered once rather than once per cell: this list is the same for every
+    // cell, and rebuilding it 300 times was most of the cost of a drag.
+    const placed = assignments.filter((item) => item.id !== ignore);
+    const from = held.kind === "assignment" ? assignments.find((item) => item.id === held.id) ?? null : null;
+
+    for (const column of columns) {
+      const ignoredRoom = roomWouldBeIgnored(heldCourse, column.key);
+      const roomId = roomIdFor(heldCourse, column.key);
+      for (const day of DAYS) {
+        for (const period of PERIOD_KEYS) {
+          const slotId = makeSlotId(day, period);
+          // The cell the card is already in offers nothing: dropping it where
+          // it is is not a move, and painting it as one invites the question.
+          if (from && from.slotId === slotId && (from.roomId ?? ONLINE_COLUMN) === column.key) continue;
+          if (ignoredRoom) {
+            states.set(`${slotId}:${column.key}`, " is-drop-blocked");
+            continue;
+          }
+          const blockers = placementBlockers({ course: heldCourse, courses, rooms, placed, slotId, roomId });
+          states.set(`${slotId}:${column.key}`, blockers.length === 0 ? " is-drop-ok" : " is-drop-blocked");
+        }
+      }
     }
-    if (roomWouldBeIgnored(heldCourse, columnKey)) return " is-drop-blocked";
-    return blockersAt(heldCourse, slotId, columnKey, ignore).length === 0 ? " is-drop-ok" : " is-drop-blocked";
-  };
+    return states;
+  }, [heldCourse, held, assignments, columns, courses, rooms]);
+
+  /** Which conflicts, if any, each placed card is part of — one pass, not one per card. */
+  const blockedAssignmentIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const item of conflicts) {
+      if (item.severity !== "BLOCKED") continue;
+      for (const id of item.assignmentIds) ids.add(id);
+    }
+    return ids;
+  }, [conflicts]);
 
   const blockingFor = (assignmentId: string) =>
     conflicts.filter((item) => item.severity === "BLOCKED" && item.assignmentIds.includes(assignmentId));
-  const hasBlockingConflict = (assignmentId: string) => blockingFor(assignmentId).length > 0;
+  const hasBlockingConflict = (assignmentId: string) => blockedAssignmentIds.has(assignmentId);
 
   return (
     <div className="matrix-block">
@@ -302,7 +374,7 @@ export function PlanMatrix({
                         // class and CSS paints it on hover. A dedicated "drop here"
                         // button inside every cell said the same thing in far more
                         // ink, and made the board unreadable while anything was held.
-                        const state = heldCourse && !blocked ? cellState(slotId, column.key) : "";
+                        const state = heldCourse && !blocked ? dropStates.get(cellKey) ?? "" : "";
                         const takesDrop = Boolean(state);
                         return (
                           <td
@@ -327,7 +399,10 @@ export function PlanMatrix({
                               if (blocked) return;
                               event.preventDefault();
                               event.dataTransfer.dropEffect = "move";
-                              setHover(cellKey);
+                              // Same cell, same state: returning the current
+                              // value lets React bail out instead of
+                              // re-rendering the board on every pointer move.
+                              setHover((current) => (current === cellKey ? current : cellKey));
                             }}
                             onDragLeave={() => setHover((current) => (current === cellKey ? null : current))}
                             onDrop={(event) => {

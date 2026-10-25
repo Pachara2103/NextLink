@@ -8,14 +8,29 @@ import { once } from 'node:events';
 const reserve = createServer(); reserve.listen(0, '127.0.0.1'); await once(reserve, 'listening');
 const port = reserve.address().port; await new Promise((resolve) => reserve.close(resolve));
 const base = `http://127.0.0.1:${port}`;
-const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '-H', '127.0.0.1', '-p', String(port)], { env: { ...process.env, PORT: String(port), HOSTNAME: '127.0.0.1', NODE_ENV: 'production', API_ORIGIN: 'http://127.0.0.1:18999' }, stdio: ['ignore', 'pipe', 'pipe'] });
+const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '-H', '127.0.0.1', '-p', String(port)], { env: { ...process.env, PORT: String(port), HOSTNAME: '127.0.0.1', NODE_ENV: 'production', API_ORIGIN: 'http://127.0.0.1:18999', PLAN_SOURCE: 'seed' }, stdio: ['ignore', 'pipe', 'pipe'] });
 let logs = ''; server.stdout.on('data', (data) => { logs += data; }); server.stderr.on('data', (data) => { logs += data; });
 let browser;
 const results = [];
 const errors = [], failedAssets = [];
-const key = 'nextlink.plan.v4.2569-1';
+const output = process.env.BROWSER_OUTPUT_DIR || 'output/browser';
+/**
+ * The key the planner writes its document under, read from the source rather
+ * than typed here.
+ *
+ * It was a literal, and when the document went from version 4 to 5 this file
+ * kept watching the old key: the planner saved, nothing appeared where the
+ * test was looking, and it died in waitForFunction with an empty log — which
+ * says nothing at all about the version being the reason. Reading the version
+ * out of plan-document.ts means a future bump either keeps working or fails
+ * on the next line with a sentence naming the problem.
+ */
+const planDocument = await readFile('src/features/elective-plan/lib/plan-document.ts', 'utf8');
+const storageVersion = planDocument.match(/nextlink\.plan\.v(\d+)\.\$\{termId\}/)?.[1];
+if (!storageVersion) throw new Error('อ่านเวอร์ชันของ storageKeyFor จาก plan-document.ts ไม่สำเร็จ');
+const key = `nextlink.plan.v${storageVersion}.2569-1`;
 const courseId = 'plan-21105801';
-await mkdir('output/browser', { recursive: true });
+await mkdir(output, { recursive: true });
 const check = async (name, fn) => { await fn(); results.push(name); console.log('  ✓ ' + name); };
 try {
   let ready = false;
@@ -26,7 +41,9 @@ try {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   assert.ok(ready, 'production server started');
-  browser = await chromium.launch({ headless: true });
+  // PW_CHROMIUM: use a browser Playwright did not install itself. CI images
+  // often already carry one, and downloading a second copy per run is minutes.
+  browser = await chromium.launch({ headless: true, ...(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {}) });
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
   const watch = (page) => {
     page.on('pageerror', (error) => errors.push(error.message));
@@ -42,28 +59,76 @@ try {
     if (path === '/api/v1/auth/me') body = user;
     else if (path === '/api/v1/auth/login' && method === 'POST') body = { accessToken: 'local-test-only', tokenType: 'bearer', user };
     else if (path === '/api/v1/health') body = { status: 'ok', models: true, ready: true, bootId: 'fixture', startedAt: '2026-09-12T00:00:00Z' };
-    else if (method === 'GET' && ['/api/v1/line/groups', '/api/v1/companies', '/api/v1/contacts', '/api/v1/employees', '/api/v1/notes', '/api/v1/line/update_logs', '/api/v1/chat_histories'].includes(path)) body = { items: [] };
+  // Every read the console makes on these pages, answered with an empty list.
+  // A path that is not here is not quietly ignored: it is recorded and fails
+  // the run at the end, which is how a page that started calling something new
+  // gets noticed. That also means this list has to grow with the console —
+  // สรุปข้อมูลจากไลน์ (line/summary-drafts) was added to the sidebar and the
+  // list was not, so every run after it failed here naming the endpoint.
+    else if (method === 'GET' && ['/api/v1/line/groups', '/api/v1/companies', '/api/v1/contacts', '/api/v1/employees', '/api/v1/notes', '/api/v1/line/update_logs', '/api/v1/chat_histories', '/api/v1/line/summary-drafts'].includes(path)) body = { items: [] };
     else { unexpectedApi.push(`${method} ${path}`); return route.fulfill({ status: 500, json: { detail: 'Unexpected test request' } }); }
     await route.fulfill({ json: body });
   });
   const page = await context.newPage(); watch(page);
   page.setDefaultTimeout(15000);
+  /**
+   * Press the theme switch in the sidebar.
+   *
+   * By role `radio` and by a *substring* of the accessible name, not an exact
+   * string: the control is a radiogroup of two icon buttons whose words live on
+   * aria-label, and that label has already been reworded once ("สีดั้งเดิม"
+   * became "โหมดสว่าง (สีดั้งเดิม)"). Matching the whole string meant a
+   * wording change failed here as a fifteen-second timeout naming a button that
+   * no longer exists, rather than as anything about the theme.
+   */
+  /**
+   * Choose a theme on a page that has no switch on it.
+   *
+   * The sign-in page carries no sidebar and so no switcher — it had one once and
+   * does not now. The theme is still a property of the whole site there, so it
+   * is set the way the app itself stores it (the cookie is what the server reads
+   * for the first render; localStorage is what syncs other tabs) and the page is
+   * read back after a reload. That checks the thing that actually matters about
+   * the sign-in page: that it is painted in the visitor's theme before anybody
+   * has signed in.
+   */
+  const presetTheme = async (value) => {
+    await page.evaluate((value) => {
+      document.cookie = `nextlink-theme=${value}; Path=/; Max-Age=31536000; SameSite=Lax`;
+      try { localStorage.setItem('nextlink.theme', value); } catch { /* blocked store */ }
+    }, value);
+  };
+  const themeControl = (value) =>
+    page.getByRole('radio', { name: value === 'classic' ? /สีดั้งเดิม|สว่าง/ : /มืด/ }).filter({ visible: true }).first();
+
   const chooseTheme = async (value) => {
-    await page.getByRole('button', { name: value === 'classic' ? 'สีดั้งเดิม' : 'โหมดมืด', exact: true }).filter({ visible: true }).click();
+    // Press the switch where there is one — the sidebar on a wide window, the
+    // mobile menu on a narrow one. The sign-in page has neither, and there the
+    // theme is set the way the app itself stores it rather than by hunting for
+    // a control that is not on that page.
+    if (await themeControl(value).count() === 0) {
+      await presetTheme(value);
+      await page.reload();
+    } else {
+      await themeControl(value).click();
+    }
     await page.waitForFunction(value => document.documentElement.dataset.theme === value, value);
   };
+
   const themeIs = async (value) => assert.equal(await page.locator('html').getAttribute('data-theme'), value);
   await check('planner deep links require sign-in and return to the requested page', async () => {
     await page.goto(base + '/elective-plan/courses/list?view=checklist');
     await page.waitForURL('**/login?next=*');
     assert.equal(await page.locator('.elective-planner').count(), 0);
-    await chooseTheme('classic');
-    await page.reload(); await page.locator('input[name=username]').waitFor();
-    await themeIs('classic');
-    assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(246, 247, 251)');
-    await page.screenshot({ path: 'output/browser/login-classic.png', fullPage: true });
-    await chooseTheme('dark');
-    await page.screenshot({ path: 'output/browser/login-dark.png', fullPage: true });
+    // Login has no theme switch. Seed the server-rendered preference, then
+    // exercise the accessible theme controls once the authenticated frame exists.
+    for (const value of ['classic', 'dark']) {
+      await context.addCookies([{ name: 'nextlink-theme', value, url: base }]);
+      await page.reload(); await page.locator('input[name=username]').waitFor();
+      await themeIs(value);
+      assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), value === 'classic' ? 'rgb(246, 247, 251)' : 'rgb(10, 12, 14)');
+      await page.screenshot({ path: `${output}/login-${value}.png`, fullPage: true });
+    }
     await page.locator('input[name=username]').fill('planner-fixture');
     await page.locator('input[name=password]').fill('local-test-only');
     await page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click();
@@ -73,6 +138,14 @@ try {
   });
   const go = async (path) => { await page.goto(base + '/elective-plan' + (path === '/' ? '' : path)); await page.getByRole('region', { name: 'การบันทึกแผน', exact: true }).waitFor(); };
   const read = () => page.evaluate((key) => JSON.parse(localStorage.getItem(key)), key);
+  /**
+   * There is no step back on this page any more, anywhere.
+   *
+   * Asserted rather than merely not exercised: the button was removed because
+   * on a plan several people share it promised to restore a state somebody may
+   * already have built on, and a control like that tends to come back.
+   */
+  const noUndo = async () => assert.equal(await page.getByRole('button', { name: 'เลิกทำรายการล่าสุด', exact: true }).count(), 0, 'ปุ่มเลิกทำกลับมาแล้ว');
   const seed = async (document) => { await page.evaluate(({ key, document }) => { localStorage.removeItem(key); localStorage.setItem(key, JSON.stringify(document)); }, { key, document }); };
   await go('/');
   await check('integrated planner hydrates and loads its scheduler worker', async () => {
@@ -97,7 +170,7 @@ try {
     for (const theme of ['classic', 'dark']) {
       await chooseTheme(theme);
       await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
-      await page.screenshot({ path: `output/browser/planner-${theme}.png`, fullPage: true });
+      await page.screenshot({ path: `${output}/planner-${theme}.png`, fullPage: true });
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'planner fits the sidebar layout');
       const surface = theme === 'classic' ? 'rgb(255, 255, 255)' : 'rgb(16, 20, 24)';
       assert.equal(await page.locator('.kpi-card').first().evaluate(el => getComputedStyle(el).backgroundColor), surface);
@@ -106,7 +179,7 @@ try {
       await page.getByRole('heading', { name: /โน้ต/ }).first().waitFor();
       assert.equal(await page.locator('.elective-planner').count(), 0);
       await themeIs(theme);
-      await page.screenshot({ path: `output/browser/console-${theme}.png`, fullPage: true });
+      await page.screenshot({ path: `${output}/console-${theme}.png`, fullPage: true });
       for (const name of ['สรุปข้อมูลจากไลน์', 'กลุ่มไลน์และบริษัท', 'ผู้ติดต่อและบุคคลในบริษัท', 'โน้ตบันทึกข้อมูล', 'คุณขวัญใจ']) {
         const nav = page.locator('aside').getByRole('button', { name, exact: true });
         await nav.click();
@@ -114,10 +187,10 @@ try {
         await themeIs(theme);
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
       }
-      await page.screenshot({ path: `output/browser/agent-${theme}.png` });
+      await page.screenshot({ path: `${output}/agent-${theme}.png` });
       await page.getByRole('button', { name: 'ตั้งค่าบัญชี', exact: true }).click();
       await page.getByRole('dialog').waitFor();
-      await page.screenshot({ path: `output/browser/profile-${theme}.png` });
+      await page.screenshot({ path: `${output}/profile-${theme}.png` });
       await page.keyboard.press('Escape');
       await page.locator('aside').getByRole('link', { name: 'จัดตารางวิชาเลือก', exact: true }).click();
       await page.locator('.matrix-chip').first().waitFor();
@@ -128,7 +201,7 @@ try {
       assert.equal(await dialog.evaluate(el => getComputedStyle(el).backgroundColor), surface);
       const rect = await dialog.boundingBox();
       assert.ok(rect.x > 10 && rect.y > 0, 'native planner dialog is centered');
-      await page.screenshot({ path: `output/browser/room-dialog-${theme}.png` });
+      await page.screenshot({ path: `${output}/room-dialog-${theme}.png` });
       await page.getByRole('button', { name: 'ปิดหน้าต่าง', exact: true }).click();
       await page.getByRole('link', { name: 'ภาพรวมแผน', exact: true }).click();
     }
@@ -188,8 +261,8 @@ try {
     await go('/courses/list?q=SW%20Dev%20for%20CMMI%20Standard');
     await page.locator('.room-tag').getByText('ยังไม่มีห้อง', { exact: true }).waitFor();
     const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'ดาวน์โหลด Excel', exact: true }).click();
-    await (await pending).saveAs('output/browser/missing-room.xlsx');
-    assert.ok((await readFile('output/browser/missing-room.xlsx')).toString().includes('ยังไม่มีห้อง'));
+    await (await pending).saveAs(`${output}/missing-room.xlsx`);
+    assert.ok((await readFile(`${output}/missing-room.xlsx`)).toString().includes('ยังไม่มีห้อง'));
   });
   const blank = { ...scheduled, assignments: [], checklists: {}, revision: 0, editedAt: null };
   await seed(blank);
@@ -200,8 +273,8 @@ try {
     assert.equal(new URL(page.url()).searchParams.has('placement'), false);
     const download = page.waitForEvent('download');
     await page.getByRole('button', { name: 'ดาวน์โหลด Excel', exact: true }).click();
-    const file = await download; await file.saveAs('output/browser/checklist.xlsx');
-    const bytes = await readFile('output/browser/checklist.xlsx');
+    const file = await download; await file.saveAs(`${output}/checklist.xlsx`);
+    const bytes = await readFile(`${output}/checklist.xlsx`);
     assert.equal(bytes.subarray(0, 2).toString(), 'PK');
     assert.ok(bytes.toString().includes('SW Dev for CMMI Standard'));
   });
@@ -227,7 +300,7 @@ try {
     await dialog.waitFor();
     await dialog.getByLabel('รหัสวิชา', { exact: true }).fill('21105899');
     await dialog.getByLabel('ชื่อวิชา', { exact: true }).fill('Prompt Engineering for Teams');
-    await dialog.getByLabel('หมวดของวิชา', { exact: true }).fill('ปัญญาประดิษฐ์');
+    await dialog.getByLabel(/หมวดของวิชา/).selectOption('ปัญญาประดิษฐ์และข้อมูล');
     await dialog.getByLabel('บริษัทผู้สอน', { exact: true }).fill('บริษัททดสอบ');
     await dialog.getByLabel('ผู้สอน', { exact: true }).fill('อาจารย์ทดสอบ');
     await dialog.getByLabel('รูปแบบการสอน').selectOption('ONLINE');
@@ -241,7 +314,12 @@ try {
     // The new course is on the last page of the list, and the list went there.
     await page.getByText('Prompt Engineering for Teams', { exact: true }).first().waitFor();
     assert.equal(await listed(), before + 1);
-    assert.equal(await page.locator('.local-course-tag').count(), 1);
+    // The "เพิ่มเอง" badge that used to mark this row is gone — on the shared
+    // plan every course was typed in by somebody, so it marked all of them and
+    // told the reader nothing. What identifies the row as editable now is the
+    // แก้ไข button in the last column, in the same place on every row.
+    assert.equal(await page.locator('.local-course-tag').count(), 0);
+    assert.equal(await page.locator('td.row-action-cell button').count(), 1);
     assert.equal(await page.locator('.course-link strong').last().innerText(), 'Prompt Engineering for Teams');
     const added = await read();
     assert.equal(added.courseEdits.added.length, 1);
@@ -273,23 +351,22 @@ try {
     assert.equal((await read()).assignments.some((item) => item.courseId === 'plan-21105899'), false);
     await page.getByText('ไม่พบวิชาที่ตรงกับตัวกรอง', { exact: false }).waitFor();
     assert.equal(await listed(), before);
-    // Removing a course is one step, so undo brings back its periods with it.
-    await page.getByRole('button', { name: 'เลิกทำรายการล่าสุด', exact: true }).click();
-    await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).courseEdits.added.length === 1, key);
-    assert.ok((await read()).assignments.some((item) => item.courseId === 'plan-21105899'));
+    // The course took its periods with it and nothing offers to bring them
+    // back — the confirmation in front of the delete is the whole guard.
+    await noUndo();
     assert.deepEqual(errors, []);
     await seed(blank);
   });
-  await check('whole-plan controls stay on the overview, and undo follows you everywhere', async () => {
+  await check('whole-plan controls stay on the overview, and no page offers a step back', async () => {
     await seed(blank); await go('/');
     const backup = page.getByRole('button', { name: 'สำรองแผน JSON', exact: true });
     const importPlan = page.getByRole('button', { name: 'นำเข้าแผน', exact: true });
-    const undo = page.getByRole('button', { name: 'เลิกทำรายการล่าสุด', exact: true });
     await backup.waitFor();
+    await noUndo();
     assert.equal(await importPlan.count(), 1);
     for (const path of ['/courses/list', '/courses', '/rooms']) {
       await go(path);
-      await undo.waitFor();
+      await noUndo();
       assert.equal(await backup.count(), 0, `สำรองแผน JSON is still on ${path}`);
       assert.equal(await importPlan.count(), 0, `นำเข้าแผน is still on ${path}`);
       // The file input goes with the button it belongs to.
@@ -320,8 +397,72 @@ try {
     assert.ok(box.lines <= 2.1, `expected at most two lines, got ${box.lines}`);
     await seed(blank);
   });
+  await check('the same course code is allowed again only as another section', async () => {
+    await seed(blank); await go('/courses/list');
+    await page.getByRole('button', { name: '＋ เพิ่มรายวิชา', exact: true }).click();
+    const dialog = page.locator('dialog.course-form-dialog');
+    await dialog.waitFor();
+    await dialog.getByLabel('รหัสวิชา', { exact: true }).fill('21105801');
+    await dialog.getByLabel('ชื่อวิชา', { exact: true }).fill('SW Dev for CMMI Standard (ตอนที่สอง)');
+    await dialog.getByLabel(/หมวดของวิชา/).selectOption('วิศวกรรมซอฟต์แวร์');
+    await dialog.getByLabel('บริษัทผู้สอน', { exact: true }).fill('Soft Square');
+    await dialog.getByLabel('ผู้สอน', { exact: true }).fill('อาจารย์กานต์ ศรีสุวรรณ');
+    await dialog.getByRole('button', { name: 'พุธเช้า — ไม่สะดวก', exact: true }).click();
+    // ตอนเดียวกันคือวิชาซ้ำ
+    await dialog.getByRole('button', { name: 'เพิ่มรายวิชา', exact: true }).click();
+    await dialog.locator('.room-form-error').getByText('ตอน 1 อยู่แล้ว', { exact: false }).waitFor();
+    // คนละตอนคือคนละวิชา
+    await dialog.getByLabel('ตอนเรียน').fill('2');
+    await dialog.getByRole('button', { name: 'เพิ่มรายวิชา', exact: true }).click();
+    await dialog.waitFor({ state: 'detached' });
+    const added = (await read()).courseEdits.added;
+    assert.equal(added.length, 1);
+    assert.equal(added[0].section, 2);
+    assert.equal(added[0].id, 'plan-21105801-2', 'the section is part of the id, so the two keep separate periods');
+    await page.getByText('21105801 ตอน 2', { exact: false }).first().waitFor();
+    await seed(blank);
+  });
+  await check('course and company share one column in both tables', async () => {
+    await seed(blank); await go('/courses/list');
+    await page.locator('tbody tr').first().waitFor();
+    // Five columns of data and a sixth holding แก้ไข, whose heading is for
+    // screen readers only — so its text is compared by position, not counted
+    // on to appear in the rendered list.
+    const headers = (await page.locator('thead th').allInnerTexts()).map((text) => text.trim());
+    assert.deepEqual(headers.slice(0, 5), ['วิชา', 'ผู้สอน', 'ช่วงที่สะดวก', 'คาบที่ได้', 'ห้อง']);
+    assert.equal(headers.length, 6);
+    const cell = page.locator('tbody tr').first().locator('td').first();
+    // ชื่อวิชาและชื่อบริษัทยังเป็นลิงก์คนละที่ แม้อยู่ในเซลล์เดียวกัน
+    await cell.getByRole('link', { name: 'Soft Square', exact: true }).waitFor();
+    assert.match(await cell.innerText(), /SW Dev for CMMI Standard[\s\S]*Soft Square[\s\S]*21105801/);
+    await go('/courses/list?view=checklist');
+    await page.locator('select.checklist-select').first().waitFor();
+    // หนึ่งคอลัมน์วิชา + แปดขั้นของเช็กลิสต์ + คอลัมน์แก้ไข
+    assert.equal(await page.locator('thead th').count(), 10);
+    assert.equal((await page.locator('thead th').first().innerText()).trim(), 'วิชา');
+    assert.equal(await page.locator('thead th').filter({ hasText: 'สร้างคอร์ส MCV' }).count(), 1);
+  });
+  await check('a room that already holds a class refuses another from the board', async () => {
+    await seed(scheduled); await go('/');
+    const seeded = JSON.parse(await readFile('src/features/elective-plan/data/plan-courses.json', 'utf8')).courses;
+    const target = scheduled.assignments.find((item) => item.roomId);
+    const mover = scheduled.assignments.find(
+      (item) => item.roomId && item.courseId !== target.courseId && item.slotId !== target.slotId,
+    );
+    const titleOf = (id) => seeded.find((item) => item.id === id).title;
+    // ยกวิชาหนึ่งขึ้นมา แล้วสั่งวางลงช่องที่อีกวิชาหนึ่งนั่งอยู่ - เล็งช่องจาก
+    // ชิปที่อยู่ในนั้น ไม่ใช่จากชื่อช่อง เพราะห้องในตึกเดียวกันใช้ชื่อคอลัมน์ร่วมกัน
+    await page.locator('.matrix-chip').filter({ hasText: titleOf(mover.courseId) }).first().click();
+    const occupied = page.locator('.matrix td')
+      .filter({ has: page.locator('.matrix-chip', { hasText: titleOf(target.courseId) }) })
+      .first();
+    await occupied.press('Enter');
+    await page.getByRole('region', { name: 'การบันทึกแผน' })
+      .getByText('ห้องนี้มีคลาสอยู่แล้วในคาบนี้ กรุณาเลือกห้องอื่นหรือคาบอื่น', { exact: true }).waitFor();
+    assert.deepEqual((await read()).assignments, scheduled.assignments);
+  });
   await check('MCV code remains editable until blur while incomplete filter is active', async () => {
-    const completedExceptCode = { invitationLetter: 'RECEIVED', teachingHoursLetter: 'RECEIVED', mcvInstructorRequest: 'DONE', mentorAdded: 'DONE', guestLecturerAdded: 'DONE', studentsAdded: 'DONE', mcvJoinCode: '' };
+    const completedExceptCode = { invitationLetter: 'RECEIVED', teachingHoursLetter: 'RECEIVED', mcvInstructorRequest: 'DONE', mcvCourseCreated: 'DONE', mentorAdded: 'DONE', guestLecturerAdded: 'DONE', studentsAdded: 'DONE', mcvJoinCode: '' };
     await seed({ ...blank, checklists: { [courseId]: completedExceptCode } });
     await go('/courses/list?view=checklist&done=incomplete');
     const code = page.getByRole('textbox', { name: 'รหัส Join MCV สำหรับนิสิต — SW Dev for CMMI Standard', exact: true });
@@ -341,8 +482,8 @@ try {
     assert.equal((await read()).assignments.length, 0);
     assert.ok(await page.locator('.matrix-chip').count() > 0);
     const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'สำรองแผน JSON', exact: true }).click();
-    await (await pending).saveAs('output/browser/unsaved-plan.json');
-    assert.ok(JSON.parse(await readFile('output/browser/unsaved-plan.json', 'utf8')).assignments.length > 0);
+    await (await pending).saveAs(`${output}/unsaved-plan.json`);
+    assert.ok(JSON.parse(await readFile(`${output}/unsaved-plan.json`, 'utf8')).assignments.length > 0);
     await page.locator('aside').getByRole('button', { name: 'กลุ่มไลน์และบริษัท', exact: true }).click();
     await page.waitForURL(base + '/?panel=groups');
     await page.locator('aside').getByRole('link', { name: 'จัดตารางวิชาเลือก', exact: true }).click();
@@ -357,12 +498,12 @@ try {
     await page.evaluate((key) => localStorage.setItem(key, '{ corrupted'), key); await page.reload();
     await page.getByRole('button', { name: 'สำรองและเริ่มแผนใหม่', exact: true }).waitFor();
     const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'สำรองและเริ่มแผนใหม่', exact: true }).click();
-    await (await pending).saveAs('output/browser/corrupt-plan.json');
-    assert.equal(await readFile('output/browser/corrupt-plan.json', 'utf8'), '{ corrupted');
+    await (await pending).saveAs(`${output}/corrupt-plan.json`);
+    assert.equal(await readFile(`${output}/corrupt-plan.json`, 'utf8'), '{ corrupted');
     await page.getByRole('button', { name: 'จัดตารางอัตโนมัติ', exact: true }).waitFor();
     assert.deepEqual((await read()).assignments, []);
   });
-  await check('deleting a room from detail can be undone after client navigation', async () => {
+  await check('deleting a room from detail takes its periods with it, and the write survives navigation', async () => {
     await seed(scheduled); const target = scheduled.assignments.find((item) => item.roomId);
     await go('/rooms/' + target.roomId);
     await page.getByRole('button', { name: 'แก้ไขห้องนี้', exact: true }).click();
@@ -370,10 +511,13 @@ try {
     await page.getByRole('button', { name: 'ยืนยันลบ', exact: true }).click();
     await page.waitForURL(base + '/elective-plan/rooms');
     assert.equal((await read()).assignments.some((item) => item.roomId === target.roomId), false);
-    const undo = page.getByRole('button', { name: 'เลิกทำรายการล่าสุด', exact: true });
-    await undo.click();
-    await page.waitForFunction(({ key, roomId }) => JSON.parse(localStorage.getItem(key)).assignments.some((item) => item.roomId === roomId), { key, roomId: target.roomId });
-    assert.deepEqual((await read()).assignments, scheduled.assignments);
+    await noUndo();
+    // The client-side navigation the delete just did is the thing that used to
+    // lose it: the store lives above the layout, so the write has to still be
+    // there on the next page without a reload.
+    await go('/');
+    assert.equal((await read()).assignments.some((item) => item.roomId === target.roomId), false);
+    await seed(scheduled);
   });
   await check('worker cancellation keeps the prior plan intact', async () => {
     await go('/');
@@ -388,19 +532,20 @@ try {
     assert.deepEqual(await read(), before);
     await page.reload();
   });
-  await check('valid backup import and reset can both be undone', async () => {
+  await check('a valid backup imports over the plan, and คืนค่าเริ่มต้น empties it', async () => {
     await go('/');
     const before = await read();
     const imported = { ...before, checklists: { [courseId]: { mcvJoinCode: 'IMPORTED' } } };
     await page.locator('input[type=file]').setInputFiles({ name: 'plan.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(imported)) });
     await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).checklists['plan-21105801']?.mcvJoinCode === 'IMPORTED', key);
-    await page.getByRole('button', { name: 'เลิกทำรายการล่าสุด', exact: true }).click();
-    await page.waitForFunction((key) => !JSON.parse(localStorage.getItem(key)).checklists['plan-21105801']?.mcvJoinCode, key);
+    // The file replaced the paperwork and left the timetable alone.
     assert.deepEqual((await read()).assignments, before.assignments);
     await page.getByRole('button', { name: 'คืนค่าเริ่มต้น', exact: true }).click();
     await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).assignments.length === 0, key);
-    await page.getByRole('button', { name: 'เลิกทำรายการล่าสุด', exact: true }).click();
-    await page.waitForFunction((key) => JSON.parse(localStorage.getItem(key)).assignments.length > 0, key);
+    // Each of these replaces the whole plan, and neither is offered a way back:
+    // the window.confirm in front of it is the guard, which is why both ask.
+    await noUndo();
+    await seed(before); await go('/');
     assert.deepEqual((await read()).assignments, before.assignments);
   });
   await check('unreadable backup files preserve the current plan and report a recoverable error', async () => {
@@ -418,12 +563,12 @@ try {
   await check('archive export, mobile layout and all production assets remain usable' , async () => {
     await go('/courses/list?term=2568-2');
     const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'ดาวน์โหลด Excel', exact: true }).click();
-    await (await pending).saveAs('output/browser/archive.xlsx');
+    await (await pending).saveAs(`${output}/archive.xlsx`);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.screenshot({ path: 'output/browser/mobile.png', fullPage: true });
+    await page.screenshot({ path: `${output}/mobile.png`, fullPage: true });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
     await page.setViewportSize({ width: 1440, height: 1000 }); await go('/');
-    await page.screenshot({ path: 'output/browser/overview.png', fullPage: true });
+    await page.screenshot({ path: `${output}/overview.png`, fullPage: true });
     assert.deepEqual(errors, []); assert.deepEqual(failedAssets, []);
   });
   await check('mobile theme controls and navigation work in both palettes', async () => {
@@ -435,7 +580,7 @@ try {
       await themeIs(theme);
       await page.getByRole('navigation', { name: 'เมนูหลัก', exact: true }).getByRole('link', { name: 'จัดตารางวิชาเลือก', exact: true }).click();
       await page.getByRole('button', { name: 'สำรองแผน JSON', exact: true }).waitFor();
-      await page.screenshot({ path: `output/browser/mobile-${theme}.png`, fullPage: true });
+      await page.screenshot({ path: `${output}/mobile-${theme}.png`, fullPage: true });
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
       await page.reload();
       await page.getByRole('button', { name: 'สำรองแผน JSON', exact: true }).waitFor();
@@ -444,7 +589,7 @@ try {
       const navBox = await activeNav.boundingBox();
       assert.ok(navBox.x >= 0 && navBox.x + navBox.width <= 390, 'active mobile destination is visible after reload');
     }
-    assert.deepEqual(errors, []); assert.deepEqual(failedAssets, []); assert.deepEqual(unexpectedApi, []);
+    assert.deepEqual(errors, []); assert.deepEqual(failedAssets, []); assert.deepEqual(unexpectedApi, [], 'the console called an API the fixture does not know — add it to the route table above');
   });
   await check('theme works with blocked localStorage and unsafe login return paths stay local', async () => {
     await page.goto(base + '/login?next=https%3A%2F%2Fexample.com');
@@ -489,13 +634,13 @@ try {
     await page.keyboard.press('Escape'); assert.equal(await page.getByRole('menu').count(), 0);
     assert.deepEqual(errors, []); assert.deepEqual(unexpectedApi, []);
   });
-  await check('upstream year/semester notes can be filtered and edited in both website themes', async () => {
+  await check('upstream academicYear/semester notes can be filtered and edited in both website themes', async () => {
     const year = new Date().getFullYear() - 1;
     const group = { groupId: 'notes-fixture', displayName: 'กลุ่มทดสอบโน้ต', companyId: 920,
       companyTh: 'บริษัททดสอบโน้ต', companyEn: null, aliases: [], hasCompany: true, pictureUrl: null };
     let note = { id: 930, companyId: 920, employeeId: null, companyTh: group.companyTh,
       companyEn: null, aliases: [], type: 'elective', sentiment: 'neutral', source: 'external',
-      content: 'โน้ตทดสอบ year semester', year, semester: 2,
+      content: 'โน้ตทดสอบ academicYear semester', academicYear: year, semester: 2,
       createdAt: '2026-09-12T00:00:00Z', updatedAt: '2026-09-12T00:00:00Z' };
     const updates = [];
     await page.route('**/api/v1/line/groups', route => route.fulfill({ json: { items: [group] } }));
@@ -507,9 +652,10 @@ try {
     await page.route('**/api/v1/notes/930', async route => {
       assert.equal(route.request().method(), 'PUT');
       const payload = route.request().postDataJSON();
-      assert.equal(payload.year, year - 1);
+      assert.equal(payload.academicYear, year - 1);
       assert.equal(payload.semester, 3);
-      assert.equal('academicYear' in payload || 'academic_year' in payload || 'term' in payload, false);
+      // The old spellings must not come back alongside the new one.
+      assert.equal('year' in payload || 'academic_year' in payload || 'term' in payload, false);
       updates.push(payload);
       note = { ...note, ...payload };
       await route.fulfill({ json: { status: 'success' } });
@@ -532,7 +678,7 @@ try {
       const dialog = page.getByRole('dialog');
       const yearField = dialog.getByRole('combobox', { name: 'ปีการศึกษา', exact: true });
       const semesterField = dialog.getByRole('combobox', { name: 'ภาคเรียน', exact: true });
-      assert.equal(await yearField.inputValue(), String(note.year));
+      assert.equal(await yearField.inputValue(), String(note.academicYear));
       assert.equal(await semesterField.inputValue(), String(note.semester));
       await yearField.selectOption(String(year - 1));
       await semesterField.selectOption('3');
@@ -542,17 +688,17 @@ try {
       await yearFilter.selectOption(String(year - 1));
       await semesterFilter.selectOption('3');
       await page.getByText(`แก้ไขโน้ต ${theme}`, { exact: true }).waitFor();
-      await page.screenshot({ path: `output/browser/notes-${theme}.png`, fullPage: true });
+      await page.screenshot({ path: `${output}/notes-${theme}.png`, fullPage: true });
     }
     assert.equal(updates.length, 2);
     assert.deepEqual(errors, []); assert.deepEqual(unexpectedApi, []);
   });
-  await writeFile('output/browser/results.json'   , JSON.stringify({ passed: results.length, results, errors, failedAssets }, null, 2));
-  await rm('output/browser/failure.json', { force: true });
+  await writeFile(`${output}/results.json`   , JSON.stringify({ passed: results.length, results, errors, failedAssets, unexpectedApi, backend: 'intercepted fixtures; not a live DB test' }, null, 2));
+  await Promise.all(['failure.json', 'failure.png'].map(name => rm(`${output}/${name}`, { force: true })));
   console.log(`browser: ok (${results.length} production regression checks)`);
 } catch (error) {
-  for (const context of browser?.contexts() ?? []) for (const page of context.pages()) await page.screenshot({ path: 'output/browser/failure.png' }).catch(() => {});
-  await writeFile('output/browser/failure.json', JSON.stringify({ results, error: String(error), errors, failedAssets, logs }, null, 2));
+  for (const context of browser?.contexts() ?? []) for (const page of context.pages()) await page.screenshot({ path: `${output}/failure.png` }).catch(() => {});
+  await writeFile(`${output}/failure.json`, JSON.stringify({ results, error: String(error), errors, failedAssets, logs }, null, 2));
   throw error;
 } finally {
   await browser?.close();

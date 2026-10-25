@@ -1,14 +1,16 @@
 "use client";
 
 import { Suspense, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { ConsoleFrame } from "@/components/layout/ConsoleFrame";
 import { useAuth } from "@/store/auth-store";
 import { ConsoleProvider } from "@/store/console-store";
 
-export function DashboardFrame({ children }: { children: ReactNode }) {
+export function DashboardFrame({ children, source }: { children: ReactNode; source?: "demo" | "postgresql" }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const dataSource = source ?? (pathname === "/dashboard/friday-activities" ? "postgresql" : "demo");
   const { user } = useAuth();
   return <RequireAuth>
     <ConsoleProvider>

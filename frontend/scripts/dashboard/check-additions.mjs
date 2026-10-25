@@ -24,17 +24,17 @@ export async function checkAdditions({ page, context, base, go, check, theme, ou
     assert.match(await page.locator('main').innerText(), /ย้อนหลังสำหรับทดสอบ/);
     assert.doesNotMatch(await page.locator('main').innerText(), /ติดตามกำหนดโอนเบี้ยเลี้ยง/);
     await go('/mou?q=เมฆา'); await openFirst();
+    await dialog().getByText('Shared synthetic coordinator', { exact: true }).waitFor();
     assert.match(await dialog().innerText(), /Shared synthetic coordinator/);
     assert.match(await dialog().innerText(), /02-000-1234/);
-    await go('/friday-activities'); await openFirst();
-    await dialog().getByRole('button', { name: 'แก้ไขข้อมูล', exact: true }).click();
-    await dialog().getByRole('checkbox', { name: /Activity synthetic coordinator/ }).check();
-    await dialog().getByRole('button', { name: 'บันทึกการแก้ไข', exact: true }).click();
-    await dialog().getByRole('button', { name: 'แก้ไขข้อมูล', exact: true }).waitFor();
-    await page.reload(); await page.locator('.app-shell[data-ready="true"]').waitFor(); await openFirst();
-    const contacts = dialog().getByRole('region', { name: 'ผู้ประสานงานบริษัท', exact: true });
-    assert.match(await contacts.innerText(), /Activity synthetic coordinator/);
-    assert.doesNotMatch(await contacts.innerText(), /Shared synthetic coordinator/);
+    // Friday now selects from the central API directory. Browser-only contacts
+    // from the remaining demo modules must not leak into that live editor.
+    await go('/friday-activities');
+    await page.getByRole('button', { name: 'สร้างกิจกรรม', exact: true }).click();
+    await dialog().getByRole('checkbox', { name: 'Fixture Cloud Company', exact: true }).check();
+    await dialog().getByRole('checkbox', { name: /Fixture central coordinator/ }).waitFor();
+    assert.equal(await dialog().getByRole('checkbox', { name: /Activity synthetic coordinator|Shared synthetic coordinator/ }).count(), 0);
+    await dialog().getByRole('button', { name: 'ปิดรายละเอียด', exact: true }).click();
     await go('/electives'); await openFirst();
     await dialog().getByRole('button', { name: 'แก้ไขข้อมูล', exact: true }).click();
     await dialog().getByLabel('เบอร์โทรผู้ประสานงาน', { exact: true }).fill('02-000-5678');
@@ -44,25 +44,24 @@ export async function checkAdditions({ page, context, base, go, check, theme, ou
     await page.reload(); await page.locator('.app-shell[data-ready="true"]').waitFor(); await openFirst();
     assert.match(await dialog().innerText(), /02-000-5678/); assert.match(await dialog().innerText(), /demo_elective/);
   });
-  await check('MOU follow-ups update from another tab and partial history does not claim zero participation', async () => {
-    await go('/friday-activities');
-    const panel = page.locator('section[aria-labelledby="friday-mou-title"]');
-    await panel.locator('.insight-card').first().waitFor();
-    const row = panel.locator('.insight-card').first();
-    const name = await row.locator('h4').innerText();
-    const href = await row.getByRole('link', { name: 'ตรวจเอกสาร MOU', exact: true }).getAttribute('href');
+  await check('MOU history updates from another tab and partial demo history stays explicit', async () => {
+    await go('/companies?company=partner-cloud');
+    await page.getByRole('combobox', { name: 'งานที่เกี่ยวข้อง', exact: true }).selectOption('mou');
+    const history = page.locator('section').filter({ has: page.getByRole('heading', { name: /^ประวัติความร่วมมือข้ามเทอม/ }) });
+    const link = history.getByRole('link').first();
+    const href = await link.getAttribute('href');
+    const name = await link.innerText();
     const other = await context.newPage();
     try {
       await other.goto(base + href); await other.locator('.app-shell[data-ready="true"]').waitFor();
-      await other.locator('#dashboard-directory select[aria-label^="อัปเดตสถานะเอกสาร MOU"]').filter({ visible: true }).first().selectOption('รอลงนาม');
-      await page.waitForFunction(name => !document.querySelector('section[aria-labelledby="friday-mou-title"]').innerText.includes(name), name);
+      const row = other.locator('#dashboard-directory tbody tr').filter({ hasText: name }).first();
+      await row.locator('select[aria-label^="อัปเดตสถานะเอกสาร MOU"]').selectOption('รอลงนาม');
+      await history.locator(`a[href="${href}"]`).getByText('รอลงนาม', { exact: true }).waitFor();
     } finally { await other.close(); }
     const key = 'nextlink.dashboard.demo.user-901.nextlink.capstone.v2.2569.1';
     const previous = await page.evaluate(key => { const old = localStorage.getItem(key); localStorage.setItem(key, '{broken'); return old; }, key);
     try {
       await page.reload(); await page.locator('.app-shell[data-ready="true"]').waitFor();
-      await page.getByText('ข้อมูลบางส่วนอ่านไม่ได้ จึงยังสรุปรายการนี้ไม่ได้', { exact: true }).waitFor();
-      await go('/companies?company=partner-cloud');
       assert.match(await page.locator('main').innerText(), /อ่านข้อมูลบางโมดูลไม่ได้/);
     } finally { await page.evaluate(({ key, previous }) => previous === null ? localStorage.removeItem(key) : localStorage.setItem(key, previous), { key, previous }); }
   });

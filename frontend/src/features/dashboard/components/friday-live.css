@@ -1,0 +1,25 @@
+.nextlink-dashboard .friday-live-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 22px; }
+.nextlink-dashboard .friday-live-alert, .nextlink-dashboard .friday-live-conflict { padding: 16px; margin: 12px 0 20px; border: 1px solid var(--nd-orange-line, #d6a953); border-radius: 12px; background: var(--nd-orange-soft, #fff8e8); color: var(--ink); }
+.nextlink-dashboard .friday-live-alert p, .nextlink-dashboard .friday-live-conflict p { line-height: 1.65; }
+.nextlink-dashboard .friday-live-fields { padding: 0; border: 0; min-width: 0; }
+.nextlink-dashboard .friday-live-picker { display: grid; gap: 8px; max-height: 190px; overflow-y: auto; margin: 12px 0; padding: 4px; }
+.nextlink-dashboard .friday-live-person, .nextlink-dashboard .friday-live-session { padding: 13px; margin: 14px 0; border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.nextlink-dashboard .friday-live-session p { margin-bottom: 0; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.nextlink-dashboard .friday-live-session > .text-button { margin-top: 14px; }
+.nextlink-dashboard .friday-live-history { padding-left: 22px; }
+.nextlink-dashboard .friday-live-history li { padding: 10px 0; border-bottom: 1px solid var(--line); line-height: 1.6; }
+.nextlink-dashboard .friday-live-history p { margin: 5px 0; font-size: 13px; }
+.nextlink-dashboard .friday-live-dialog { width: min(850px, calc(100vw - 28px)); }
+.nextlink-dashboard .friday-live-dialog .dialog-edit-footer { display: flex; flex-direction: row; justify-content: flex-end; gap: 10px; padding: 14px 24px; border-top: 1px solid var(--line); flex: 0 0 auto; }
+.nextlink-dashboard .friday-live-dialog fieldset:disabled { opacity: .7; }
+.nextlink-dashboard .friday-live-dialog .cap-checkboxes label { display: flex; align-items: center; gap: 8px; }
+.nextlink-dashboard .friday-live-dialog .cap-checkboxes .course-edit-grid label { display: grid; align-items: start; }
+.nextlink-dashboard .friday-live-dialog .edit-save-error { color: var(--nd-red, #a52d3a); line-height: 1.65; }
+@media (max-width: 620px) { .nextlink-dashboard .friday-live-dialog .course-edit-grid { grid-template-columns: 1fr; } .nextlink-dashboard .friday-live-actions > button { flex: 1 1 150px; } }
+
+.nextlink-dashboard .friday-followup-card, .nextlink-dashboard .friday-followup-editor, .nextlink-dashboard .friday-followup-versions { border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin: 14px 0; min-width: 0; overflow-wrap: anywhere; }
+.nextlink-dashboard .friday-followup-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+.nextlink-dashboard .friday-followups h4 { margin: 18px 0 12px; font-size: 16px; }
+.nextlink-dashboard .friday-followups .friday-live-actions { margin: 14px 0 0; }
+.nextlink-dashboard .friday-followups .status-pill { margin-right: 8px; }
+.nextlink-dashboard .friday-followups textarea { width: 100%; min-width: 0; resize: vertical; }

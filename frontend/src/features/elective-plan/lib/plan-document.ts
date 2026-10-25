@@ -7,17 +7,21 @@ import type { Assignment, PlanCourse, PlanPayload, PlanRoom } from "./plan-types
 export const LEGACY_STORAGE_KEY = "nextlink.plan.v1";
 // Versions 1/2 did not record a term; they were shipped for this term only.
 export const LEGACY_TERM_ID = "2569-1";
-export const storageKeyFor = (termId: string) => `nextlink.plan.v4.${termId}`;
+export const storageKeyFor = (termId: string) => `nextlink.plan.v5.${termId}`;
 /**
  * Where an earlier release would have written this term's plan, newest first.
  *
  * Version 4 added courses a person typed in themselves, so a v3 document is a
- * v4 document with none of them — it is read, shown, and written back under the
- * new key the first time anything is saved. Reading the old key rather than
- * renaming it means a browser that still has an older build open in another tab
- * keeps working from the plan it already knows.
+ * v4 document with none of them. Version 5 renamed a room's `tier` to `type`,
+ * following the column, so a v4 document is a v5 document whose room edits
+ * still say `tier` — `readStoredRoomPatch` renames it on the way in. Either is
+ * read, shown, and written back under the new key the first time anything is
+ * saved. Reading the old key rather than renaming it means a browser that still
+ * has an older build open in another tab keeps working from the plan it already
+ * knows.
  */
 export const legacyKeysFor = (termId: string): string[] => [
+  `nextlink.plan.v4.${termId}`,
   `nextlink.plan.v3.${termId}`,
   ...(termId === LEGACY_TERM_ID ? [LEGACY_STORAGE_KEY] : []),
 ];
@@ -30,7 +34,7 @@ export type PlanData = {
   checklists: Record<string, Partial<CourseChecklist>>;
 };
 export type PlanDocument = PlanData & {
-  version: 4;
+  version: 5;
   termId: string;
   dataset: string;
   seedRevision: string;
@@ -40,7 +44,7 @@ export type PlanDocument = PlanData & {
 
 export const emptyPlanData = (): PlanData => ({ assignments: [], courseOverrides: {}, courseEdits: EMPTY_COURSE_EDITS, roomEdits: EMPTY_ROOM_EDITS, checklists: {} });
 export const emptyDocument = (payload: PlanPayload): PlanDocument => ({
-  ...emptyPlanData(), version: 4, termId: payload.term.id, dataset: payload.dataset,
+  ...emptyPlanData(), version: 5, termId: payload.term.id, dataset: payload.dataset,
   seedRevision: payload.seedRevision, revision: 0, editedAt: null,
 });
 
@@ -64,24 +68,60 @@ function roomPatch(value: unknown, full = false): boolean {
   for (const key of ["name", "building", "floor"])
     if ((full || key in value) && (!string(value[key]) || !value[key].trim())) return false;
   if ((full || "seats" in value) && !count(value.seats, 1, 2000)) return false;
-  if ((full || "tier" in value) && value.tier !== "READY" && value.tier !== "NEEDS_APPROVAL") return false;
+  if ((full || "type" in value) && value.type !== "READY" && value.type !== "NEEDS_APPROVAL") return false;
   if ((full || "seatsIsEstimated" in value) && typeof value.seatsIsEstimated !== "boolean") return false;
   if ((full || "blockedSlots" in value) && !blockedSlots(value.blockedSlots)) return false;
-  return Object.keys(value).every((key) => ["name", "building", "floor", "seats", "tier", "seatsIsEstimated", "blockedSlots", ...(full ? ["id"] : [])].includes(key));
+  return Object.keys(value).every((key) => ["name", "building", "floor", "seats", "type", "seatsIsEstimated", "blockedSlots", ...(full ? ["id"] : [])].includes(key));
 }
+/**
+ * A room edit as some earlier build wrote it.
+ *
+ * Version 4 and earlier stored `tier`; the column and every caller now say
+ * `type`. Renaming here rather than in `roomPatch` keeps the validator a
+ * statement about the current shape only — the migration is one line, in one
+ * place, and the rest of the file never has to know there were two words.
+ */
+function readStoredRoomPatch(value: unknown): unknown {
+  if (!object(value) || !("tier" in value)) return value;
+  const { tier, ...rest } = value as Record<string, unknown>;
+  return "type" in rest ? rest : { ...rest, type: tier };
+}
+
+function readStoredRoomEdits(value: unknown): unknown {
+  if (!object(value)) return value;
+  const overrides = object(value.overrides)
+    ? Object.fromEntries(Object.entries(value.overrides).map(([id, patch]) => [id, readStoredRoomPatch(patch)]))
+    : value.overrides;
+  const added = Array.isArray(value.added) ? value.added.map(readStoredRoomPatch) : value.added;
+  return { ...value, overrides, added };
+}
+
 function contact(value: unknown): boolean {
   if (value === null) return true;
   return object(value) && string(value.name) && Boolean(value.name.trim())
-    && (value.email === null || string(value.email)) && (value.lineId === null || string(value.lineId))
-    && Object.keys(value).every((key) => ["name", "email", "lineId"].includes(key));
+    && (value.email === null || string(value.email)) && (value.phone === null || string(value.phone))
+    && Object.keys(value).every((key) => ["name", "email", "phone"].includes(key));
 }
 const COURSE_TEXT_FIELDS = ["courseCode", "title", "category", "provider", "instructor"];
-const COURSE_FIELDS = [...COURSE_TEXT_FIELDS, "coordinator", "deliveryMode", "availability", "sessionsPerWeek", "minSeats", "capacity", "weeks", "notes"];
+// minSeats ไม่ใช่ฟิลด์ของวิชาอีกแล้ว (capacity ตัวเดียวจบ) แต่ยังรับไว้ให้แผนที่
+// บันทึกไว้ก่อนหน้าเปิดได้ แล้ว readStoredCourse ทิ้งค่านั้นตอนอ่านเข้ามา
+const COURSE_FIELDS = [...COURSE_TEXT_FIELDS, "section", "coordinator", "deliveryMode", "availability", "sessionsPerWeek", "minSeats", "capacity", "weeks", "notes"];
 /**
  * One course, or a correction to one. `full` is a course a person typed in, so
  * every field has to be there; without it this is a patch and only the keys
  * present are checked — the same two-in-one shape as `roomPatch` above.
  */
+/**
+ * วิชาหนึ่งแถวอย่างที่เก็บอยู่จริง เติมค่าที่เพิ่งมีทีหลังและทิ้งค่าที่เลิกใช้
+ * ไปแล้ว - แผนที่คนเก็บไว้ตั้งแต่รุ่นก่อนจึงยังเปิดได้ และสิ่งที่ไหลเข้าไปถึง
+ * React มีรูปเดียวเสมอ
+ */
+function readStoredCourse(value: Record<string, unknown>): Record<string, unknown> {
+  const next: Record<string, unknown> = { section: 1, ...value };
+  delete next.minSeats;
+  return next;
+}
+
 function coursePatch(value: unknown, full = false): boolean {
   if (!object(value)) return false;
   if (full && (!string(value.id) || !/^[a-z0-9-]+$/.test(value.id))) return false;
@@ -92,7 +132,10 @@ function coursePatch(value: unknown, full = false): boolean {
   if ((full || "availability" in value) && !slots(value.availability)) return false;
   if ((full || "sessionsPerWeek" in value) && !count(value.sessionsPerWeek, 1, 18)) return false;
   if ((full || "weeks" in value) && !count(value.weeks, 1, 52)) return false;
-  if ((full || "minSeats" in value) && !count(value.minSeats)) return false;
+  // section และ minSeats ไม่บังคับแม้ใน full: แผนที่บันทึกก่อนมีตอนเรียนยังต้อง
+  // เปิดได้ และแผนที่บันทึกตอนยังมี minSeats ก็เช่นกัน
+  if ("section" in value && !count(value.section, 1, 99)) return false;
+  if ("minSeats" in value && !count(value.minSeats)) return false;
   if ((full || "capacity" in value) && !count(value.capacity)) return false;
   if ((full || "notes" in value) && !(value.notes === null || string(value.notes))) return false;
   return Object.keys(value).every((key) => [...COURSE_FIELDS, ...(full ? ["id"] : [])].includes(key));
@@ -101,7 +144,7 @@ function coursePatch(value: unknown, full = false): boolean {
 /** Runtime validation at the persistence boundary; no partial/unsafe casts reach React. */
 export function decodePlan(raw: string, payload: PlanPayload): { document: PlanDocument; migrated: boolean } {
   const value: unknown = JSON.parse(raw);
-  if (!object(value) || ![1, 2, 3, 4].includes(value.version as number)) throw new Error("ไม่รู้จักรูปแบบไฟล์แผน");
+  if (!object(value) || ![1, 2, 3, 4, 5].includes(value.version as number)) throw new Error("ไม่รู้จักรูปแบบไฟล์แผน");
   const legacy = value.version === 1 || value.version === 2;
   if (legacy && payload.term.id !== LEGACY_TERM_ID) throw new Error("แผนรุ่นเก่าเป็นของเทอม 2569-1");
   if (!legacy && (value.termId !== payload.term.id || value.dataset !== payload.dataset)) throw new Error("ไฟล์แผนนี้เป็นของคนละเทอมหรือชุดข้อมูล");
@@ -112,7 +155,7 @@ export function decodePlan(raw: string, payload: PlanPayload): { document: PlanD
   // Absent before version 4, which is the whole of the migration: a plan made
   // before courses could be typed in is a plan with none added.
   const courseEdits = value.courseEdits ?? EMPTY_COURSE_EDITS;
-  const edits = value.roomEdits ?? EMPTY_ROOM_EDITS;
+  const edits = readStoredRoomEdits(value.roomEdits ?? EMPTY_ROOM_EDITS);
   const checklists = value.checklists ?? {};
   if (!object(courseOverrides) || !Object.values(courseOverrides).every((patch) => coursePatch(patch))) throw new Error("ข้อมูลแก้ไขวิชาไม่ถูกต้อง");
   if (!object(courseEdits) || !Array.isArray(courseEdits.added) || !courseEdits.added.every((course) => coursePatch(course, true))
@@ -124,12 +167,18 @@ export function decodePlan(raw: string, payload: PlanPayload): { document: PlanD
   const rooms = mergeRooms(payload.rooms, edits as RoomEdits);
   const roomIds = new Set(rooms.map((room) => room.id));
   if (roomIds.size !== rooms.length) throw new Error("มีรหัสห้องซ้ำในแผน");
-  const added = courseEdits.added as PlanCourse[];
+  const added = (courseEdits.added as Record<string, unknown>[]).map(readStoredCourse) as unknown as PlanCourse[];
+  const overrides = Object.fromEntries(Object.entries(courseOverrides as Record<string, Record<string, unknown>>)
+    .map(([id, patch]) => {
+      const next = { ...patch };
+      delete next.minSeats;
+      return [id, next];
+    })) as Record<string, CourseOverride>;
   const knownCourses = new Set([...payload.courses, ...added].map((course) => course.id));
   if (knownCourses.size !== payload.courses.length + added.length) throw new Error("มีรหัสวิชาซ้ำกับวิชาเดิมในแผน");
+  const edited: CourseEdits = { added, removed: courseEdits.removed as string[] };
   const courses = new Map(mergeCourses(payload.courses, {
-    courseEdits: courseEdits as CourseEdits,
-    courseOverrides: courseOverrides as Record<string, CourseOverride>,
+    courseEdits: edited, courseOverrides: overrides,
   }).map((course) => [course.id, course]));
   const ids = new Set<string>(), sessions = new Set<string>();
   for (const item of value.assignments) {
@@ -148,17 +197,16 @@ export function decodePlan(raw: string, payload: PlanPayload): { document: PlanD
   // throwing away work after a deployment changes the bundled facts. A course
   // the person hid is still "known", so hiding one does not invalidate the
   // paperwork already recorded against it.
-  if (Object.keys(courseOverrides).some((id) => !knownCourses.has(id)) || Object.keys(checklists).some((id) => !knownCourses.has(id))) throw new Error("แผนมีข้อมูลของวิชาที่ไม่อยู่ในชุดข้อมูลปัจจุบัน");
+  if (Object.keys(overrides).some((id) => !knownCourses.has(id)) || Object.keys(checklists).some((id) => !knownCourses.has(id))) throw new Error("แผนมีข้อมูลของวิชาที่ไม่อยู่ในชุดข้อมูลปัจจุบัน");
   const knownRooms = new Set([...payload.rooms, ...(edits.added as PlanRoom[])].map((room) => room.id));
   if (knownRooms.size !== payload.rooms.length + edits.added.length) throw new Error("มีรหัสห้องซ้ำกับห้องเดิมในแผน");
   if (Object.keys(edits.overrides).some((id) => !knownRooms.has(id))) throw new Error("แผนอ้างอิงห้องที่ถูกนำออกจากชุดข้อมูล");
   const document: PlanDocument = {
     ...emptyDocument(payload), assignments: value.assignments as Assignment[],
-    courseOverrides: courseOverrides as Record<string, CourseOverride>,
-    courseEdits: courseEdits as CourseEdits, roomEdits: edits as RoomEdits,
+    courseOverrides: overrides, courseEdits: edited, roomEdits: edits as RoomEdits,
     checklists: Object.fromEntries(Object.entries(checklists).map(([id, value]) => [id, readChecklist(value as Partial<CourseChecklist>)])),
     revision: legacy ? 0 : value.revision as number,
     editedAt: string(value.editedAt) ? value.editedAt : null,
   };
-  return { document, migrated: legacy || value.version !== 4 || value.seedRevision !== payload.seedRevision };
+  return { document, migrated: legacy || value.version !== 5 || value.seedRevision !== payload.seedRevision };
 }
