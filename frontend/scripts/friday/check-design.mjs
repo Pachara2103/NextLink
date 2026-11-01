@@ -13,8 +13,11 @@ export async function checkFridayDesign({pa, a, base, check, ready, output}) {
   };
   const query = '?academicYear=2026&term=FIRST&page=1&pageSize=25';
   const go = async (suffix='?year=2569&term=1') => {
-    await pa.goto(base+'/dashboard/friday-activities'+suffix); await ready(pa);
+    const target=new URL(base+'/dashboard/friday-activities'+suffix);if(!target.searchParams.has('view'))target.searchParams.set('view','table');
+    await pa.goto(target.href); await ready(pa);
   };
+  const view=async name=>{await pa.getByRole('tab',{name,exact:true}).click();if(name==='ภาพรวม')await pa.locator('[data-report=overview][data-ready=true]').waitFor();};
+  const kpi=key=>pa.locator(`[data-kpi=friday-${key}] .kpi-value > span`);
   const readAfter = async action => {
     const next = pa.waitForResponse(r => new URL(r.url()).pathname==='/api/v1/friday-activities' && r.request().method()==='GET');
     await action(); const response = await next; assert.equal(response.status(),200); await ready(pa);
@@ -43,7 +46,7 @@ export async function checkFridayDesign({pa, a, base, check, ready, output}) {
     assert.match(pa.url(),/year=2565/);
     await readAfter(()=>pa.getByRole('combobox',{name:'เลือกภาคการศึกษา',exact:true}).selectOption('summer'));
     assert.match(await pa.locator('#dashboard-directory').innerText(),/ยังไม่มีกิจกรรม/);
-    assert.equal(await pa.locator('.kpi-card.blue .kpi-value').innerText(),'0');
+    assert.equal(await pa.locator('#dashboard-directory .panel-caption').innerText(),'0 กิจกรรม');
     await readAfter(()=>pa.getByRole('combobox',{name:'เลือกปีการศึกษา',exact:true}).selectOption('2569'));
     await readAfter(()=>pa.getByRole('combobox',{name:'เลือกภาคการศึกษา',exact:true}).selectOption('2'));
     await pa.getByRole('button',{name:/^Design QA second-term activity/}).filter({visible:true}).waitFor();
@@ -69,14 +72,16 @@ export async function checkFridayDesign({pa, a, base, check, ready, output}) {
     });
     detail=added.activity;
     await go();
-    assert.equal(Number(await pa.locator('.kpi-card.blue .kpi-value').innerText()),all.total);
     assert.equal(await pa.locator('.table-wrap tbody tr').count(),25);
-    assert.equal(await pa.locator('.kpi-card.green .kpi-value').innerText(),`${all.summary.completed} / ${all.total}`);
+    await view('ภาพรวม');
+    assert.equal(Number(await kpi('total').innerText()),all.total);
+    assert.equal(Number(await kpi('completed').innerText()),all.summary.completed);
+    await view('ตารางกิจกรรม');
     const first=await pa.locator('.table-wrap .course-link').first().innerText();
     await readAfter(()=>pa.getByRole('navigation',{name:'แบ่งหน้ารายการกิจกรรม'}).getByRole('button',{name:'ถัดไป',exact:true}).click());
     assert.equal(new URL(pa.url()).searchParams.get('page'),'2');
     assert.notEqual(await pa.locator('.table-wrap .course-link').first().innerText(),first);
-    assert.equal(Number(await pa.locator('.kpi-card.blue .kpi-value').innerText()),all.total);
+    await view('ภาพรวม');assert.equal(Number(await kpi('total').innerText()),all.total);await view('ตารางกิจกรรม');
     await pa.reload();await ready(pa);assert.equal(new URL(pa.url()).searchParams.get('page'),'2');
   });
 
@@ -99,23 +104,24 @@ export async function checkFridayDesign({pa, a, base, check, ready, output}) {
     assert.equal(await pa.evaluate(()=>document.activeElement?.id),'dashboard-filters');
   });
 
-  await check('Friday matches elective theme tokens with desktop tablet and mobile screenshots',async()=>{
+  await check('Friday matches internship card and tab design on desktop tablet and mobile',async()=>{
     const evidence=[];
     const style=()=>pa.evaluate(()=>{
       const nav=getComputedStyle(document.querySelector('.topbar .dashboard-module-nav a[aria-current=page]'));
-      const card=getComputedStyle(document.querySelector('.kpi-card.blue'));
-      const search=getComputedStyle(document.querySelector('.control-panel input[type=search]'));
-      return {header:getComputedStyle(document.querySelector('.topbar')).backgroundColor,nav:nav.backgroundColor,card:card.backgroundColor,radius:card.borderRadius,search:search.backgroundColor,searchRadius:search.borderRadius};
+      const card=getComputedStyle(document.querySelector('.io-card'));
+      const tab=getComputedStyle(document.querySelector('.io-subtabs [aria-selected=true]'));
+      return {header:getComputedStyle(document.querySelector('.topbar')).backgroundColor,nav:nav.backgroundColor,card:card.backgroundColor,radius:card.borderRadius,padding:card.padding,shadow:card.boxShadow,tab:tab.backgroundColor,tabRadius:tab.borderRadius,font:card.fontFamily};
     });
     for(const theme of ['classic','dark']) {
       await pa.setViewportSize({width:1440,height:1000});
       await pa.getByRole('radio',{name:theme==='classic'?/โหมดสว่าง/:/โหมดมืด/}).filter({visible:true}).first().click();
       await pa.waitForFunction(theme=>document.documentElement.dataset.theme===theme,theme);
-      await pa.goto(base+'/dashboard/electives?year=2569&term=1');
-      await pa.getByRole('heading',{name:'ภาพรวมวิชาเลือก',exact:true}).waitFor();
+      await pa.goto(base+'/dashboard/internship?year=2569&term=1');
+      await pa.getByRole('tablist',{name:'มุมมองหน้าฝึกงาน',exact:true}).waitFor();await pa.locator('.io-card').first().waitFor();
       const reference=await style();
-      await pa.screenshot({path:`${output}/reference-electives-${theme}.png`});
-      await go(); assert.deepEqual(await style(),reference,'shared design tokens must match elective reference');
+      await pa.screenshot({path:`${output}/reference-internship-${theme}.png`});
+      await go('?year=2569&term=1&view=overview');await pa.locator('[data-report=overview][data-ready=true]').waitFor();
+      assert.deepEqual(await style(),reference,'shared design tokens must match internship reference');
       for(const [name,width,height] of [['desktop',1440,1000],['tablet',820,1180],['mobile',390,844]]) {
         await pa.setViewportSize({width,height});await pa.evaluate(()=>window.scrollTo(0,0));
         assert.equal(await pa.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,`${theme} ${name} page overflow`);
@@ -128,7 +134,7 @@ export async function checkFridayDesign({pa, a, base, check, ready, output}) {
         evidence.push({theme,viewport:`${width}x${height}`,tokens:reference,overflow:false});
       }
     }
-    await writeFile(output+'/design-evidence.json',JSON.stringify({source:'elective dashboard from the same main base',api:'real isolated PostgreSQL harness; no API interception',comparisons:evidence},null,2));
+    await writeFile(output+'/design-evidence.json',JSON.stringify({source:'internship dashboard from the same main base',api:'real isolated PostgreSQL harness; no API interception',comparisons:evidence},null,2));
   });
 
   await check('detail notes and edit footer remain readable and reachable on every viewport',async()=>{

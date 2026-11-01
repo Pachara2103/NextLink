@@ -1,5 +1,5 @@
 """Assigned staff API for the shared Friday activity database."""
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Path, Query
 
@@ -11,6 +11,8 @@ from schemas.friday_activity import (
 from schemas.friday_followup import FollowupResult, NoteList, NoteVersionList, NoteWrite, TaskList, TaskWrite
 from services import friday_followup as followup
 from services import friday_activity as service
+from services import friday_reporting as reporting
+from schemas.friday_reporting import FridayAnalytics, FridayEvaluations
 from services.sessions import SessionIdentity
 
 router = APIRouter(prefix="/friday-activities", tags=["friday-activity"])
@@ -35,6 +37,29 @@ def list_activities(
 @router.get("/options", response_model=FridayOptions)
 def options(user: SessionIdentity = Depends(friday_staff)):
     return service.get_options()
+
+
+@router.get("/analytics", response_model=FridayAnalytics)
+def analytics(user: SessionIdentity = Depends(friday_staff),
+    academic_year: int = Query(alias="academicYear", ge=2000, le=2100),
+    term: Term = Query(), status: ActivityStatus | None = None,
+    company_id: str | None = Query(default=None, alias="companyId", pattern=r"^[1-9][0-9]{0,18}$"),
+    search: str | None = Query(default=None, max_length=500)):
+    return reporting.analytics(academic_year=academic_year, term=term, status=status, company_id=company_id, search=search)
+
+
+@router.get("/evaluations", response_model=FridayEvaluations)
+def evaluations(user: SessionIdentity = Depends(friday_staff),
+    academic_year: int = Query(alias="academicYear", ge=2000, le=2100),
+    term: Term = Query(), status: ActivityStatus | None = None,
+    company_id: str | None = Query(default=None, alias="companyId", pattern=r"^[1-9][0-9]{0,18}$"),
+    search: str | None = Query(default=None, max_length=500),
+    page: int = Query(default=1, ge=1, le=2147483647),
+    page_size: int = Query(default=20, alias="pageSize", ge=1, le=100),
+    include_provisional: bool = Query(default=False, alias="includeProvisional"),
+    kind: Literal["student", "company", "reported", "unmatched"] | None = None):
+    return reporting.evaluations(academic_year=academic_year, term=term, status=status, company_id=company_id,
+        search=search, page=page, page_size=page_size, include_provisional=include_provisional, kind=kind)
 
 
 @router.post("", response_model=FridayActivity, status_code=201)

@@ -14,12 +14,14 @@ export function Pager({
   total,
   unit,
   onChange,
+  targetId = "dashboard-directory",
 }: {
   page: number;
   pageCount: number;
   total: number;
   unit: string;
   onChange: (next: number) => void;
+  targetId?: string;
 }) {
   const previousPage = useRef(page);
 
@@ -51,7 +53,7 @@ export function Pager({
   function goToPage(next: number) {
     onChange(next);
     requestAnimationFrame(() => {
-      const directory = document.getElementById("dashboard-directory");
+      const directory = document.getElementById(targetId);
       directory?.focus({ preventScroll: true });
       directory?.scrollIntoView({ block: "start", behavior: "instant" });
     });

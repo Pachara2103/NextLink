@@ -1,0 +1,74 @@
+/* Friday uses the internship card board and sub-tabs; these additions are
+   scoped to Friday so the reference module keeps its existing appearance. */
+.nextlink-dashboard .friday-live-dashboard .friday-workspace-toolbar { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; margin-bottom: 16px; }
+.nextlink-dashboard .friday-workspace-toolbar .io-subtabs { margin: 0; }
+.nextlink-dashboard .friday-workspace-toolbar .friday-live-actions { margin: 0; gap: 8px; }
+.nextlink-dashboard .friday-live-dashboard .friday-live-connection { margin: 0 0 16px; font-size: 12px; }
+.nextlink-dashboard .friday-report-board { margin-block: 14px 0; }
+.nextlink-dashboard .friday-span-all { grid-column: 1 / -1; }
+.nextlink-dashboard .friday-report .io-kpi { min-height: 150px; }
+.nextlink-dashboard .friday-kpi-note { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.nextlink-dashboard .friday-status-legend { list-style: none; display: grid; gap: 4px; padding: 0; margin: 0; }
+.nextlink-dashboard .friday-status-legend button { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; padding: 5px 2px; border: 0; border-radius: 5px; background: transparent; color: var(--ink); font-size: 12px; text-align: left; cursor: pointer; }
+.nextlink-dashboard .friday-status-legend button:hover { background: var(--nd-raised); }
+.nextlink-dashboard .friday-month-scroll { overflow-x: auto; margin-top: 20px; }
+.nextlink-dashboard .friday-month-chart { display: flex; gap: 16px; min-width: min-content; height: 250px; padding: 20px 8px 0; border-bottom: 1px solid var(--line); }
+.nextlink-dashboard .friday-month-column { display: grid; grid-template-rows: 190px 24px; gap: 10px; flex: 1 0 64px; min-width: 64px; }
+.nextlink-dashboard .friday-month-bars { display: flex; align-items: flex-end; justify-content: center; gap: 7px; background: repeating-linear-gradient(to top, transparent 0, transparent calc(25% - 1px), var(--io-grid) calc(25% - 1px), var(--io-grid) 25%); }
+.nextlink-dashboard .friday-month-bar { position: relative; width: 24px; max-width: 35%; border-radius: 4px 4px 0 0; }
+.nextlink-dashboard .friday-month-bar > span { position: absolute; bottom: calc(100% + 3px); left: 50%; transform: translateX(-50%); color: var(--ink); font-size: 12px; font-weight: 700; }
+.nextlink-dashboard .friday-company-bars { display: grid; gap: 9px; list-style: none; padding: 0; margin: 0; }
+.nextlink-dashboard .friday-company-bars button { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(50px, 1.1fr) 30px; gap: 12px; align-items: center; width: 100%; padding: 6px 0; border: 0; border-radius: 5px; color: var(--ink); background: transparent; text-align: left; font-size: 13px; cursor: pointer; }
+.nextlink-dashboard .friday-company-bars button:hover { background: var(--nd-raised); }
+.nextlink-dashboard .friday-company-name { overflow-wrap: anywhere; }
+.nextlink-dashboard .friday-company-meter { display: flex; height: 14px; }
+.nextlink-dashboard .friday-company-meter i { display: block; border-radius: 0 4px 4px 0; background: var(--io-c1); }
+.nextlink-dashboard .friday-company-bars strong { text-align: right; }
+.nextlink-dashboard .friday-format-list { display: grid; gap: 18px; margin-top: 8px; }
+.nextlink-dashboard .friday-format-list > div > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; font-size: 13px; }
+.nextlink-dashboard .friday-format-list strong { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.nextlink-dashboard .friday-format-list small { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
+.nextlink-dashboard .friday-score-track { display: block; height: 9px; overflow: hidden; border-radius: 6px; background: var(--io-empty); }
+.nextlink-dashboard .friday-score-track > span { display: block; height: 100%; border-radius: inherit; background: var(--io-c1); }
+.nextlink-dashboard .friday-report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.nextlink-dashboard .friday-report-table th, .nextlink-dashboard .friday-report-table td { padding: 12px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+.nextlink-dashboard .friday-report-table th { font-weight: 650; }
+.nextlink-dashboard .friday-report-filter-note { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin: 0 0 16px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 13px; }
+.nextlink-dashboard .friday-evaluation-controls { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(220px, 2fr); gap: 14px; margin: 0 0 18px; }
+.nextlink-dashboard .friday-evaluation-controls label { display: grid; gap: 7px; color: var(--muted); font-size: 12px; font-weight: 650; }
+.nextlink-dashboard .friday-evaluation-controls input, .nextlink-dashboard .friday-evaluation-controls select { width: 100%; min-width: 0; min-height: 42px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: var(--surface); font: inherit; font-size: 14px; }
+.nextlink-dashboard .friday-provisional-toggle { display: flex; align-items: flex-start; gap: 9px; margin: 14px 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.nextlink-dashboard .friday-provisional-toggle input { flex-shrink: 0; width: 16px; height: 16px; margin-top: 3px; }
+.nextlink-dashboard .friday-evaluation-warning { padding: 12px 14px; border: 1px solid var(--nd-orange-line, var(--line)); border-radius: 9px; color: var(--ink); background: var(--nd-orange-soft, var(--nd-raised)); font-size: 13px; line-height: 1.7; }
+.nextlink-dashboard .friday-score-distribution { display: grid; gap: 20px; margin: 12px 0; }
+.nextlink-dashboard .friday-score-distribution > div { display: grid; grid-template-columns: 64px minmax(0, 1fr) 35px; align-items: center; gap: 12px; font-size: 13px; }
+.nextlink-dashboard .friday-score-distribution strong { text-align: right; }
+.nextlink-dashboard .friday-evaluation-reports { display: grid; gap: 16px; }
+.nextlink-dashboard .friday-evaluation-report { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 12px; }
+.nextlink-dashboard .friday-evaluation-report-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.nextlink-dashboard .friday-evaluation-report h4 { margin: 4px 0 7px; color: var(--ink); font-size: 16px; }
+.nextlink-dashboard .friday-evaluation-report p { margin: 6px 0 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.nextlink-dashboard .friday-evaluation-report details { margin: 12px 0; font-size: 13px; }
+.nextlink-dashboard .friday-evaluation-report summary { cursor: pointer; font-weight: 650; }
+.nextlink-dashboard .friday-evaluation-source { padding: 10px; border-radius: 8px; color: var(--muted); background: var(--nd-raised); font-size: 12px; overflow-wrap: anywhere; }
+.nextlink-dashboard .friday-evaluation-caption { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; }
+.nextlink-dashboard .friday-live-dashboard .io-card:focus { outline: none; }
+.nextlink-dashboard .friday-live-dashboard .io-card:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
+@media (max-width: 1100px) {
+  .nextlink-dashboard .friday-workspace-toolbar .friday-live-actions { width: 100%; }
+  .nextlink-dashboard .friday-report-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nextlink-dashboard .friday-report-board .io-span-3 { grid-column: span 2; }
+  .nextlink-dashboard .friday-report-board .io-span-1 { grid-column: span 2; }
+  .nextlink-dashboard .friday-status-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 20px; }
+}
+@media (max-width: 620px) {
+  .nextlink-dashboard .friday-report-board { grid-template-columns: minmax(0, 1fr); }
+  .nextlink-dashboard .friday-report-board .io-span-1, .nextlink-dashboard .friday-report-board .io-span-2, .nextlink-dashboard .friday-report-board .io-span-3 { grid-column: span 1; }
+  .nextlink-dashboard .friday-workspace-toolbar .io-subtabs { width: 100%; }
+  .nextlink-dashboard .friday-workspace-toolbar .io-subtabs [role=tab] { flex: 1; padding-inline: 10px; font-size: 13px; }
+  .nextlink-dashboard .friday-workspace-toolbar .friday-live-actions > button { flex: 1 1 auto; }
+  .nextlink-dashboard .friday-evaluation-controls { grid-template-columns: minmax(0, 1fr); }
+  .nextlink-dashboard .friday-status-legend { grid-template-columns: minmax(0, 1fr); }
+  .nextlink-dashboard .friday-evaluation-report { padding: 14px; }
+  .nextlink-dashboard .friday-report-board .io-card { padding: 18px; }
+}

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 
 // Runs after the baseline database assertions, inside the guarded local harness.
 export async function checkReviewRegressions({pa,a,base,record,title,check,ready,dbSql,output,setPhase}) {
-  const list=base+'/dashboard/friday-activities?year=2569&term=1';
+  const list=base+'/dashboard/friday-activities?year=2569&term=1&view=table';
   const detail=()=>pa.getByRole('dialog');
   const close=async()=>{await detail().getByRole('button',{name:'ปิดรายละเอียด',exact:true}).click();await detail().waitFor({state:'hidden'});};
   await pa.setViewportSize({width:1440,height:1000});

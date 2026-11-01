@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {checkFollowups} from './check-followups.mjs';
 import {checkReviewRegressions} from './check-review-regressions.mjs';
 import {checkFridayDesign} from './check-design.mjs';
+import {checkFridayWorkspace} from './check-workspace.mjs';
 import {createRequire} from 'node:module';
 import {mkdir, mkdtemp, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -75,8 +76,8 @@ const collect=page=>{page.on('pageerror',e=>errors.push({phase,message:e.message
 const a=await browser.newContext({viewport:{width:1440,height:1000}});const b=await browser.newContext({viewport:{width:1440,height:1000}});
 const pa=await a.newPage(),pb=await b.newPage();collect(pa);collect(pb);pa.setDefaultTimeout(16000);pb.setDefaultTimeout(16000);
 const ready=async p=>p.locator('.friday-live-dashboard[data-ready="true"]').waitFor();
-const go=async(p,suffix='?year=2569&term=1')=>{await p.goto(base+'/dashboard/friday-activities'+suffix);await ready(p);};
-const login=async(p,user)=>{await p.goto(base+'/dashboard/friday-activities?year=2569&term=1');await p.waitForURL('**/login?next=*');await p.locator('input[name=username]').fill(user);await p.locator('input[name=password]').fill('friday-ui-fixture-password');await p.getByRole('button',{name:'เข้าสู่ระบบ',exact:true}).click();await ready(p);};
+const go=async(p,suffix='?year=2569&term=1')=>{const url=new URL(base+'/dashboard/friday-activities'+suffix);if(!url.searchParams.has('view'))url.searchParams.set('view','table');await p.goto(url.href);await ready(p);};
+const login=async(p,user)=>{await p.goto(base+'/dashboard/friday-activities?year=2569&term=1&view=table');await p.waitForURL('**/login?next=*');await p.locator('input[name=username]').fill(user);await p.locator('input[name=password]').fill('friday-ui-fixture-password');await p.getByRole('button',{name:'เข้าสู่ระบบ',exact:true}).click();await ready(p);};
 const mutation=async(p,method,path,action)=>{const promise=p.waitForResponse(r=>new URL(r.url()).pathname===path&&r.request().method()===method);const [,r]=await Promise.all([action(),promise]);const body=await r.json();apiResults.push({method,path,status:r.status(),id:body.id,revision:body.revision});return {response:r,body};};
 const open=async(p,title)=>{await p.getByRole('button',{name:'ดูรายละเอียด '+title,exact:true}).filter({visible:true}).first().click();const d=p.getByRole('dialog');await d.getByRole('button',{name:'แก้ไขข้อมูล',exact:true}).waitFor();return d;};
 const close=async p=>{await p.getByRole('dialog').getByRole('button',{name:'ปิดรายละเอียด',exact:true}).click();await p.getByRole('dialog').waitFor({state:'hidden'});};
@@ -115,7 +116,7 @@ try {
   await panel.locator('details').first().locator('summary').first().click();await panel.getByRole('combobox',{name:'สถานะกิจกรรม',exact:true}).selectOption('draft');await panel.getByRole('combobox',{name:'ผลตรวจแถวนี้',exact:true}).selectOption('create');const reviewed=await mutation(pa,'PATCH',`/api/v1/friday-activities/imports/${batch.id}/rows/${batch.rows[0].id}`,()=>panel.getByRole('button',{name:'บันทึกผลตรวจแถวนี้',exact:true}).click());assert.equal(reviewed.response.status(),200);batch=reviewed.body;const c=await mutation(pa,'POST',`/api/v1/friday-activities/imports/${batch.id}/commit`,()=>panel.getByRole('button',{name:'ยืนยันนำเข้า 1 แถวที่ตรวจผ่าน',exact:true}).click());assert.equal(c.response.status(),200);assert.equal(c.body.receipt.inserted,1);await panel.getByText(/ใบรับผลล่าสุดที่เซิร์ฟเวอร์ยืนยัน|เซิร์ฟเวอร์ยืนยันผลการนำเข้าแล้ว/).waitFor();await panel.getByRole('button',{name:'ปิดการนำเข้า',exact:true}).click();await ready(pa);
  });
  await check('empty term is truthful and real API failure is distinct from empty data',async()=>{
-  await go(pa,'?year=2569&term=summer');assert.match(await pa.locator('body').innerText(),/ยังไม่มีกิจกรรมในช่วงการศึกษานี้/);assert.equal(await pa.locator('.kpi-card').first().locator('.kpi-value').innerText(),'0');await pa.screenshot({path:output+'/empty-period.png',fullPage:true});
+  await go(pa,'?year=2569&term=summer');assert.match(await pa.locator('body').innerText(),/ยังไม่มีกิจกรรมในช่วงการศึกษานี้/);assert.match(await pa.locator('#dashboard-directory .panel-caption').innerText(),/^0 กิจกรรม$/);await pa.screenshot({path:output+'/empty-period.png',fullPage:true});
   phase='expected-api-failure';dbSql('ALTER TABLE friday_activities RENAME TO friday_activities_qa_unavailable');
   try {await pa.getByRole('button',{name:'โหลดข้อมูลใหม่',exact:true}).click();await pa.getByRole('alert').filter({hasText:'อ่านรายการกิจกรรมไม่สำเร็จ'}).waitFor();assert.match(await pa.locator('body').innerText(),/อ่านข้อมูลไม่สำเร็จ/);await pa.screenshot({path:output+'/real-api-error.png',fullPage:true});} finally {dbSql('ALTER TABLE friday_activities_qa_unavailable RENAME TO friday_activities');}
   phase='normal';await pa.getByRole('button',{name:'ลองอ่านรายการอีกครั้ง',exact:true}).click();await ready(pa);await go(pa);
@@ -140,7 +141,8 @@ try {
  await checkFollowups({pa,pb,a,browser,base,record,title,check,ready,collect,dbSql,output,setPhase:value=>{phase=value;}});
  await checkReviewRegressions({pa,a,base,record,title,check,ready,dbSql,output,setPhase:value=>{phase=value;}});
  await checkFridayDesign({pa,a,base,check,ready,output});
+ await checkFridayWorkspace({pa,a,base,check,ready,dbSql,output,setPhase:value=>{phase=value;}});
  assert.equal(errors.length,0,'no framework or page errors');assert.equal(consoleMessages.filter(m=>m.phase!=='expected-api-failure'&&m.type==='error'&&!m.text.includes('409')).length,0,'no unexpected application console errors');
- await writeFile(output+'/results.json',JSON.stringify({passed:true,environment:{base,backend:'explicit isolated Friday harness behind Next rewrite',browser:'Playwright Chromium; Browser plugin not available',viewports:['1440x1000','820x1180','390x844'],themes:['classic','dark'],primaryFlowApiInterception:false,timingRegression:'one initial history response fetched from real API and delivered after real post-save history; no fabricated payload',ancillaryFixture:'empty LINE groups directory only; health tests local PG without AI/Neo4j'},results,apiResults,errors,consoleMessages,networkFailures},null,2));
+ await writeFile(output+'/results.json',JSON.stringify({passed:true,environment:{base,backend:'explicit isolated Friday harness behind Next rewrite',browser:'Playwright Chromium automated regression suite',viewports:['1440x1000','820x1180','390x844'],themes:['classic','dark'],primaryFlowApiInterception:false,timingRegression:'real initial history and analytics responses delayed across writes/filter changes; no fabricated payload',ancillaryFixture:'empty LINE groups directory only; health tests local PG without AI/Neo4j'},results,apiResults,errors,consoleMessages,networkFailures},null,2));
  console.log('ALL PASS '+results.length);console.log('Evidence: '+output);
 } catch(e) {await pa.screenshot({path:output+'/failure-alice.png',fullPage:true}).catch(()=>{});await pb.screenshot({path:output+'/failure-bob.png',fullPage:true}).catch(()=>{});await writeFile(output+'/failure-alice.txt',await pa.locator('body').innerText().catch(()=>''));await writeFile(output+'/failure-bob.txt',await pb.locator('body').innerText().catch(()=>''));await writeFile(output+'/failure.json',JSON.stringify({message:e.stack,results,apiResults,errors,consoleMessages,networkFailures},null,2));throw e;} finally {await browser.close();}
