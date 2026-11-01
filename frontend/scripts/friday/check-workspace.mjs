@@ -149,6 +149,11 @@ export async function checkFridayWorkspace({pa, a, base, check, ready, dbSql, ou
     await nextReport(()=>pa.getByRole('button',{name:'กลับหน้าแรกของผลประเมิน',exact:true}).click());
     assert.equal(new URL(pa.url()).searchParams.get('evaluationPage'),'1');
     assert.match(await pa.locator('[data-kpi=friday-student-responses] .io-kpi-value').innerText(),/^5/);
+    await go('view=evaluation&evaluationPage=2');await reportReady('evaluation');await view('ตารางกิจกรรม');await ready(pa);
+    const registryPage=pa.waitForResponse(response=>new URL(response.url()).pathname===root&&new URL(response.url()).searchParams.get('page')==='2');
+    await pa.getByRole('navigation',{name:'แบ่งหน้ารายการกิจกรรม',exact:true}).getByRole('button',{name:'ถัดไป',exact:true}).click();await registryPage;await ready(pa);
+    assert.equal(new URL(pa.url()).searchParams.get('evaluationPage'),'2','registry pagination preserves the independent evaluation page');
+    await view('ผลการประเมิน','evaluation');assert.equal(new URL(pa.url()).searchParams.get('evaluationPage'),'2');
   });
 
   await check('a genuine report database failure retains the last snapshot and can be retried',async()=>{
@@ -181,7 +186,8 @@ export async function checkFridayWorkspace({pa, a, base, check, ready, dbSql, ou
       await pa.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
       assert.equal(new URL(pa.url()).searchParams.has('q'),false);
       assert.equal(Number(await pa.locator('[data-kpi=friday-total] .kpi-value > span').innerText()),expected.summary.total);
-      await pa.getByRole('combobox',{name:'เลือกภาคการศึกษา',exact:true}).selectOption('2');await ready(pa);await reportReady('overview');
+      await nextReport(()=>pa.getByRole('combobox',{name:'เลือกภาคการศึกษา',exact:true}).selectOption('2'),'overview');
+      await pa.waitForURL(url=>url.searchParams.get('term')==='2');await ready(pa);await reportReady('overview');
       assert.equal(new URL(pa.url()).searchParams.get('term'),'2');
       assert.equal(Number(await pa.locator('[data-kpi=friday-total] .kpi-value > span').innerText()),(await api('/analytics?academicYear=2026&term=SECOND')).summary.total);
     } finally {releaseResolve();await pa.unroute('**/api/v1/friday-activities/analytics?*');}

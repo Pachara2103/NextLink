@@ -105,7 +105,7 @@ export function FridayLiveDashboard({ period }: { period: AcademicPeriod }) {
     // Native history updates useSearchParams without a server navigation for
     // each keystroke, and do not create a history entry per character.
     const target = new URL(activityUrl(activityId, { search, status, companyId, page: 1, ...changes }), window.location.origin);
-    target.searchParams.delete("evaluationPage");
+    if (changes.search !== undefined || changes.status !== undefined || changes.companyId !== undefined) target.searchParams.delete("evaluationPage");
     window.history.replaceState(null, "", target.pathname + target.search);
   }
   function clear() { changeFilters({ search: "", status: "", companyId: "" }); }
