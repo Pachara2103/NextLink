@@ -4,7 +4,7 @@ import {writeFile} from 'node:fs/promises';
 // Called only by the guarded real PostgreSQL harness in check-live.mjs.
 export async function checkFollowups({pa,pb,a,browser,base,record,title,check,ready,collect,dbSql,output,setPhase}) {
   const path=`/api/v1/friday-activities/${record.id}`;
-  const url=`${base}/dashboard/friday-activities?year=2569&term=1&activityId=${record.id}`;
+  const url=`${base}/dashboard/friday-activities?year=2569&term=1&view=table&activityId=${record.id}`;
   const detail=p=>p.getByRole('dialog');
   const panel=p=>detail(p).getByRole('region',{name:'บันทึกและงานติดตาม',exact:true});
   const noteForm=p=>panel(p).getByRole('form',{name:'แบบฟอร์มบันทึก',exact:true});

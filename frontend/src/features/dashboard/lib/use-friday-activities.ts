@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { fridayActivityService, type FridayListQuery, type FridayListResponse, type FridayOptions } from "@/lib/services/friday-activity";
 import { fridayLiveError } from "./friday-api";
 
-export function useFridayActivities(query: FridayListQuery) {
+export function useFridayActivities(query: FridayListQuery, enabled = true) {
   const queryKey = JSON.stringify(query);
   const generation = useRef(0);
   const optionsGeneration = useRef(0);
@@ -14,6 +14,7 @@ export function useFridayActivities(query: FridayListQuery) {
   const [options, setOptions] = useState<FridayOptions | null>(null);
   const [optionsError, setOptionsError] = useState<string | null>(null);
   const reload = useCallback(async () => {
+    if (!enabled) return;
     const requestGeneration = ++generation.current;
     setLoading(true);
     setFailure(null);
@@ -25,7 +26,7 @@ export function useFridayActivities(query: FridayListQuery) {
     } finally {
       if (generation.current === requestGeneration) setLoading(false);
     }
-  }, [queryKey]);
+  }, [queryKey, enabled]);
   useEffect(() => {
     // Schedule the request after the effect has subscribed. Cancelling this
     // task also prevents Strict Mode's discarded mount from issuing a read.
@@ -44,6 +45,6 @@ export function useFridayActivities(query: FridayListQuery) {
   // Mutations invalidate reads before writing. An older GET can never replace a
   // saved revision; a new GET begins only after the write has completed.
   const beforeWrite = useCallback(() => { generation.current += 1; setLoading(false); }, []);
-  const pending = loading || (result?.key !== queryKey && failure?.key !== queryKey);
+  const pending = enabled && (loading || (result?.key !== queryKey && failure?.key !== queryKey));
   return { data: result?.key === queryKey ? result.data : null, error: failure?.key === queryKey ? failure.message : null, loading: pending, options, optionsError, reload, loadOptions, beforeWrite };
 }

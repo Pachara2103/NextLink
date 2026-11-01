@@ -65,15 +65,23 @@ try {
     assert.equal(route.request().headers().authorization, 'Bearer local-fixture-only', 'Friday requests carry the authenticated session');
     fridayRequests.push({ method, path, query: Object.fromEntries(url.searchParams) });
     if (method === 'GET' && path === '/api/v1/friday-activities/options') return route.fulfill({ json: fridayOptions });
-    if (method === 'GET' && path === '/api/v1/friday-activities') {
+    if (method === 'GET' && ['/api/v1/friday-activities', '/api/v1/friday-activities/analytics'].includes(path)) {
       if (fridayListStatus !== 200) return route.fulfill({ status: fridayListStatus, json: { detail: 'Fixture database temporarily unavailable' } });
       const q = url.searchParams;
       const items = [...fridayRecords.values()].filter(record => record.academicYear === Number(q.get('academicYear')) && record.term === q.get('term') && (!q.get('status') || record.status === q.get('status')) && (!q.get('companyId') || record.companyIds.includes(q.get('companyId'))) && (!q.get('search') || [record.title, record.domain, ...record.companies.map(c => c.name), ...record.sessions.map(s => s.location)].join(' ').toLowerCase().includes(q.get('search').toLowerCase())));
       const sessions = items.filter(r => r.status !== 'cancelled').flatMap(r => r.sessions).filter(s => s.status === 'held');
       const known = sessions.filter(s => s.attended !== null);
+      const summary = { total: items.length, completed: items.filter(r => r.status === 'completed').length, companies: new Set(items.filter(r => r.status !== 'cancelled').flatMap(r => r.companyIds)).size, attended: known.length ? known.reduce((sum, s) => sum + s.attended, 0) : null, unknownAttendance: sessions.length - known.length };
+      if (path.endsWith('/analytics')) return route.fulfill({ json: {
+        summary, source: 'postgresql', lastUpdated: items.length ? stamp : null,
+        statusCounts: [...new Set(items.map(item => item.status))].map(key => ({ key, count: items.filter(item => item.status === key).length })),
+        formatCounts: [...new Set(items.map(item => item.format))].map(key => ({ key, count: items.filter(item => item.format === key && item.status !== 'cancelled').length })),
+        companies: [], months: [], undatedSessions: 0,
+        trend: [0, 1, 2, 3].map(offset => ({ academicYear: Number(q.get('academicYear')) - 3 + offset, summary: offset === 3 ? summary : null })),
+      } });
       const pageNumber = Number(q.get('page')), pageSize = Number(q.get('pageSize'));
       return route.fulfill({ json: { items: items.slice((pageNumber - 1) * pageSize, pageNumber * pageSize), total: items.length, page: pageNumber, pageSize,
-        summary: { total: items.length, completed: items.filter(r => r.status === 'completed').length, companies: new Set(items.filter(r => r.status !== 'cancelled').flatMap(r => r.companyIds)).size, attended: known.length ? known.reduce((sum, s) => sum + s.attended, 0) : null, unknownAttendance: sessions.length - known.length }, source: 'postgresql', lastUpdated: items.length ? stamp : null } });
+        summary, source: 'postgresql', lastUpdated: items.length ? stamp : null } });
     }
     const match = path.match(/^\/api\/v1\/friday-activities\/([^/]+)(?:\/(history|transitions|notes|tasks))?$/);
     if (match && fridayRecords.has(match[1])) {
@@ -135,6 +143,7 @@ try {
     // Existing directory/edit regressions target the table panel introduced by
     // the internship workspace. Keep it selected across reload and URL filters.
     if (target.pathname === '/dashboard/internship' && !target.searchParams.has('view')) target.searchParams.set('view', 'table');
+    if (target.pathname === '/dashboard/friday-activities' && !target.searchParams.has('view')) target.searchParams.set('view', 'table');
     await page.goto(target.href); await page.locator('.app-shell[data-ready="true"]').waitFor();
     assert.match(await page.title(), /NextLink/); assert.equal(await page.locator('nextjs-portal').count(), 0);
   };
@@ -175,7 +184,7 @@ try {
         }
         assert.equal(await page.locator('aside a[href="/dashboard"]').getAttribute('aria-current'), 'page');
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `fits: ${path} ${value}`);
-        if (path) assert.equal(await page.locator(path === '/internship' ? '#dashboard-directory' : 'article.kpi-card').first().evaluate(el => getComputedStyle(el).backgroundColor), value === 'dark' ? 'rgb(16, 20, 24)' : 'rgb(255, 255, 255)');
+        if (path) assert.equal(await page.locator(['/internship', '/friday-activities'].includes(path) ? '#dashboard-directory' : 'article.kpi-card').first().evaluate(el => getComputedStyle(el).backgroundColor), value === 'dark' ? 'rgb(16, 20, 24)' : 'rgb(255, 255, 255)');
       }
       await page.screenshot({ path: `${output}/capstone-${value}.png`, fullPage: true });
     }
@@ -303,14 +312,15 @@ try {
       await page.locator('dialog[open]').getByText(changed, { exact: true }).first().waitFor();
     }
   });
-  const fridayKpi = label => page.locator('article.kpi-card').filter({ has: page.locator('.kpi-label', { hasText: label }) }).locator('.kpi-value');
+  const fridayKpi = label => page.locator('article.friday-report-kpi').filter({ has: page.locator('.io-kpi-label', { hasText: label }) }).locator('.kpi-value > span');
   const fridayDialog = () => page.locator('dialog.friday-live-dialog[open]');
   const openFriday = async title => page.getByRole('button', { name: `ดูรายละเอียด ${title}`, exact: true }).filter({ visible: true }).click();
   await check('Friday API periods, company/status/search filters and unknown attendance remain explicit', async () => {
-    await go('/friday-activities');
+    await go('/friday-activities?view=overview');
     assert.equal(await fridayKpi('กิจกรรมทั้งหมด').innerText(), '2');
     assert.equal(await fridayKpi('ผู้เข้าร่วมจริง').innerText(), '0');
-    assert.match(await page.locator('article.kpi-card').last().innerText(), /ขาดจำนวน 1 รอบ/);
+    assert.match(await page.locator('article.friday-report-kpi').last().innerText(), /ขาดจำนวน 1 รอบ/);
+    await page.getByRole('tab', { name: 'ตารางกิจกรรม', exact: true }).click();
     await page.getByRole('combobox', { name: 'บริษัท', exact: true }).selectOption('102');
     await page.getByText('ไม่พบกิจกรรมที่ตรงกับตัวกรอง', { exact: true }).filter({ visible: true }).waitFor();
     await page.getByRole('button', { name: 'ล้างตัวกรอง', exact: true }).click();
@@ -321,14 +331,14 @@ try {
     await fridayDialog().getByRole('button', { name: 'ปิดรายละเอียด', exact: true }).click();
     await page.getByRole('combobox', { name: 'สถานะ', exact: true }).selectOption('draft');
     await page.getByText('ไม่พบกิจกรรมที่ตรงกับตัวกรอง', { exact: true }).filter({ visible: true }).waitFor();
-    await go('/friday-activities?year=2568&term=2');
+    await go('/friday-activities?year=2568&term=2&view=overview');
     assert.equal(await fridayKpi('กิจกรรมทั้งหมด').innerText(), '1');
     assert.equal(await fridayKpi('ผู้เข้าร่วมจริง').innerText(), '8');
-    await go('/friday-activities?year=2569&term=summer');
+    await go('/friday-activities?year=2569&term=summer&view=overview');
     assert.equal(await fridayKpi('กิจกรรมทั้งหมด').innerText(), '0');
     assert.equal(await fridayKpi('ผู้เข้าร่วมจริง').innerText(), '—');
     assert.equal(await page.locator('.academic-period-empty').count(), 0, 'empty live state is not the demo period fallback');
-    await go('/friday-activities?year=2566&term=1');
+    await go('/friday-activities?year=2566&term=1&view=overview');
     assert.equal(await fridayKpi('ผู้เข้าร่วมจริง').innerText(), '0');
     assert.ok(fridayRequests.some(r => r.query.academicYear === '2025' && r.query.term === 'SECOND'));
   });
@@ -406,14 +416,14 @@ try {
     fridayListStatus = 503;
     await page.reload();
     await page.getByText('อ่านรายการกิจกรรมไม่สำเร็จ', { exact: true }).waitFor();
-    assert.equal(await fridayKpi('กิจกรรมทั้งหมด').innerText(), '—');
+    assert.equal(await page.locator('.friday-report-kpi').count(), 0, 'a failed registry read does not display fabricated overview metrics');
     assert.match(await page.locator('#dashboard-directory').innerText(), /ยังแสดงรายการปัจจุบันไม่ได้/);
     assert.doesNotMatch(await page.locator('#dashboard-directory').innerText(), /ยังไม่มีกิจกรรมในช่วง/);
     await page.screenshot({ path: `${output}/friday-read-error.png`, fullPage: true });
     fridayListStatus = 200;
     await page.getByRole('button', { name: 'ลองอ่านรายการอีกครั้ง', exact: true }).click();
     await page.locator('.app-shell[data-ready="true"]').waitFor();
-    assert.equal(await fridayKpi('กิจกรรมทั้งหมด').innerText(), '4');
+    assert.equal(await page.locator('#dashboard-directory .table-wrap .course-link').count(), 4);
   });
   await check('unsaved dialog edits can be kept or discarded without leaking into another record', async () => {
     await go('/electives');
