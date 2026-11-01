@@ -5,9 +5,11 @@ export async function checkInternshipOutcomes({ page, context, base, go, check, 
   const ready = () => page.locator('#internship-outcomes[data-ready="true"]').waitFor();
   const stage = key => panel().locator('[data-stage="' + key + '"] > strong').innerText();
   const kpi = key => page.locator('[data-kpi="' + key + '"] .kpi-value').innerText();
-  const cloud = '/internship?year=2569&term=1&q=Mock%20Cloud';
-  await check('internship unique students and independent outcomes follow company, cohort and round filters', async () => {
-    await go('/internship?year=2569&term=1'); await ready();
+  // The outcome editor remains on the co-op dashboard. The new internship
+  // workspace is covered separately through its three visible tabs.
+  const cloud = '/cooperative?year=2569&term=1&q=Mock%20Cloud';
+  await check('co-op unique students and independent outcomes follow company, cohort and round filters', async () => {
+    await go('/cooperative?year=2569&term=1'); await ready();
     const allPeople = Number(await kpi('unique-applicants'));
     const applications = Number((await page.locator('[data-kpi="unique-applicants"] .kpi-note').innerText()).match(/จาก ([\d,]+)/)[1].replaceAll(',', ''));
     assert.ok(allPeople > 0 && allPeople < applications, 'same person in two rounds is counted once');
@@ -27,6 +29,8 @@ export async function checkInternshipOutcomes({ page, context, base, go, check, 
   await check('outcome edits survive reload and do not change preferences, legacy totals or other periods and tracks', async () => {
     await go(cloud); await ready();
     const before = await page.locator('.kpi-grid').innerText();
+    const otherTrackKey = 'nextlink.dashboard.demo.user-901.nextlink.internship.outcomes.v1';
+    const otherTrackBefore = await page.evaluate(key => localStorage.getItem(key), otherTrackKey);
     await panel().getByText('ตรวจผลรายนิสิต (3 รายการ)', { exact: true }).click();
     await panel().getByRole('button', { name: 'ตรวจผล demo-outcome-1', exact: true }).click();
     const editor = page.getByRole('article', { name: 'บันทึกผลรายนิสิต', exact: true });
@@ -42,10 +46,12 @@ export async function checkInternshipOutcomes({ page, context, base, go, check, 
     await panel().getByRole('button', { name: 'ตรวจผล demo-outcome-1', exact: true }).click();
     assert.match(await editor.innerText(), /Synthetic result saved in browser check/);
     assert.match(await editor.innerText(), /จับคู่แล้ว: ใช่ · นิสิตตอบรับแล้ว: ใช่ · เข้าฝึกจริงแล้ว: ยังไม่ทราบ/);
-    await go('/internship?year=2568&term=2&q=Mock%20Cloud&round=1'); await ready(); assert.equal(await stage('accepted'), '0');
-    await go('/cooperative?year=2569&term=1&q=Mock%20Cloud&round=1'); await ready(); assert.equal(await stage('accepted'), '0');
+    await go('/cooperative?year=2568&term=2&q=Mock%20Cloud&round=1'); await ready(); assert.equal(await stage('accepted'), '0');
+    await go('/internship?year=2569&term=1&q=Mock%20Cloud&round=1');
+    assert.equal(await page.locator('.internship-workspace').getAttribute('data-track'), 'ฝึกงาน');
+    assert.equal(await page.evaluate(key => localStorage.getItem(key), otherTrackKey), otherTrackBefore);
     await go(cloud + '&round=1'); await ready(); assert.equal(await stage('accepted'), '1'); assert.equal(await stage('started'), 'ยังไม่มีข้อมูล');
-    const key = 'nextlink.dashboard.demo.user-901.nextlink.internship.outcomes.v1';
+    const key = 'nextlink.dashboard.demo.user-901.nextlink.cooperative.outcomes.v1';
     const previous = await page.evaluate(key => { const old = localStorage.getItem(key); localStorage.setItem(key, '{broken'); return old; }, key);
     assert.ok(previous, 'outcome edits have their own account and period storage');
     try { await page.reload(); await panel().locator('p.dataset-warning').waitFor(); assert.equal(await stage('started'), 'อ่านข้อมูลไม่ได้'); }

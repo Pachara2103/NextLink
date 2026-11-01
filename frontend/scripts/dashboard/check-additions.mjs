@@ -89,7 +89,7 @@ export async function checkAdditions({ page, context, base, go, check, theme, ou
   });
   await check('internship historical ranks and cohort filters remain visible and survive reload', async () => {
     await go('/internship?year=2566&term=summer');
-    assert.match(await page.locator('.rank-legend').first().innerText(), /อันดับ 10/);
+    assert.match(await page.locator('#dashboard-directory .rank-stack[role="img"]').first().getAttribute('aria-label'), /อันดับ 10/);
     await page.getByRole('combobox', { name: 'ชั้นปีนิสิต', exact: true }).selectOption('1');
     await page.getByRole('combobox', { name: 'รอบสมัคร', exact: true }).selectOption('2');
     await page.waitForURL('**/*round=2*');

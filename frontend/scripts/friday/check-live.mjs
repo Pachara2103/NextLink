@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {checkFollowups} from './check-followups.mjs';
 import {checkReviewRegressions} from './check-review-regressions.mjs';
+import {checkFridayDesign} from './check-design.mjs';
 import {createRequire} from 'node:module';
 import {mkdir, mkdtemp, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -82,7 +83,7 @@ const close=async p=>{await p.getByRole('dialog').getByRole('button',{name:'ป�
 const dbSql=sql=>execFileSync(python,['-c',`import psycopg2,json,os\nc=psycopg2.connect(os.environ['TEST_DATABASE_URL'])\nwith c:\n with c.cursor() as r:\n  r.execute(${JSON.stringify(sql)})\n  print(json.dumps(r.fetchall() if r.description else [],default=str))\nc.close()`],{encoding:'utf8',env:{...process.env,TEST_DATABASE_URL:databaseUrl.href}}).trim();
 let record,title='QA Friday shared activity';
 try {
- await check('real Alice login and empty PostgreSQL page',async()=>{await login(pa,'alice');assert.match(await pa.title(),/Friday Activity/);assert.match(await pa.locator('body').innerText(),/ยังไม่มีกิจกรรมในช่วงการศึกษานี้/);assert.equal(await pa.locator('.friday-live-dashboard').getAttribute('data-source'),'postgresql');assert.doesNotMatch(await pa.locator('.dashboard-demo-notice').innerText(),/ข้อมูลทดลอง|ข้อมูลตัวอย่าง/);await pa.screenshot({path:output+'/empty-desktop.png',fullPage:true});});
+ await check('real Alice login and empty PostgreSQL page',async()=>{await login(pa,'alice');assert.match(await pa.title(),/Friday Activity/);assert.match(await pa.locator('body').innerText(),/ยังไม่มีกิจกรรมในช่วงการศึกษานี้/);assert.equal(await pa.locator('.friday-live-dashboard').getAttribute('data-source'),'postgresql');assert.match(await pa.locator('.friday-live-connection').innerText(),/ฐานข้อมูลกลาง/);assert.doesNotMatch(await pa.locator('.friday-live-connection').innerText(),/ข้อมูลทดลอง|ข้อมูลตัวอย่าง/);await pa.screenshot({path:output+'/empty-desktop.png',fullPage:true});});
  await check('create canonical company/contact session with null and zero counts',async()=>{
   await pa.getByRole('button',{name:'สร้างกิจกรรม',exact:true}).click();const d=pa.getByRole('dialog');
   await d.getByLabel('ชื่อกิจกรรม *',{exact:true}).fill(title);await d.getByRole('combobox',{name:'เจ้าหน้าที่ผู้รับผิดชอบ *',exact:true}).selectOption('1');
@@ -138,7 +139,8 @@ try {
  });
  await checkFollowups({pa,pb,a,browser,base,record,title,check,ready,collect,dbSql,output,setPhase:value=>{phase=value;}});
  await checkReviewRegressions({pa,a,base,record,title,check,ready,dbSql,output,setPhase:value=>{phase=value;}});
+ await checkFridayDesign({pa,a,base,check,ready,output});
  assert.equal(errors.length,0,'no framework or page errors');assert.equal(consoleMessages.filter(m=>m.phase!=='expected-api-failure'&&m.type==='error'&&!m.text.includes('409')).length,0,'no unexpected application console errors');
- await writeFile(output+'/results.json',JSON.stringify({passed:true,environment:{base,backend:'explicit isolated Friday harness behind Next rewrite',browser:'Playwright Chromium; Browser plugin not available',viewports:['1440x1000','390x844'],primaryFlowApiInterception:false,timingRegression:'one initial history response fetched from real API and delivered after real post-save history; no fabricated payload',ancillaryFixture:'empty LINE groups directory only; health tests local PG without AI/Neo4j'},results,apiResults,errors,consoleMessages,networkFailures},null,2));
+ await writeFile(output+'/results.json',JSON.stringify({passed:true,environment:{base,backend:'explicit isolated Friday harness behind Next rewrite',browser:'Playwright Chromium; Browser plugin not available',viewports:['1440x1000','820x1180','390x844'],themes:['classic','dark'],primaryFlowApiInterception:false,timingRegression:'one initial history response fetched from real API and delivered after real post-save history; no fabricated payload',ancillaryFixture:'empty LINE groups directory only; health tests local PG without AI/Neo4j'},results,apiResults,errors,consoleMessages,networkFailures},null,2));
  console.log('ALL PASS '+results.length);console.log('Evidence: '+output);
 } catch(e) {await pa.screenshot({path:output+'/failure-alice.png',fullPage:true}).catch(()=>{});await pb.screenshot({path:output+'/failure-bob.png',fullPage:true}).catch(()=>{});await writeFile(output+'/failure-alice.txt',await pa.locator('body').innerText().catch(()=>''));await writeFile(output+'/failure-bob.txt',await pb.locator('body').innerText().catch(()=>''));await writeFile(output+'/failure.json',JSON.stringify({message:e.stack,results,apiResults,errors,consoleMessages,networkFailures},null,2));throw e;} finally {await browser.close();}

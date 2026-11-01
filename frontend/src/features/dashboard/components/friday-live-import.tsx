@@ -1,7 +1,8 @@
 "use client";
 
-import { useId, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { ApiError, NetworkError } from "@/lib/services/http";
+import { useUnsavedChanges } from "../lib/use-unsaved-changes";
 import {
   FRIDAY_IMPORT_TEMPLATE_HEADERS,
   fridayImportService,
@@ -281,6 +282,12 @@ export function FridayLiveImport({ companies, onCommitted, onClose }: {
   onClose: () => void;
 }) {
   const id = useId();
+  const panelRef = useRef<HTMLElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    headingRef.current?.focus({ preventScroll: true });
+    panelRef.current?.scrollIntoView({ block: "start", behavior: "instant" });
+  }, []);
   const [file, setFile] = useState<File | null>(null);
   const [yearConvention, setYearConvention] = useState<FridayImportYearConvention>("AD");
   const [batchId, setBatchId] = useState("");
@@ -306,6 +313,7 @@ export function FridayLiveImport({ companies, onCommitted, onClose }: {
   const hasReceipt = Boolean(batch?.receipt);
   const isComplete = batch?.status === "committed";
   const hasDrafts = dirtyRows.size > 0;
+  useUnsavedChanges(hasDrafts || busy !== null || uncertain);
   const canCommit = batch?.status === "preview" && (ready > 0 || (pending === 0 && skipped > 0)) && selectedBlocked === 0 && !stale && !hasDrafts;
 
   function markRowDirty(rowId: string, dirty: boolean) {
@@ -414,11 +422,12 @@ export function FridayLiveImport({ companies, onCommitted, onClose }: {
     }
   }
 
-  return <section className={`panel ${styles.panel}`} aria-labelledby={`${id}-title`} aria-busy={busy !== null}>
+  return <section ref={panelRef} className={`panel ${styles.panel}`} aria-labelledby={`${id}-title`} aria-busy={busy !== null}>
     <div className={styles.heading}>
-      <div><h2 id={`${id}-title`}>นำเข้า Friday Activity</h2><p className={styles.caption}>อัปโหลด CSV หรือ Excel เพื่อตรวจและจับคู่บริษัทก่อนบันทึกลงฐานข้อมูลกลาง</p></div>
+      <div><p className="section-kicker">นำเข้ากิจกรรม</p><h2 ref={headingRef} tabIndex={-1} id={`${id}-title`}>นำเข้า Friday Activity</h2><p className={styles.caption}>อัปโหลด CSV หรือ Excel เพื่อตรวจและจับคู่บริษัทก่อนบันทึกลงฐานข้อมูลกลาง</p></div>
       <button type="button" className="secondary-button" onClick={onClose} disabled={busy !== null || uncertain || hasDrafts}>ปิดการนำเข้า</button>
     </div>
+    <ol className={styles.steps} aria-label="ขั้นตอนการนำเข้า">{["เลือกไฟล์", "ตรวจและจับคู่", "ยืนยันและรับผล"].map((label, index) => <li key={label} aria-current={index === (isComplete ? 2 : batch ? 1 : 0) ? "step" : undefined}><span>{index + 1}</span>{label}</li>)}</ol>
     <div className={styles.actions}><button type="button" className="secondary-button" onClick={downloadTemplate}>ดาวน์โหลดแม่แบบ CSV</button></div>
     <p className={styles.caption}>Excel ใช้หัวคอลัมน์เดียวกับแม่แบบ · term: FIRST/SECOND/SUMMER · format: talk/workshop/visit/hackathon/other/unknown · status: draft/contacting/invited/confirmed/in_progress/completed/cancelled</p>
     <p className={styles.caption}>กำหนด sourceKey ที่คงเดิมสำหรับกิจกรรมเดิม เพื่อแยกการอัปเดตจากการสร้างใหม่ · วันที่ sessionDate ใช้ ค.ศ. รูปแบบ YYYY-MM-DD และเวลา HH:MM เสมอ</p>

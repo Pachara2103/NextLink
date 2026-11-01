@@ -130,7 +130,14 @@ try {
   let allowDiscard = true;
   page.on('dialog', dialog => allowDiscard ? dialog.accept() : dialog.dismiss());
   const paths = ['', '/electives', '/mou', '/internship', '/cooperative', '/capstone', '/friday-activities'];
-  const go = async path => { await page.goto(base + '/dashboard' + path); await page.locator('.app-shell[data-ready="true"]').waitFor(); assert.match(await page.title(), /NextLink/); assert.equal(await page.locator('nextjs-portal').count(), 0); };
+  const go = async path => {
+    const target = new URL(base + '/dashboard' + path);
+    // Existing directory/edit regressions target the table panel introduced by
+    // the internship workspace. Keep it selected across reload and URL filters.
+    if (target.pathname === '/dashboard/internship' && !target.searchParams.has('view')) target.searchParams.set('view', 'table');
+    await page.goto(target.href); await page.locator('.app-shell[data-ready="true"]').waitFor();
+    assert.match(await page.title(), /NextLink/); assert.equal(await page.locator('nextjs-portal').count(), 0);
+  };
   const theme = async value => {
     await page.getByRole('radio', { name: value === 'classic' ? /สีดั้งเดิม|สว่าง/ : /มืด/ }).filter({ visible: true }).first().click();
     await page.waitForFunction(value => document.documentElement.dataset.theme === value, value);
@@ -160,10 +167,15 @@ try {
       for (const path of paths) {
         await go(path); await theme(value);
         assert.equal(await page.locator('main').count(), 1);
-        assert.match(await page.locator('.dashboard-demo-notice').innerText(), path === '/friday-activities' ? /ฐานข้อมูลกลาง/ : /ข้อมูลทดลอง/);
+        assert.equal(await page.locator('.topbar .dashboard-module-nav').count(), 1);
+        assert.equal(await page.getByRole('heading', { level: 1 }).count(), 1);
+        if (path === '/friday-activities') {
+          assert.equal(await page.locator('.friday-live-dashboard').getAttribute('data-source'), 'postgresql');
+          assert.match(await page.locator('.friday-live-connection').innerText(), /ฐานข้อมูลกลาง/);
+        }
         assert.equal(await page.locator('aside a[href="/dashboard"]').getAttribute('aria-current'), 'page');
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `fits: ${path} ${value}`);
-        if (path) assert.equal(await page.locator('article.kpi-card').first().evaluate(el => getComputedStyle(el).backgroundColor), value === 'dark' ? 'rgb(16, 20, 24)' : 'rgb(255, 255, 255)');
+        if (path) assert.equal(await page.locator(path === '/internship' ? '#dashboard-directory' : 'article.kpi-card').first().evaluate(el => getComputedStyle(el).backgroundColor), value === 'dark' ? 'rgb(16, 20, 24)' : 'rgb(255, 255, 255)');
       }
       await page.screenshot({ path: `${output}/capstone-${value}.png`, fullPage: true });
     }
@@ -228,8 +240,25 @@ try {
     await page.waitForURL('**/dashboard/mou?year=2568&term=2');
     await page.locator('.app-shell[data-ready="true"]').waitFor();
     assert.equal(await nav.locator('[aria-current="page"]').innerText(), 'MOU');
-    await page.locator('.dashboard-demo-notice summary').click();
-    assert.match(await page.locator('.dashboard-demo-notice p').innerText(), /ไม่ส่งต่อไปยังเครื่อง/);
+    assert.equal(await page.locator('.topbar .dashboard-module-nav [aria-current="page"]').innerText(), 'MOU');
+    assert.equal(await page.getByLabel('เลือกปีการศึกษา', { exact: true }).inputValue(), '2568');
+    assert.equal(await page.getByLabel('เลือกภาคการศึกษา', { exact: true }).inputValue(), '2');
+  });
+  await check('internship workspace exposes overview evaluation and directory through keyboard tabs', async () => {
+    await go('/internship?view=overview');
+    const tabs = page.getByRole('tablist', { name: 'มุมมองหน้าฝึกงาน', exact: true });
+    assert.equal(await tabs.getByRole('tab').count(), 3);
+    assert.equal(await tabs.getByRole('tab', { name: 'ภาพรวม', exact: true }).getAttribute('aria-selected'), 'true');
+    assert.equal(await page.getByRole('tabpanel', { name: 'ภาพรวม', exact: true }).isVisible(), true);
+    await tabs.getByRole('tab', { name: 'ผลการประเมิน', exact: true }).click();
+    assert.equal(await page.getByRole('tabpanel', { name: 'ผลการประเมิน', exact: true }).isVisible(), true);
+    await page.keyboard.press('ArrowRight');
+    assert.equal(await tabs.getByRole('tab', { name: 'ตารางข้อมูล', exact: true }).getAttribute('aria-selected'), 'true');
+    assert.equal(await page.getByRole('searchbox').isVisible(), true);
+    await page.getByRole('searchbox').fill('TAB-STATE-QA');
+    await tabs.getByRole('tab', { name: 'ภาพรวม', exact: true }).click();
+    await tabs.getByRole('tab', { name: 'ตารางข้อมูล', exact: true }).click();
+    assert.equal(await page.getByRole('searchbox').inputValue(), 'TAB-STATE-QA');
   });
   await check('search shortcuts move focus to results, including empty results, on every module', async () => {
     for (const path of paths.filter(path => path && path !== '/friday-activities')) {
@@ -238,8 +267,12 @@ try {
       await page.waitForFunction(() => document.querySelector('#dashboard-directory .empty-state'));
       await page.getByRole('searchbox').press('Enter');
       assert.equal(await page.evaluate(() => document.activeElement?.id), 'dashboard-directory');
-      await page.getByRole('link', { name: 'ค้นหา', exact: true }).click();
-      assert.equal(await page.evaluate(() => document.activeElement?.id), 'dashboard-filters');
+      // The new internship directory has the result shortcut but no separate
+      // in-page section menu. Other dashboards retain both directions.
+      if (path !== '/internship') {
+        await page.getByRole('link', { name: 'ค้นหา', exact: true }).click();
+        assert.equal(await page.evaluate(() => document.activeElement?.id), 'dashboard-filters');
+      }
       await page.getByRole('button', { name: 'ล้างตัวกรอง', exact: true }).click();
       await page.locator('#dashboard-directory .row-action').filter({ visible: true }).first().waitFor();
       await page.getByRole('link', { name: 'ดูผลการค้นหา', exact: true }).click();
@@ -468,7 +501,7 @@ try {
     assert.doesNotMatch(await page.locator('.nextlink-dashboard').innerText(), /\[Dashboard migration\]/);
     await go('/companies?company=partner-cloud');
     assert.doesNotMatch(await page.locator('main').innerText(), /Shared synthetic coordinator|ย้อนหลังสำหรับทดสอบ/);
-    await go('/internship?year=2569&term=1&q=Mock%20Cloud&round=1');
+    await go('/cooperative?year=2569&term=1&q=Mock%20Cloud&round=1');
     await page.locator('#internship-outcomes[data-ready="true"]').waitFor();
     assert.equal(await page.locator('#internship-outcomes [data-stage="accepted"] > strong').innerText(), '0');
     assert.doesNotMatch(await page.locator('main').innerText(), /Synthetic result saved in browser check|Case ล่าสุดจากอีกแท็บ/);
