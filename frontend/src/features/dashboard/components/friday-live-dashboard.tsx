@@ -1,12 +1,13 @@
 "use client";
 
-import { useDeferredValue, useRef, useState, type KeyboardEvent } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { FridayActivityRecord } from "@/lib/services/friday-activity";
 import { academicPeriodLabel, type AcademicPeriod } from "../lib/academic-period";
 import { LIVE_FRIDAY_FORMATS, LIVE_FRIDAY_STATUSES, fridayApiPeriod, fridayLiveCount, fridayLiveDate, fridayLiveTimestamp, fridayUiPeriod } from "../lib/friday-api";
 import { useFridayActivities } from "../lib/use-friday-activities";
 import { useFridayReport } from "../lib/use-friday-report";
+import { useDebouncedValue } from "../lib/use-debounced-value";
 import { fridayReportUrl, type FridayAnalytics, type FridayEvaluations } from "@/lib/services/friday-reporting";
 import { focusDashboardSection } from "../lib/section-navigation";
 import { DashboardModuleNav } from "./app-nav";
@@ -55,14 +56,19 @@ export function FridayLiveDashboard({ period }: { period: AcademicPeriod }) {
 
   const [importOpen, setImportOpen] = useState(false);
   const importButton = useRef<HTMLButtonElement>(null);
-  const deferredSearch = useDeferredValue(search.trim());
-  const dataset = useFridayActivities({ ...fridayApiPeriod(period), search: deferredSearch, status, companyId, page, pageSize: PAGE_SIZE }, view === "table");
-  const reportQuery = { ...fridayApiPeriod(period), search: deferredSearch, status, companyId };
-  const analytics = useFridayReport<FridayAnalytics>(view === "overview" ? fridayReportUrl("analytics", reportQuery) : null);
-  const evaluations = useFridayReport<FridayEvaluations>(view === "evaluation" ? fridayReportUrl("evaluations", { ...reportQuery, includeProvisional, kind: evaluationKind, page: evaluationPage, pageSize: PAGE_SIZE }) : null);
-  const { data, options, error, optionsError, loading } = dataset;
+  const settledSearch = useDebouncedValue(search.trim());
+  const searchPending = settledSearch !== search.trim();
+  const dataset = useFridayActivities({ ...fridayApiPeriod(period), search: settledSearch, status, companyId, page, pageSize: PAGE_SIZE }, view === "table" && !searchPending);
+  const reportQuery = { ...fridayApiPeriod(period), search: settledSearch, status, companyId };
+  const analytics = useFridayReport<FridayAnalytics>(view === "overview" && !searchPending ? fridayReportUrl("analytics", reportQuery) : null);
+  const evaluations = useFridayReport<FridayEvaluations>(view === "evaluation" && !searchPending ? fridayReportUrl("evaluations", { ...reportQuery, includeProvisional, kind: evaluationKind, page: evaluationPage, pageSize: PAGE_SIZE }) : null);
+  const { options, optionsError } = dataset;
+  // Old-filter totals must not be presented as results for the pending search.
+  const data = searchPending ? null : dataset.data;
+  const error = searchPending ? null : dataset.error;
+  const loading = searchPending || dataset.loading;
   const activeReport = view === "overview" ? analytics : evaluations;
-  const connectionLoading = view === "table" ? loading : activeReport.loading;
+  const connectionLoading = searchPending || (view === "table" ? loading : activeReport.loading);
   const connectionError = view === "table" ? error : activeReport.error;
   const lastUpdated = view === "table" ? data?.lastUpdated : activeReport.data?.lastUpdated;
   const hasData = view === "table" ? Boolean(data) : Boolean(activeReport.data);
@@ -135,10 +141,10 @@ export function FridayLiveDashboard({ period }: { period: AcademicPeriod }) {
       {importOpen && options && <FridayLiveImport companies={options.companies} onClose={() => { setImportOpen(false); importButton.current?.focus(); }} onCommitted={changed} />}
       {view !== "table" && hasFilters && <div className="friday-report-filter-note" role="status"><span>ใช้ตัวกรองร่วมกัน: {[search, options?.companies.find(company => company.id === companyId)?.name, status ? LIVE_FRIDAY_STATUSES[status as keyof typeof LIVE_FRIDAY_STATUSES] : ""].filter(Boolean).join(" · ")}</span><button className="text-button" type="button" onClick={() => changeView("table")}>ปรับตัวกรอง</button><button className="text-button" type="button" onClick={clear}>ล้างตัวกรองทั้งหมด</button></div>}
       <section id="friday-panel-overview" role="tabpanel" aria-labelledby="friday-tab-overview" hidden={view !== "overview"}>
-        <FridayLiveOverview data={analytics.data} loading={analytics.loading} error={analytics.error} onRetry={() => void analytics.reload()} onFilter={filters => { const target = new URL(activityUrl(null, { search, status, companyId, page: 1, ...filters }), window.location.origin); target.searchParams.set("view", "table"); target.searchParams.delete("evaluationPage"); window.history.pushState(null, "", target.pathname + target.search); }} />
+        <FridayLiveOverview data={analytics.data} loading={searchPending || analytics.loading} error={analytics.error} onRetry={() => void analytics.reload()} onFilter={filters => { const target = new URL(activityUrl(null, { search, status, companyId, page: 1, ...filters }), window.location.origin); target.searchParams.set("view", "table"); target.searchParams.delete("evaluationPage"); window.history.pushState(null, "", target.pathname + target.search); }} />
       </section>
       <section id="friday-panel-evaluation" role="tabpanel" aria-labelledby="friday-tab-evaluation" hidden={view !== "evaluation"}>
-        <FridayLiveEvaluationBoard data={evaluations.data} loading={evaluations.loading} error={evaluations.error} includeProvisional={includeProvisional} kind={evaluationKind} companies={options?.companies ?? []} companyId={companyId} search={search} onFilters={changeFilters} onSettings={evaluationSettings} onPage={page => evaluationSettings({ page })} onOpen={openActivity} onRetry={() => void evaluations.reload()} />
+        <FridayLiveEvaluationBoard data={evaluations.data} loading={searchPending || evaluations.loading} error={evaluations.error} includeProvisional={includeProvisional} kind={evaluationKind} companies={options?.companies ?? []} companyId={companyId} search={search} onFilters={changeFilters} onSettings={evaluationSettings} onPage={page => evaluationSettings({ page })} onOpen={openActivity} onRetry={() => void evaluations.reload()} />
       </section>
       <section id="friday-panel-table" role="tabpanel" aria-labelledby="friday-tab-table" hidden={view !== "table"}>
       <section id="dashboard-filters" tabIndex={-1} className="control-panel" aria-label="ค้นหาและกรองกิจกรรม"><div className="control-heading"><h3>ค้นหาและกรองกิจกรรม</h3><button className="text-button" type="button" disabled={!hasFilters} onClick={clear}>ล้างตัวกรอง</button></div><FilterFields activeCount={Number(Boolean(status)) + Number(Boolean(companyId))} search={<label className="search-field"><span>ค้นหากิจกรรม บริษัท ศาสตร์ หรือสถานที่</span><input type="search" value={search} maxLength={500} onChange={event => changeFilters({ search: event.target.value })} placeholder="เช่น หัวข้อกิจกรรม บริษัท หรือห้องจัดงาน…" /></label>}><label><span>บริษัท</span><select value={companyId} onChange={event => changeFilters({ companyId: event.target.value })}><option value="">ทุกบริษัท</option>{options?.companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}</select></label><label><span>สถานะ</span><select value={status} onChange={event => changeFilters({ status: event.target.value })}><option value="">ทุกสถานะ</option>{Object.entries(LIVE_FRIDAY_STATUSES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></FilterFields>

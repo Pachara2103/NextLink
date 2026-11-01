@@ -763,28 +763,27 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
         void refreshUpdateLogs();
       }
 
-      // In parallel: none of the three depends on the others. The company read
+      // None of these reads depends on another. Start the initial employee and
+      // note reads now too, rather than waiting for the three directory reads.
+      // The company read
       // serves two purposes — the directory behind "ค้นหาบริษัทที่มีอยู่", and the
       // company half of every group line — so it is read once here and merged,
       // rather than going through `lineService.getGroupLines()`, which would
       // fetch the same list a second time.
-      const [lineGroups, companyList, contactsByCompany] = await Promise.all([
+      const [lineGroups, companyList, contactsByCompany, initial] = await Promise.all([
         lineService.getLineGroups(),
         companyService.list(),
         contactService.listByCompany(),
+        scope === "initial" ? Promise.all([
+          employeeService.getEmployeesByCompany(),
+          noteService.list(),
+        ]) : null,
       ]);
       groups = mergeGroupLines(lineGroups, companyList);
       companies = companyList;
       companyContacts = contactsByCompany;
 
-      if (scope === "initial") {
-        const [byCompany, notes] = await Promise.all([
-          employeeService.getEmployeesByCompany(),
-          noteService.list(),
-        ]);
-        employees = byCompany;
-        dispatch({ type: "notes/set", notes });
-      }
+      if (initial) employees = initial[0];
 
       if (id !== requestId.current) {
         // งานนี้ถูกแทนที่ด้วย sync ที่ใหม่กว่า ผลที่อ่านมาจึงถูกทิ้ง ไม่ใช่ error
@@ -799,6 +798,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      if (initial) dispatch({ type: "notes/set", notes: initial[1] });
       dispatch({
         type: "sync/done",
         scope,
