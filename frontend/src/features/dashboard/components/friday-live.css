@@ -10,7 +10,7 @@
 .nextlink-dashboard .friday-live-history li { padding: 10px 0; border-bottom: 1px solid var(--line); line-height: 1.6; }
 .nextlink-dashboard .friday-live-history p { margin: 5px 0; font-size: 13px; }
 .nextlink-dashboard .friday-live-dialog { width: min(850px, calc(100vw - 28px)); }
-.nextlink-dashboard .friday-live-dialog .dialog-edit-footer { display: flex; flex-direction: row; justify-content: flex-end; gap: 10px; padding: 14px 24px; border-top: 1px solid var(--line); flex: 0 0 auto; }
+.nextlink-dashboard .friday-live-dialog .dialog-edit-footer { padding: 14px 24px; border-top: 1px solid var(--line); flex: 0 0 auto; }
 .nextlink-dashboard .friday-live-dialog fieldset:disabled { opacity: .7; }
 .nextlink-dashboard .friday-live-dialog .cap-checkboxes label { display: flex; align-items: center; gap: 8px; }
 .nextlink-dashboard .friday-live-dialog .cap-checkboxes .course-edit-grid label { display: grid; align-items: start; }
@@ -23,3 +23,37 @@
 .nextlink-dashboard .friday-followups .friday-live-actions { margin: 14px 0 0; }
 .nextlink-dashboard .friday-followups .status-pill { margin-right: 8px; }
 .nextlink-dashboard .friday-followups textarea { width: 100%; min-width: 0; resize: vertical; }
+
+/* Use the elective dashboard's shared header, cards and controls; all layout
+   differences below stay inside the live Friday surface. */
+.nextlink-dashboard .friday-live-intro-tools { display: flex; flex-direction: column; align-items: flex-end; gap: 14px; min-width: 0; max-width: 100%; }
+.nextlink-dashboard .friday-live-intro-tools .friday-live-actions { justify-content: flex-end; margin: 0; }
+.nextlink-dashboard .friday-live-connection { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: -2px 0 20px; }
+.nextlink-dashboard .friday-live-dashboard .kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.nextlink-dashboard .friday-live-dashboard .filters { grid-template-columns: minmax(230px, 1.5fr) repeat(2, minmax(150px, 1fr)); }
+.nextlink-dashboard .friday-live-dashboard .kpi-topline { flex-wrap: wrap; }
+.nextlink-dashboard .friday-live-dashboard .kpi-context { white-space: normal; }
+.nextlink-dashboard .friday-live-dialog .detail-section { padding: 18px; border: 1px solid var(--line); border-radius: 12px; }
+.nextlink-dashboard .friday-live-dialog .detail-section > h3:first-child { margin-top: 0; }
+.nextlink-dashboard .friday-live-dialog .detail-section .detail-section { padding: 0; border: 0; border-radius: 0; }
+.nextlink-dashboard .friday-live-dialog .friday-live-fields > .detail-section:first-of-type { margin-top: 16px; }
+.nextlink-dashboard .friday-live-dialog .cap-checkboxes legend { padding-inline: 6px; font-size: 15px; font-weight: 800; }
+.nextlink-dashboard .friday-live-dialog .friday-live-picker { border-radius: 9px; background: var(--nd-raised); padding: 12px; }
+.nextlink-dashboard .friday-live-dialog .friday-live-session { background: var(--nd-raised); }
+.nextlink-dashboard .friday-live-dialog .dialog-statusbar .dialog-next-meta { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; }
+.nextlink-dashboard .friday-live-dialog .friday-followup-card { background: var(--nd-raised); }
+.nextlink-dashboard .friday-live-dialog .friday-live-history { padding-left: 18px; }
+@media (max-width: 1050px) {
+  .nextlink-dashboard .friday-live-dashboard .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nextlink-dashboard .friday-live-intro { flex-wrap: wrap; }
+  .nextlink-dashboard .friday-live-intro-tools { align-items: flex-start; }
+  .nextlink-dashboard .friday-live-intro-tools .friday-live-actions { justify-content: flex-start; }
+}
+@media (max-width: 760px) {
+  .nextlink-dashboard .friday-live-intro-tools { width: 100%; }
+  .nextlink-dashboard .friday-live-intro-tools .friday-live-actions { width: 100%; }
+  .nextlink-dashboard .friday-live-dashboard .filters { grid-template-columns: minmax(0, 1fr); }
+  .nextlink-dashboard .friday-live-dialog .detail-section { padding: 14px; }
+  .nextlink-dashboard .friday-live-dialog .dialog-edit-footer { padding: 12px 18px; }
+  .nextlink-dashboard .friday-live-dialog .dialog-edit-actions { gap: 8px; }
+}

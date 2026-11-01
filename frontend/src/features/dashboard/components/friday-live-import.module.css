@@ -1,8 +1,14 @@
-.panel { padding: 22px; margin-block: 18px; }
+.panel { padding: 22px; margin-block: 18px; scroll-margin-top: 90px; }
 .heading, .actions, .summary, .rowHeading { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
 .heading { justify-content: space-between; align-items: flex-start; }
 .heading h2 { margin: 0; font-size: 20px; }
 .heading p { margin: 8px 0 16px; }
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 0; margin: 6px 0 20px; list-style: none; }
+.steps li { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 12px; border: 1px solid var(--nd-line); border-radius: 10px; color: var(--nd-muted); font-size: 13px; font-weight: 700; }
+.steps li > span { display: grid; place-items: center; flex: 0 0 26px; width: 26px; height: 26px; border-radius: 50%; background: var(--nd-raised); color: var(--nd-ink); }
+.steps li[aria-current=step] { color: var(--nd-blue); border-color: var(--nd-blue-line); background: var(--nd-blue-soft); }
+.steps li[aria-current=step] > span { background: var(--nd-blue); color: var(--nd-on-color, #fff); }
+@media (max-width: 620px) { .steps { gap: 6px; } .steps li { flex-direction: column; align-items: flex-start; padding: 10px 8px; font-size: 12px; } }
 .forms { display: grid; gap: 18px; margin-block: 18px; }
 .form, .row { padding: 16px; border: 1px solid var(--nd-line, #dce4f0); border-radius: 12px; min-width: 0; }
 .form { display: grid; gap: 12px; }

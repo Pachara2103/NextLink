@@ -9,7 +9,7 @@ export function FridayLiveForm({ draft, options, disabled, onChange }: { draft: 
   function changePerson(index: number, patch: Partial<FridayPerson>) { update("people", draft.people.map((person, row) => row === index ? { ...person, ...patch } : person)); }
   return <fieldset className="friday-live-fields" disabled={disabled}>
     <legend className="sr-only">ข้อมูลกิจกรรม</legend>
-    <div className="course-edit-grid">
+    <section className="detail-section"><div className="section-heading-row"><h3>ข้อมูลกิจกรรม</h3><span className="panel-caption">ชื่อ รูปแบบ และผู้รับผิดชอบ</span></div><div className="course-edit-grid">
       <label className="edit-field-full"><span>ชื่อกิจกรรม *</span><input required maxLength={300} value={draft.title} onChange={event => update("title", event.target.value)} /></label>
       <label><span>ปีการศึกษา (พ.ศ.) *</span><input required type="number" min={2543} max={2643} step={1} value={draft.academicYear + 543} onChange={event => update("academicYear", Number(event.target.value) - 543)} /></label>
       <label><span>ภาคการศึกษา *</span><select value={draft.term} onChange={event => update("term", event.target.value as FridayEditable["term"])}><option value="FIRST">เทอม 1</option><option value="SECOND">เทอม 2</option><option value="SUMMER">ภาคฤดูร้อน</option></select></label>
@@ -17,7 +17,7 @@ export function FridayLiveForm({ draft, options, disabled, onChange }: { draft: 
       <label><span>รูปแบบ</span><select value={draft.format} onChange={event => update("format", event.target.value as FridayEditable["format"])}>{Object.entries(LIVE_FRIDAY_FORMATS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       <label className="edit-field-full"><span>เจ้าหน้าที่ผู้รับผิดชอบ *</span><select required value={draft.ownerUserId} onChange={event => update("ownerUserId", event.target.value)}><option value="">เลือกเจ้าหน้าที่ผู้รับผิดชอบ</option>{options.owners.map(owner => <option key={owner.id} value={owner.id}>{owner.name}</option>)}</select></label>
       <label className="edit-field-full"><span>รายละเอียดกิจกรรม</span><textarea rows={3} maxLength={20000} value={draft.description ?? ""} onChange={event => update("description", event.target.value || null)} /></label>
-    </div>
+    </div></section>
     <fieldset className="cap-checkboxes detail-section"><legend>บริษัทที่ร่วมกิจกรรม</legend><p className="panel-caption">เลือกจากทะเบียนบริษัทกลาง รองรับหลายบริษัท</p><div className="friday-live-picker">{options.companies.map(company => <label key={company.id}><input type="checkbox" checked={draft.companyIds.includes(company.id)} onChange={event => update("companyIds", event.target.checked ? [...draft.companyIds, company.id] : draft.companyIds.filter(id => id !== company.id))} />{company.name}</label>)}</div>{options.companies.length === 0 && <p className="panel-caption">ยังไม่มีบริษัทในทะเบียนกลาง</p>}</fieldset>
     <fieldset className="cap-checkboxes detail-section"><legend>ผู้ประสานงานและวิทยากร</legend><p className="panel-caption">เลือกบริษัทก่อนเพื่อแสดงผู้ติดต่อในทะเบียน หรือเพิ่มผู้ร่วมกิจกรรมภายนอกด้วยชื่อที่ระบุเอง</p><div className="friday-live-picker">{options.people.filter(person => draft.companyIds.includes(person.companyId ?? "")).map(person => {
       const key = fridayPersonKey(person);
