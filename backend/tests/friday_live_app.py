@@ -110,4 +110,5 @@ def health():
     return {"status": "ok", "ready": True, "models": False,
             "bootId": "local-friday-postgres-qa", "startedAt": "2026-10-15T00:00:00Z",
             "testHarness": True, "postgresql": True,
-            "testDatabase": database_name, "testDatabasePort": database_port}
+            "testDatabase": database_name, "testDatabasePort": _parsed.port or 5432,
+            "postgresqlServerPort": database_port}

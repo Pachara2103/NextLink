@@ -261,7 +261,8 @@ def get_activity(activity_id):
         return result
 
 
-def list_activities(*, academic_year=None, term=None, status=None, company_id=None, search=None, page=1, page_size=25):
+def activity_filter(*, academic_year=None, term=None, status=None, company_id=None, search=None):
+    """One filter contract for the registry and whole-dataset reports (a/p aliases)."""
     if company_id is not None:
         _valid_id(company_id)
     clauses, params = [], []
@@ -279,16 +280,25 @@ def list_activities(*, academic_year=None, term=None, status=None, company_id=No
         escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         params.extend([f"%{escaped}%"] * 5)
     where = " WHERE " + " AND ".join(clauses) if clauses else ""
+    return where, params
+
+
+def activity_summary(conn, filtered, params):
+    return _rows(conn, f"""WITH filtered AS ({filtered}) SELECT
+        (SELECT count(*) FROM filtered) AS total,
+        (SELECT count(*) FROM filtered WHERE status='completed') AS completed,
+        (SELECT count(DISTINCT ac.company_id) FROM friday_activity_companies ac JOIN filtered f ON f.id=ac.activity_id WHERE f.status<>'cancelled') AS companies,
+        (SELECT sum(s.attended) FROM friday_sessions s JOIN filtered f ON f.id=s.activity_id WHERE s.status='held' AND f.status<>'cancelled') AS attended,
+        (SELECT count(*) FROM friday_sessions s JOIN filtered f ON f.id=s.activity_id WHERE s.status='held' AND s.attended IS NULL AND f.status<>'cancelled') AS unknown_attendance,
+        (SELECT max(updated_at) FROM filtered) AS last_updated""", params)[0]
+
+
+def list_activities(*, academic_year=None, term=None, status=None, company_id=None, search=None, page=1, page_size=25):
+    where, params = activity_filter(academic_year=academic_year, term=term, status=status, company_id=company_id, search=search)
     filtered = "SELECT a.id,a.status,a.updated_at FROM friday_activities a JOIN academic_periods p ON p.id=a.period_id" + where
     with nl_db.get_connection() as conn:
         _execute(conn, "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
-        summary = _rows(conn, f"""WITH filtered AS ({filtered}) SELECT
-            (SELECT count(*) FROM filtered) AS total,
-            (SELECT count(*) FROM filtered WHERE status='completed') AS completed,
-            (SELECT count(DISTINCT ac.company_id) FROM friday_activity_companies ac JOIN filtered f ON f.id=ac.activity_id WHERE f.status<>'cancelled') AS companies,
-            (SELECT sum(s.attended) FROM friday_sessions s JOIN filtered f ON f.id=s.activity_id WHERE s.status='held' AND f.status<>'cancelled') AS attended,
-            (SELECT count(*) FROM friday_sessions s JOIN filtered f ON f.id=s.activity_id WHERE s.status='held' AND s.attended IS NULL AND f.status<>'cancelled') AS unknown_attendance,
-            (SELECT max(updated_at) FROM filtered) AS last_updated""", params)[0]
+        summary = activity_summary(conn, filtered, params)
         ids = _rows(conn, f"SELECT id FROM ({filtered}) f ORDER BY updated_at DESC,id DESC LIMIT %s OFFSET %s", (*params,page_size,(page-1)*page_size))
         items = [_activity(conn,row["id"]) for row in ids]
         result = FridayActivityList(items=items,total=summary["total"],page=page,page_size=page_size,
