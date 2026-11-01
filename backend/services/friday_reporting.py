@@ -12,7 +12,7 @@ import re
 from core.db import nl_db
 from core.exceptions import AppException
 from schemas.friday_reporting import FridayAnalytics, FridayEvaluations
-from services.friday_activity import _execute, _rows, activity_filter, activity_summary
+from services.friday_activity import _execute, _rows, activity_filter
 
 _FROM = " FROM friday_activities a JOIN academic_periods p ON p.id=a.period_id"
 _SUMMARY_KEYS = ("total", "completed", "companies", "attended", "unknown_attendance")
@@ -42,49 +42,55 @@ def _summary(values):
 
 
 def analytics(*, academic_year, term, status=None, company_id=None, search=None):
-    where, params = activity_filter(academic_year=academic_year, term=term, status=status, company_id=company_id, search=search)
-    filtered = "SELECT a.*,p.academic_year,p.term" + _FROM + where
+    # Share one bounded, narrow activity scope across the current year and its
+    # comparison years. Child aggregates stay separate to avoid multiplying
+    # attendance when an activity has several partners or sessions.
+    where, params = activity_filter(term=term, status=status, company_id=company_id, search=search)
+    first_year = max(2000, academic_year - 3)
+    filtered = "SELECT a.id,a.status,a.format,a.updated_at,p.academic_year" + _FROM + where + " AND p.academic_year BETWEEN %s AND %s"
     with nl_db.get_connection() as conn:
         _execute(conn, "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
-        summary = activity_summary(conn, filtered, params)
-        statuses = _rows(conn, f"WITH f AS ({filtered}) SELECT status AS key,count(*) AS count FROM f GROUP BY status ORDER BY status", params)
-        formats = _rows(conn, f"WITH f AS ({filtered}) SELECT format AS key,count(*) AS count FROM f WHERE status<>'cancelled' GROUP BY format ORDER BY format", params)
-        companies = _rows(conn, f"""WITH f AS ({filtered}) SELECT c.id::text AS id,
-            COALESCE(NULLIF(btrim(c.company_th),''),NULLIF(btrim(c.company_en),''),'Company '||c.id) AS name,
-            count(*) AS count FROM f JOIN friday_activity_companies ac ON ac.activity_id=f.id
-            JOIN companies c ON c.id=ac.company_id WHERE f.status<>'cancelled'
-            AND EXISTS(SELECT 1 FROM friday_sessions s WHERE s.activity_id=f.id AND s.status='held')
-            GROUP BY c.id ORDER BY count DESC,name,c.id LIMIT 10""", params)
-        months = _rows(conn, f"""WITH f AS ({filtered}) SELECT to_char(s.session_date,'YYYY-MM') AS month,
-            count(*) FILTER(WHERE s.status='held') AS held,count(*) FILTER(WHERE s.status='planned') AS planned
-            FROM f JOIN friday_sessions s ON s.activity_id=f.id WHERE f.status<>'cancelled'
-            AND s.status<>'cancelled' AND s.session_date IS NOT NULL GROUP BY month ORDER BY month""", params)
-        undated = _rows(conn, f"""WITH f AS ({filtered}) SELECT count(*) AS count FROM f
-            JOIN friday_sessions s ON s.activity_id=f.id WHERE f.status<>'cancelled'
-            AND s.status<>'cancelled' AND s.session_date IS NULL""", params)[0]["count"]
-        # Four comparable academic years, always the same term and same filters.
-        # An absent period is null, not an invented zero or a simulated trend.
-        trend_where, trend_params = activity_filter(term=term, status=status, company_id=company_id, search=search)
-        first_year = max(2000, academic_year - 3)
-        trend_filtered = "SELECT a.*,p.academic_year" + _FROM + trend_where + " AND p.academic_year BETWEEN %s AND %s"
-        trend_rows = _rows(conn, f"""WITH f AS ({trend_filtered}),
-            totals AS (SELECT academic_year,count(*) AS total,count(*) FILTER(WHERE status='completed') AS completed FROM f GROUP BY academic_year),
+        row = _rows(conn, f"""WITH f AS MATERIALIZED ({filtered}),
+            sessions AS MATERIALIZED (SELECT f.academic_year,s.activity_id,s.status,s.session_date,s.attended FROM f
+                JOIN friday_sessions s ON s.activity_id=f.id WHERE f.status<>'cancelled' AND s.status<>'cancelled'),
+            totals AS (SELECT academic_year,count(*) AS total,count(*) FILTER(WHERE status='completed') AS completed,
+                max(updated_at) AS last_updated FROM f GROUP BY academic_year),
             partners AS (SELECT f.academic_year,count(DISTINCT ac.company_id) AS companies FROM f
                 JOIN friday_activity_companies ac ON ac.activity_id=f.id WHERE f.status<>'cancelled' GROUP BY f.academic_year),
-            people AS (SELECT f.academic_year,sum(s.attended) AS attended,
-                count(*) FILTER(WHERE s.attended IS NULL) AS unknown_attendance FROM f
-                JOIN friday_sessions s ON s.activity_id=f.id WHERE f.status<>'cancelled' AND s.status='held' GROUP BY f.academic_year)
-            SELECT p.academic_year,coalesce(t.total,0) AS total,coalesce(t.completed,0) AS completed,
-                coalesce(c.companies,0) AS companies,s.attended,coalesce(s.unknown_attendance,0) AS unknown_attendance
-            FROM academic_periods p LEFT JOIN totals t USING(academic_year)
-            LEFT JOIN partners c USING(academic_year) LEFT JOIN people s USING(academic_year)
-            WHERE p.term=%s AND p.academic_year BETWEEN %s AND %s ORDER BY p.academic_year""",
-            (*trend_params, first_year, academic_year, term, first_year, academic_year))
-        indexed = {row["academic_year"]: row for row in trend_rows}
+            attendance AS (SELECT academic_year,sum(attended) AS attended,
+                count(*) FILTER(WHERE attended IS NULL) AS unknown_attendance FROM sessions
+                WHERE status='held' GROUP BY academic_year),
+            years AS (SELECT p.academic_year,coalesce(t.total,0) AS total,coalesce(t.completed,0) AS completed,
+                coalesce(c.companies,0) AS companies,s.attended,coalesce(s.unknown_attendance,0) AS unknown_attendance,t.last_updated
+                FROM academic_periods p LEFT JOIN totals t USING(academic_year)
+                LEFT JOIN partners c USING(academic_year) LEFT JOIN attendance s USING(academic_year)
+                WHERE p.term=%s AND p.academic_year BETWEEN %s AND %s),
+            current AS MATERIALIZED (SELECT * FROM f WHERE academic_year=%s),
+            current_sessions AS MATERIALIZED (SELECT * FROM sessions WHERE academic_year=%s),
+            statuses AS (SELECT status AS key,count(*) AS count FROM current GROUP BY status),
+            formats AS (SELECT format AS key,count(*) AS count FROM current WHERE status<>'cancelled' GROUP BY format),
+            companies AS (SELECT c.id AS sort_id,c.id::text AS id,
+                COALESCE(NULLIF(btrim(c.company_th),''),NULLIF(btrim(c.company_en),''),'Company '||c.id) AS name,count(*) AS count
+                FROM current f JOIN friday_activity_companies ac ON ac.activity_id=f.id JOIN companies c ON c.id=ac.company_id
+                WHERE f.status<>'cancelled' AND EXISTS(SELECT 1 FROM current_sessions s WHERE s.activity_id=f.id AND s.status='held')
+                GROUP BY c.id ORDER BY count DESC,name,c.id LIMIT 10),
+            months AS (SELECT to_char(session_date,'YYYY-MM') AS month,count(*) FILTER(WHERE status='held') AS held,
+                count(*) FILTER(WHERE status='planned') AS planned FROM current_sessions WHERE session_date IS NOT NULL GROUP BY month)
+            SELECT (SELECT coalesce(json_agg(y ORDER BY academic_year),'[]'::json) FROM years y) AS years,
+                (SELECT coalesce(json_agg(s ORDER BY key),'[]'::json) FROM statuses s) AS statuses,
+                (SELECT coalesce(json_agg(f ORDER BY key),'[]'::json) FROM formats f) AS formats,
+                (SELECT coalesce(json_agg(json_build_object('id',c.id,'name',c.name,'count',c.count)
+                    ORDER BY c.count DESC,c.name,c.sort_id),'[]'::json) FROM companies c) AS companies,
+                (SELECT coalesce(json_agg(m ORDER BY month),'[]'::json) FROM months m) AS months,
+                (SELECT count(*) FROM current_sessions WHERE session_date IS NULL) AS undated""",
+            (*params, first_year, academic_year, term, first_year, academic_year, academic_year, academic_year))[0]
+        indexed = {year["academic_year"]: year for year in row["years"]}
+        summary = indexed.get(academic_year, dict(total=0, completed=0, companies=0, attended=None, unknown_attendance=0, last_updated=None))
+        # An absent period remains null; an existing period with no matches is zero.
         trend = [{"academic_year": year, "summary": _summary(indexed[year]) if year in indexed else None}
                  for year in range(first_year, academic_year + 1)]
-        result = FridayAnalytics(summary=_summary(summary), status_counts=statuses, format_counts=formats,
-            companies=companies, months=months, undated_sessions=undated, trend=trend, last_updated=summary["last_updated"])
+        result = FridayAnalytics(summary=_summary(summary), status_counts=row["statuses"], format_counts=row["formats"],
+            companies=row["companies"], months=row["months"], undated_sessions=row["undated"], trend=trend, last_updated=summary["last_updated"])
         conn.rollback()
         return result
 
@@ -137,17 +143,23 @@ def decode_workbook_note(body, reference, kind):
 
 def evaluations(*, academic_year, term, status=None, company_id=None, search=None, page=1, page_size=20, include_provisional=False, kind=None):
     where, params = activity_filter(academic_year=academic_year, term=term, status=status, company_id=company_id, search=search)
-    filtered = "SELECT a.*,p.academic_year,p.term" + _FROM + where
+    filtered = "SELECT a.id,a.title,a.status" + _FROM + where
     prefixes = [_STUDENT + "\n%", _COMPANY + "%", _REPORTED + "\n%คะแนนประเมินที่รายงานในตาราง:%"]
     with nl_db.get_connection() as conn:
         _execute(conn, "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
-        rows = _rows(conn, f"""WITH f AS ({filtered}), origins AS (
-            SELECT reference,count(DISTINCT activity_id) AS activities FROM friday_notes
-            WHERE body LIKE ANY(%s) GROUP BY reference)
+        # Check relevant references across all periods, without grouping every
+        # unrelated source. Different minimum/maximum activity IDs establish
+        # the same multi-activity conflict as COUNT(DISTINCT activity_id)>1.
+        rows = _rows(conn, f"""WITH f AS MATERIALIZED ({filtered}), candidates AS MATERIALIZED (
+            SELECT n.id,n.activity_id,n.body,n.reference,n.updated_at FROM friday_notes n JOIN f ON f.id=n.activity_id
+            WHERE n.body LIKE ANY(%s) ORDER BY n.updated_at DESC,n.id DESC LIMIT 5001), origins AS (
+            SELECT n.reference,min(n.activity_id)<>max(n.activity_id) AS mapping_conflict FROM friday_notes n
+            WHERE n.body LIKE ANY(%s) AND EXISTS(SELECT 1 FROM candidates c WHERE c.reference=n.reference)
+            GROUP BY n.reference)
             SELECT n.id::text AS note_id,n.activity_id::text AS activity_id,n.body,n.reference,n.updated_at,
-                f.title,f.status AS activity_status,{_COMPANY_NAMES} AS companies,o.activities AS mappings
-            FROM friday_notes n JOIN f ON f.id=n.activity_id LEFT JOIN origins o ON o.reference=n.reference
-            WHERE n.body LIKE ANY(%s) ORDER BY n.updated_at DESC,n.id DESC LIMIT 5001""", (*params, prefixes, prefixes))
+                f.title,f.status AS activity_status,{_COMPANY_NAMES} AS companies,o.mapping_conflict
+            FROM candidates n JOIN f ON f.id=n.activity_id LEFT JOIN origins o ON o.reference=n.reference
+            ORDER BY n.updated_at DESC,n.id DESC""", (*params, prefixes, prefixes))
         if len(rows) > 5000:
             raise AppException(message="มีผลประเมินมากเกินขอบเขตรายงาน กรุณากรองบริษัทหรือกิจกรรมให้แคบลง", status_code=422)
         reports, seen, duplicates = [], set(), 0
@@ -160,7 +172,7 @@ def evaluations(*, academic_year, term, status=None, company_id=None, search=Non
                 continue
             seen.add(identity)
             mapping = "provisional" if "การจับคู่ชั่วคราวสำหรับทดสอบ:" in body else "confirmed"
-            if row["mappings"] and row["mappings"] > 1:
+            if row["mapping_conflict"]:
                 mapping = "conflict"
             report = {key: row[key] for key in ("note_id", "activity_id", "title", "companies", "updated_at")}
             report.update(id="friday-note-" + row["note_id"], kind=report_kind, mapping=mapping, counted=False, reference=reference)

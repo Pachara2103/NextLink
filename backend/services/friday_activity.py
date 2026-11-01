@@ -5,6 +5,7 @@ commit/rollback; child mutations, revision, audit and receipts share one commit.
 """
 import hashlib
 import json
+from collections import defaultdict
 
 from psycopg2.extras import Json, RealDictCursor
 
@@ -56,12 +57,39 @@ def _activity(conn, activity_id, *, lock=False):
     sessions = _rows(conn, """SELECT id::text AS id, session_date,
         to_char(start_time,'HH24:MI') AS start_time, to_char(end_time,'HH24:MI') AS end_time,
         location,status,capacity,booked,attended FROM friday_sessions WHERE activity_id=%s ORDER BY id""", (activity_id,))
+    return _activity_record(row, companies, people, sessions)
+
+
+def _activity_record(row, companies, people, sessions):
     return FridayActivity(
         id=str(row["id"]), academic_year=row["academic_year"], term=row["term"], title=row["title"],
         description=row["description"], domain=row["domain"], format=row["format"], status=row["status"],
         owner_user_id=str(row["owner_user_id"]), company_ids=[c["id"] for c in companies], companies=companies,
         people=people, sessions=sessions, revision=row["revision"], created_at=row["created_at"], updated_at=row["updated_at"],
     )
+
+
+def _activity_page(conn, rows):
+    """Load each child collection once for the page, without join fanout."""
+    if not rows:
+        return []
+    ids = [row["id"] for row in rows]
+    companies, people, sessions = defaultdict(list), defaultdict(list), defaultdict(list)
+    for row in _rows(conn, """SELECT ac.activity_id,c.id::text AS id,
+        COALESCE(NULLIF(btrim(c.company_th),''),NULLIF(btrim(c.company_en),''),'Company '||c.id) AS name
+        FROM friday_activity_companies ac JOIN companies c ON c.id=ac.company_id
+        WHERE ac.activity_id=ANY(%s::bigint[]) ORDER BY ac.activity_id,c.id""", (ids,)):
+        companies[row.pop("activity_id")].append(row)
+    for row in _rows(conn, """SELECT activity_id,id::text AS id,namespace,
+        COALESCE(employee_id,contact_id)::text AS source_id,name_snapshot AS name,role
+        FROM friday_activity_people WHERE activity_id=ANY(%s::bigint[]) ORDER BY activity_id,id""", (ids,)):
+        people[row.pop("activity_id")].append(row)
+    for row in _rows(conn, """SELECT activity_id,id::text AS id,session_date,
+        to_char(start_time,'HH24:MI') AS start_time,to_char(end_time,'HH24:MI') AS end_time,
+        location,status,capacity,booked,attended FROM friday_sessions
+        WHERE activity_id=ANY(%s::bigint[]) ORDER BY activity_id,id""", (ids,)):
+        sessions[row.pop("activity_id")].append(row)
+    return [_activity_record(row, companies[row["id"]], people[row["id"]], sessions[row["id"]]) for row in rows]
 
 
 def _period(conn, year, term):
@@ -299,8 +327,9 @@ def list_activities(*, academic_year=None, term=None, status=None, company_id=No
     with nl_db.get_connection() as conn:
         _execute(conn, "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
         summary = activity_summary(conn, filtered, params)
-        ids = _rows(conn, f"SELECT id FROM ({filtered}) f ORDER BY updated_at DESC,id DESC LIMIT %s OFFSET %s", (*params,page_size,(page-1)*page_size))
-        items = [_activity(conn,row["id"]) for row in ids]
+        rows = _rows(conn, "SELECT a.*,p.academic_year,p.term FROM friday_activities a JOIN academic_periods p ON p.id=a.period_id"
+            + where + " ORDER BY a.updated_at DESC,a.id DESC LIMIT %s OFFSET %s", (*params,page_size,(page-1)*page_size))
+        items = _activity_page(conn, rows)
         result = FridayActivityList(items=items,total=summary["total"],page=page,page_size=page_size,
             summary={k:summary[k] for k in ["total","completed","companies","attended","unknown_attendance"]},last_updated=summary["last_updated"])
         conn.rollback()

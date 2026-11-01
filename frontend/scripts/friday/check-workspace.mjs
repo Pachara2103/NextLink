@@ -192,4 +192,74 @@ export async function checkFridayWorkspace({pa, a, base, check, ready, dbSql, ou
       assert.equal(Number(await pa.locator('[data-kpi=friday-total] .kpi-value > span').innerText()),(await api('/analytics?academicYear=2026&term=SECOND')).summary.total);
     } finally {releaseResolve();await pa.unroute('**/api/v1/friday-activities/analytics?*');}
   });
+
+  for(const [currentView,path] of [['table',root],['evaluation',root+'/evaluations']]) {
+    await check(`${currentView} search coalesces typing into one real API read while updating the URL immediately`,async()=>{
+      await go('view='+currentView);
+      const requests=[];
+      const record=request=>{const url=new URL(request.url());if(url.pathname===path&&request.method()==='GET')requests.push(url.searchParams.get('search'));};
+      pa.on('request',record);
+      try {
+        const next=pa.waitForResponse(response=>new URL(response.url()).pathname===path&&new URL(response.url()).searchParams.get('search')==='Workspace');
+        const search=pa.getByRole('searchbox').filter({visible:true});
+        await search.pressSequentially('Workspace',{delay:50});
+        assert.equal(await search.inputValue(),'Workspace');
+        assert.equal(new URL(pa.url()).searchParams.get('q'),'Workspace');
+        assert.equal((await next).status(),200);await ready(pa);
+        assert.deepEqual(requests,['Workspace']);
+      } finally {pa.off('request',record);}
+    });
+  }
+
+  await check('pending searches hide old totals and discard an earlier real registry response',async()=>{
+    await go('view=table');
+    let release,heldResolve,deliveredResolve;
+    const held=new Promise(resolve=>{heldResolve=resolve;});
+    const wait=new Promise(resolve=>{release=resolve;});
+    const delivered=new Promise(resolve=>{deliveredResolve=resolve;});
+    const pattern='**/api/v1/friday-activities?*';
+    await pa.route(pattern,async route=>{
+      const url=new URL(route.request().url());
+      if(url.searchParams.get('search')!=='Workspace')return route.continue();
+      const response=await route.fetch();heldResolve();await wait;
+      await route.fulfill({response});deliveredResolve();
+    });
+    try {
+      const search=pa.getByRole('searchbox').filter({visible:true});
+      await search.fill('Workspace');await held;
+      await search.fill('zzNoMatchingFridayPerformance');
+      await pa.waitForFunction(()=>new URL(location.href).searchParams.get('q')==='zzNoMatchingFridayPerformance');
+      assert.equal(await pa.locator('#dashboard-directory').getAttribute('aria-busy'),'true');
+      assert.doesNotMatch(await pa.locator('#dashboard-directory .panel-caption').innerText(),/\d+ กิจกรรม/);
+      await ready(pa);assert.equal(await pa.locator('#dashboard-directory .panel-caption').innerText(),'0 กิจกรรม');
+      release();await delivered;
+      await pa.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+      assert.equal(await pa.locator('#dashboard-directory .panel-caption').innerText(),'0 กิจกรรม');
+      await pa.getByRole('button',{name:'ล้างตัวกรอง',exact:true}).click();await ready(pa);
+      assert.equal(await search.inputValue(),'');assert.equal(new URL(pa.url()).searchParams.has('q'),false);
+      assert.match(await pa.locator('#dashboard-directory .panel-caption').innerText(),/^[1-9]\d* กิจกรรม$/);
+      await pa.screenshot({path:output+'/performance-search-restored.png',fullPage:false});
+    } finally {release();await pa.unroute(pattern);}
+  });
+
+  await check('initial employee and note reads start before a delayed company directory finishes',async()=>{
+    let release,heldResolve,deliveredResolve;
+    const held=new Promise(resolve=>{heldResolve=resolve;});
+    const wait=new Promise(resolve=>{release=resolve;});
+    const delivered=new Promise(resolve=>{deliveredResolve=resolve;});
+    const pattern='**/api/v1/companies';
+    await pa.route(pattern,async route=>{
+      const response=await route.fetch();heldResolve();await wait;
+      await route.fulfill({response});deliveredResolve();
+    });
+    const employees=pa.waitForRequest(request=>new URL(request.url()).pathname==='/api/v1/employees');
+    const notes=pa.waitForRequest(request=>new URL(request.url()).pathname==='/api/v1/notes');
+    try {
+      await pa.reload();await held;
+      // Both must start while the first directory response is still held. No
+      // invented payload or response-time threshold is needed to prove this.
+      await Promise.all([employees,notes]);
+      release();await delivered;await ready(pa);
+    } finally {release();await pa.unroute(pattern);}
+  });
 }
