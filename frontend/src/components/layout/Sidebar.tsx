@@ -121,11 +121,11 @@ export function Sidebar({
                   on ? "text-accent" : "text-text-3",
                 )}
               />
-              <span className="flex-1 truncate font-medium">{item.label}</span>
+              <span className="min-w-0 flex-1 whitespace-normal font-medium leading-normal">{item.label}</span>
               {count && count.value > 0 && (
                 <span
                   className={cn(
-                    "rounded-md px-1.5 py-0.5 font-mono text-[11px] font-medium tabular-nums",
+                    "shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[11px] font-medium tabular-nums",
                     count.tone,
                   )}
                 >

@@ -61,12 +61,12 @@ export function InternshipDirectory({ track, view, allCompanies, applications: a
     const search = deferredQuery.trim().toLowerCase();
     return allStats.filter((stats) => {
       const company = stats.company;
-      const haystack = [company.name, company.shortName, company.industry, company.coordinator ?? "", ...company.positions.map((position) => position.name)].join(" ").toLowerCase();
-      if (search && !haystack.includes(search)) return false;
       if (industryFilter !== "all" && company.industry !== industryFilter) return false;
       if (mouFilter !== "all" && company.mouStatus !== mouFilter) return false;
       if (intakeFilter !== "all" && stats.intake !== intakeFilter) return false;
-      return true;
+      if (!search) return true;
+      const haystack = [company.name, company.shortName, company.industry, company.coordinator ?? "", ...company.positions.map((position) => position.name)].join(" ").toLowerCase();
+      return haystack.includes(search);
     });
   }, [allStats, deferredQuery, industryFilter, mouFilter, intakeFilter]);
 
@@ -122,7 +122,7 @@ export function InternshipDirectory({ track, view, allCompanies, applications: a
   };
 
   return <>
-        <section id="dashboard-filters" tabIndex={-1} className="control-panel" aria-label="ตัวกรองข้อมูลบริษัท">
+        <section id="dashboard-filters" tabIndex={-1} className="control-panel internship-directory-filters" aria-label="ตัวกรองข้อมูลบริษัท">
           <div className="control-heading"><div><h3>ค้นหาและกรองข้อมูล</h3></div><button className="text-button" type="button" onClick={resetFilters} disabled={!hasFilters}>ล้างตัวกรอง</button></div>
           <FilterFields activeCount={[studyYear, round, industryFilter, mouFilter, intakeFilter].filter(value => value !== "all").length} search={<label className="search-field"><span>ค้นหาบริษัท ตำแหน่ง หรือผู้ประสานงาน</span><input value={query} onChange={(event) => setQuery(event.target.value)} type="search" placeholder="เช่น Mock Cloud, Data Engineering, ผู้ประสานงานจำลอง 01…" /></label>}>
             <label><span>ประเภทธุรกิจ</span><select value={industryFilter} onChange={(event) => setIndustryFilter(event.target.value)}><option value="all">ทุกประเภท</option>{industries.map((industry) => <option key={industry} value={industry}>{industry}</option>)}</select></label>
@@ -143,7 +143,7 @@ export function InternshipDirectory({ track, view, allCompanies, applications: a
           />
         </section>
 
-<section id="dashboard-directory" tabIndex={-1} className="panel table-panel" aria-labelledby="internship-directory-heading">
+<section id="dashboard-directory" tabIndex={-1} className="panel table-panel internship-directory-results" aria-labelledby="internship-directory-heading">
           <div className="panel-heading table-heading">
             <div><p className="section-kicker">รายการทั้งหมด</p><h3 id="internship-directory-heading">ทะเบียนบริษัทรับ{track}</h3></div>
             <div className="table-heading-actions">
@@ -160,7 +160,7 @@ export function InternshipDirectory({ track, view, allCompanies, applications: a
           </div>
 
           <div className="table-scroll-note">บนมือถือจะแสดงเป็นการ์ดพร้อมสถานะและงานถัดไป</div>
-          <div className="table-wrap">
+          <div className="table-wrap" role="region" aria-label="ตารางข้อมูลบริษัท" tabIndex={0}>
             <table className="internship-table">
               <caption className="sr-only">ทะเบียนบริษัทรับ{track}พร้อมอันดับที่นิสิตเลือกและจำนวนที่รับตามทะเบียน</caption>
               <thead><tr>
@@ -171,7 +171,7 @@ export function InternshipDirectory({ track, view, allCompanies, applications: a
                 <th scope="col">แจ้งจะรับ</th>
                 <th scope="col">รับตามทะเบียน</th>
                 <th scope="col">ผลการรับ</th>
-                <th scope="col"><span className="sr-only">รายละเอียด</span></th>
+                <th scope="col">รายละเอียด</th>
               </tr></thead>
               <tbody>
                 {pagedStats.length ? pagedStats.map((stats) => (
