@@ -13,7 +13,7 @@ import { DeferredRecordDialog } from "@/features/dashboard/components/deferred-r
 import { EmptyResult } from "@/features/dashboard/components/empty-result";
 import { FilterSummary } from "@/features/dashboard/components/filter-summary";
 import { StorageRecoveryPanel } from "./storage-recovery";
-import { LocalDataStatus, StorageWarning } from "@/features/dashboard/components/local-data-status";
+import { DashboardDemoStatus, LocalDataStatus, StorageWarning } from "@/features/dashboard/components/local-data-status";
 import { PAGE_SIZE, Pager } from "@/features/dashboard/components/pager";
 import { PriorityKpi } from "@/features/dashboard/components/priority-kpi";
 import { QueueFilterGroup } from "@/features/dashboard/components/queue-filter";
@@ -21,7 +21,7 @@ import { ResultAnnouncer } from "@/features/dashboard/components/result-announce
 import { StatusToast, useStatusToast } from "@/features/dashboard/components/status-toast";
 import { isInternshipCompany } from "@/features/dashboard/lib/dataset-validation";
 import { allowedValue, QUEUE_VALUES } from "@/features/dashboard/lib/filter-values";
-import { formatNumber, formatUpdated, optionalValue } from "@/features/dashboard/lib/format";
+import { formatNumber, optionalValue } from "@/features/dashboard/lib/format";
 import { CompanyEditDraft, FilterValue, gapLabel, mouStatusOptions, mouTone, Props, RANK_LABELS, SortOption } from "@/features/dashboard/lib/internship-presentation";
 import { INTERNSHIP_TRACKS } from "@/features/dashboard/lib/internship-tracks";
 import { sortMouStatuses } from "@/features/dashboard/lib/mou-statuses";
@@ -216,22 +216,22 @@ export function InternshipDashboard({ payload }: Props) {
       <header className="topbar">
         <DashboardModuleNav />
         <div className="header-tools">
-          <div className="header-meta">
-            <LocalDataStatus editedAt={editedAt} warning={warning} hasOverrides={hasOverrides} timezone={payload.timezone} onReset={resetDemoData} />
-          </div>
           <AcademicPeriodSelector />
         </div>
       </header>
 
       <main id="main-content" tabIndex={-1} className="page-content">
+        <PageSections />
+        <DashboardDemoStatus>
+          <LocalDataStatus editedAt={editedAt} warning={warning} hasOverrides={hasOverrides} timezone={payload.timezone} onReset={resetDemoData} />
+        </DashboardDemoStatus>
         <AcademicPeriodEmptyState hasData={payload.companies.length > 0} />
         <StorageWarning message={warning} /><StorageRecoveryPanel key={recovery?.raw} recovery={recovery} onRecover={recover} />
-        <section className="intro-row">
-          <div><p className="section-kicker">การรับนิสิตเข้าร่วมงาน</p><h2>ภาพรวมบริษัทรับ{track}</h2><p className="intro-copy">เห็นอันดับที่นิสิตเลือก จำนวนที่บริษัทแจ้งว่าจะรับ และจำนวนที่รับตามทะเบียน</p></div>
+        <section id="dashboard-overview" tabIndex={-1} className="intro-row">
+          <div><h2>ภาพรวมบริษัทรับ{track}</h2><p className="intro-copy">อันดับที่นิสิตเลือก จำนวนที่บริษัทแจ้งรับ และจำนวนที่รับตามทะเบียน</p></div>
           <div className="intro-badges"><span className="scope-chip"><span className="scope-chip-label">{track}</span>{formatNumber(totalApplications)} ใบสมัคร · อันดับที่พบ {RANKS.length ? RANKS.join(", ") : "ยังไม่มี"}</span></div>
         </section>
 
-        <PageSections />
       <section className="kpi-grid" aria-label="ตัวชี้วัดการรับนิสิตของบริษัท">
           <PriorityKpi label="ต้องติดตาม" count={followUps.length} counts={queueCounts} note="ดูรายการที่ต้องทำต่อ" onClick={showFollowUps} />
           <article className="kpi-card blue"><div className="kpi-topline"><span className="kpi-label">บริษัทที่เปิดรับ</span><span className="kpi-context">ตามตัวกรอง</span></div><div className="kpi-value">{formatNumber(total)}</div><div className="kpi-note">แห่งที่อยู่ในรอบนี้</div></article>
@@ -240,6 +240,39 @@ export function InternshipDashboard({ payload }: Props) {
           <article className="kpi-card green"><div className="kpi-topline"><span className="kpi-label">รับตามทะเบียน</span><span className="kpi-context">{fillRate}%</span></div><div className="kpi-value">{formatNumber(acceptedTotal)} / {formatNumber(declaredTotal)}</div><span className="kpi-progress" role="progressbar" aria-label="สัดส่วนที่รับตามทะเบียนเทียบกับที่แจ้งไว้" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(fillRate, 100)}><i className="kpi-progress-fill green" style={{ width: `${Math.min(fillRate, 100)}%` }} /></span><div className="kpi-note">{shortCompanies} บริษัทยังรับไม่ครบ</div></article>
           <article className="kpi-card purple"><div className="kpi-topline"><span className="kpi-label">ที่นั่งที่แจ้งจะรับ</span><span className="kpi-context">ทุกตำแหน่ง</span></div><div className="kpi-value">{formatNumber(declaredTotal)}</div><div className="kpi-note">จำนวนที่บริษัทแจ้งไว้ตอนเปิดรอบ</div></article>
           <article className="kpi-card orange"><div className="kpi-topline"><span className="kpi-label">การแข่งขันอันดับ 1</span><span className="kpi-context">ต่อที่นั่ง</span></div><div className="kpi-value">{competition.toFixed(1)}</div><div className="kpi-note">{formatNumber(firstPicksTotal)} ใบสมัครเลือกเป็นอันดับ 1</div></article>
+        </section>
+
+        <section id="dashboard-analysis" tabIndex={-1} className="analytics-grid">
+          <article className="panel chart-panel">
+            <div className="panel-heading"><div><p className="section-kicker">สัดส่วนอันดับ</p><h3>Top 10 บริษัทที่ถูกเลือกมากที่สุด</h3></div><span className="panel-caption">จาก {formatNumber(shownPicks)} การเลือก · กดแถบเพื่อดูรายละเอียด</span></div>
+            <ul className="rank-legend">{RANKS.map((rank) => <li key={rank}><span className={`rank-key rank-${rank}`} aria-hidden="true" />{RANK_LABELS[rank] ?? `อันดับ ${rank}`}</li>)}</ul>
+            <div className="bar-chart">
+              {rankBoard.length ? rankBoard.map((stats) => (
+                <button className="bar-row" key={stats.company.id} type="button" onClick={(event) => openCompany(stats.company.id, event.currentTarget)} aria-label={`${stats.company.shortName} ถูกเลือก ${stats.totalPicks} ครั้ง เป็นอันดับ 1 จำนวน ${stats.firstPicks} ใบสมัคร`}>
+                  <span className="bar-label"><span>{stats.company.shortName}</span><strong>{formatNumber(stats.totalPicks)} ครั้ง · อันดับ 1: {formatNumber(stats.firstPicks)}</strong></span>
+                  <span className="bar-track rank-stack">
+                    {RANKS.map((rank) => (stats.picksByRank[rank] ? <span className={`rank-segment rank-${rank}`} key={rank} style={{ width: `${(stats.picksByRank[rank] / maxPicks) * 100}%` }} /> : null))}
+                  </span>
+                </button>
+              )) : <EmptyResult message="ไม่มีบริษัทที่ตรงกับตัวกรอง" hasFilters={hasFilters} onClear={resetFilters} />}
+            </div>
+          </article>
+
+          <article className="panel chart-panel">
+            <div className="panel-heading"><div><p className="section-kicker">ความครบถ้วน</p><h3>บริษัทที่รับไม่ครบมากที่สุด</h3></div><span className="panel-caption">รับตามทะเบียน {formatNumber(acceptedTotal)} จาก {formatNumber(declaredTotal)} ที่นั่ง · กดแถบเพื่อดูรายละเอียด</span></div>
+            <ul className="rank-legend"><li><span className="rank-key intake-key-declared" aria-hidden="true" />แจ้งจะรับ</li><li><span className="rank-key intake-key-accepted" aria-hidden="true" />รับตามทะเบียน</li></ul>
+            <div className="bar-chart">
+              {intakeBoard.length ? intakeBoard.map((stats) => (
+                <button className="bar-row" key={stats.company.id} type="button" onClick={(event) => openCompany(stats.company.id, event.currentTarget)} aria-label={`${stats.company.shortName} แจ้งจะรับ ${stats.declared} คน รับตามทะเบียน ${stats.accepted} คน`}>
+                  <span className="bar-label"><span>{stats.company.shortName}</span><strong>{formatNumber(stats.accepted)} / {formatNumber(stats.declared)} · {gapLabel(stats)}</strong></span>
+                  <span className="bar-track intake-track">
+                    <span className="intake-declared" style={{ width: `${(stats.declared / maxSeats) * 100}%` }} />
+                    <span className="intake-accepted" style={{ width: `${(stats.accepted / maxSeats) * 100}%` }} />
+                  </span>
+                </button>
+              )) : <EmptyResult message="ไม่มีบริษัทที่ตรงกับตัวกรอง" hasFilters={hasFilters} onClear={resetFilters} />}
+            </div>
+          </article>
         </section>
 
         <section id="dashboard-filters" tabIndex={-1} className="control-panel" aria-label="ตัวกรองข้อมูลบริษัท">
@@ -283,39 +316,6 @@ export function InternshipDashboard({ payload }: Props) {
               );
             }) : <EmptyResult message="ไม่มีบริษัทที่ต้องติดตามตามตัวกรองปัจจุบัน" hasFilters={hasFilters} onClear={resetFilters} />}
           </div>
-        </section>
-
-        <section id="dashboard-analysis" tabIndex={-1} className="analytics-grid">
-          <article className="panel chart-panel">
-            <div className="panel-heading"><div><p className="section-kicker">สัดส่วนอันดับ</p><h3>Top 10 บริษัทที่ถูกเลือกมากที่สุด</h3></div><span className="panel-caption">จาก {formatNumber(shownPicks)} การเลือก · กดแถบเพื่อดูรายละเอียด</span></div>
-            <ul className="rank-legend">{RANKS.map((rank) => <li key={rank}><span className={`rank-key rank-${rank}`} aria-hidden="true" />{RANK_LABELS[rank] ?? `อันดับ ${rank}`}</li>)}</ul>
-            <div className="bar-chart">
-              {rankBoard.length ? rankBoard.map((stats) => (
-                <button className="bar-row" key={stats.company.id} type="button" onClick={(event) => openCompany(stats.company.id, event.currentTarget)} aria-label={`${stats.company.shortName} ถูกเลือก ${stats.totalPicks} ครั้ง เป็นอันดับ 1 จำนวน ${stats.firstPicks} ใบสมัคร`}>
-                  <span className="bar-label"><span>{stats.company.shortName}</span><strong>{formatNumber(stats.totalPicks)} ครั้ง · อันดับ 1: {formatNumber(stats.firstPicks)}</strong></span>
-                  <span className="bar-track rank-stack">
-                    {RANKS.map((rank) => (stats.picksByRank[rank] ? <span className={`rank-segment rank-${rank}`} key={rank} style={{ width: `${(stats.picksByRank[rank] / maxPicks) * 100}%` }} /> : null))}
-                  </span>
-                </button>
-              )) : <EmptyResult message="ไม่มีบริษัทที่ตรงกับตัวกรอง" hasFilters={hasFilters} onClear={resetFilters} />}
-            </div>
-          </article>
-
-          <article className="panel chart-panel">
-            <div className="panel-heading"><div><p className="section-kicker">ความครบถ้วน</p><h3>บริษัทที่รับไม่ครบมากที่สุด</h3></div><span className="panel-caption">รับตามทะเบียน {formatNumber(acceptedTotal)} จาก {formatNumber(declaredTotal)} ที่นั่ง · กดแถบเพื่อดูรายละเอียด</span></div>
-            <ul className="rank-legend"><li><span className="rank-key intake-key-declared" aria-hidden="true" />แจ้งจะรับ</li><li><span className="rank-key intake-key-accepted" aria-hidden="true" />รับตามทะเบียน</li></ul>
-            <div className="bar-chart">
-              {intakeBoard.length ? intakeBoard.map((stats) => (
-                <button className="bar-row" key={stats.company.id} type="button" onClick={(event) => openCompany(stats.company.id, event.currentTarget)} aria-label={`${stats.company.shortName} แจ้งจะรับ ${stats.declared} คน รับตามทะเบียน ${stats.accepted} คน`}>
-                  <span className="bar-label"><span>{stats.company.shortName}</span><strong>{formatNumber(stats.accepted)} / {formatNumber(stats.declared)} · {gapLabel(stats)}</strong></span>
-                  <span className="bar-track intake-track">
-                    <span className="intake-declared" style={{ width: `${(stats.declared / maxSeats) * 100}%` }} />
-                    <span className="intake-accepted" style={{ width: `${(stats.accepted / maxSeats) * 100}%` }} />
-                  </span>
-                </button>
-              )) : <EmptyResult message="ไม่มีบริษัทที่ตรงกับตัวกรอง" hasFilters={hasFilters} onClear={resetFilters} />}
-            </div>
-          </article>
         </section>
 
         <section className="panel insight-panel" aria-labelledby="position-ranking-title">

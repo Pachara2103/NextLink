@@ -6,7 +6,7 @@ import { AcademicPeriodEmptyState, AcademicPeriodSelector } from "@/features/das
 import { DashboardModuleNav } from "@/features/dashboard/components/app-nav";
 import { InternshipDirectory } from "@/features/dashboard/components/internship-directory";
 import { InternshipOverview } from "@/features/dashboard/components/internship-overview";
-import { LocalDataStatus, StorageWarning } from "@/features/dashboard/components/local-data-status";
+import { DashboardDemoStatus, LocalDataStatus, StorageWarning } from "@/features/dashboard/components/local-data-status";
 import { StatusToast, useStatusToast } from "@/features/dashboard/components/status-toast";
 import { StorageRecoveryPanel } from "@/features/dashboard/components/storage-recovery";
 import { isInternshipCompany } from "@/features/dashboard/lib/dataset-validation";
@@ -91,18 +91,18 @@ export function InternshipWorkspace({ payload }: Props) {
       <header className="topbar">
         <DashboardModuleNav />
         <div className="header-tools">
-          <div className="header-meta">
-            <LocalDataStatus editedAt={editedAt} warning={warning} hasOverrides={hasOverrides} timezone={payload.timezone} onReset={resetDemoData} />
-          </div>
           <AcademicPeriodSelector />
         </div>
       </header>
 
       <main id="main-content" tabIndex={-1} className="page-content">
-        <StorageWarning message={warning} /><StorageRecoveryPanel key={recovery?.raw} recovery={recovery} onRecover={recover} />
         <div className="io-subtabs" role="tablist" aria-label={`มุมมองหน้า${track}`}>
           {VIEWS.map(v => <button key={v.id} id={`internship-tab-${v.id}`} type="button" role="tab" aria-selected={view === v.id} aria-controls={`internship-panel-${v.id}`} tabIndex={view === v.id ? 0 : -1} onKeyDown={onTabKey} onClick={() => selectView(v.id)}>{v.label}</button>)}
         </div>
+        <DashboardDemoStatus>
+          <LocalDataStatus editedAt={editedAt} warning={warning} hasOverrides={hasOverrides} timezone={payload.timezone} onReset={resetDemoData} />
+        </DashboardDemoStatus>
+        <StorageWarning message={warning} /><StorageRecoveryPanel key={recovery?.raw} recovery={recovery} onRecover={recover} />
 
         <section id="internship-panel-overview" role="tabpanel" aria-labelledby="internship-tab-overview" hidden={view !== "overview"}>
           {visited.has("overview") && <InternshipOverview academicYear={period.year} />}

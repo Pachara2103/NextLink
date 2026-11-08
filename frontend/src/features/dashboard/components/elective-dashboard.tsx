@@ -13,7 +13,7 @@ import { DeferredRecordDialog } from "@/features/dashboard/components/deferred-r
 import { EmptyResult } from "@/features/dashboard/components/empty-result";
 import { FilterSummary } from "@/features/dashboard/components/filter-summary";
 import { StorageRecoveryPanel } from "./storage-recovery";
-import { LocalDataStatus, StorageWarning } from "@/features/dashboard/components/local-data-status";
+import { DashboardDemoStatus, LocalDataStatus, StorageWarning } from "@/features/dashboard/components/local-data-status";
 import { PAGE_SIZE, Pager } from "@/features/dashboard/components/pager";
 import { PriorityKpi } from "@/features/dashboard/components/priority-kpi";
 import { QueueFilterGroup } from "@/features/dashboard/components/queue-filter";
@@ -22,7 +22,7 @@ import { StatusToast, useStatusToast } from "@/features/dashboard/components/sta
 import { isDashboardCourse } from "@/features/dashboard/lib/dataset-validation";
 import { CourseEditDraft, courseOccupancy, courseStatusOptions, deliveryModeLabels, electiveStorageKey, Props, QueueSeverityKey, readinessOptions, scheduleSummary, SortOption, statusClass, workflowProgress, workflowStatusOptions } from "@/features/dashboard/lib/elective-presentation";
 import { allowedValue, QUEUE_VALUES, WORKFLOW_VALUES } from "@/features/dashboard/lib/filter-values";
-import { formatNumber, formatUpdated, optionalValue } from "@/features/dashboard/lib/format";
+import { formatNumber, optionalValue } from "@/features/dashboard/lib/format";
 import { QUEUE_META, type QueueKind } from "@/features/dashboard/lib/queue";
 import type { WorkflowTaskStatus } from "@/features/dashboard/lib/types";
 import { useDashboardDataset } from "@/features/dashboard/lib/use-dashboard-dataset";
@@ -50,12 +50,6 @@ export function ElectiveDashboard({ payload }: Props) {
     () => [...new Set(courses.map((course) => course.category))].sort((a, b) => a.localeCompare(b, "th")),
     [courses],
   );
-  const academicScopes = useMemo(
-    () => [...new Set(courses.map((course) => `ปีการศึกษา ${course.academicYear} / ${course.term}`))],
-    [courses],
-  );
-  const scopeLabel = academicScopes.length === 1 ? academicScopes[0] : "หลายภาคการศึกษา";
-
   const scopedCourses = useMemo(() => {
     const normalizedQuery = deferredQuery.trim().toLowerCase();
     return courses.filter((course) => {
@@ -248,22 +242,21 @@ export function ElectiveDashboard({ payload }: Props) {
       <header className="topbar">
         <DashboardModuleNav />
         <div className="header-tools">
-          <div className="header-meta">
-            <LocalDataStatus source={payload.source} editedAt={editedAt} warning={warning} hasOverrides={hasOverrides} timezone={payload.timezone} onReset={resetDemoData} />
-          </div>
           <AcademicPeriodSelector availableYears={payload.availableAcademicYears} />
         </div>
       </header>
 
       <main id="main-content" tabIndex={-1} className="page-content">
+        <PageSections />
+        <DashboardDemoStatus>
+          <LocalDataStatus source={payload.source} editedAt={editedAt} warning={warning} hasOverrides={hasOverrides} timezone={payload.timezone} onReset={resetDemoData} />
+        </DashboardDemoStatus>
         <AcademicPeriodEmptyState hasData={payload.courses.length > 0} />
         <StorageWarning message={warning} /><StorageRecoveryPanel key={recovery?.raw} recovery={recovery} onRecover={recover} />
-        <section className="intro-row">
-          <div><p className="section-kicker">ภาพรวมการจัดการรายวิชา</p><h2>ภาพรวมวิชาเลือก</h2><p className="intro-copy">เห็นความพร้อม จำนวนที่นั่ง และงานที่ต้องติดตามก่อนเปิดสอน</p></div>
-          <div className="intro-badges"><span className="scope-chip"><span className="scope-chip-label">ภาคการศึกษา</span>{scopeLabel}</span></div>
+        <section id="dashboard-overview" tabIndex={-1} className="intro-row">
+          <div><h2>ภาพรวมวิชาเลือก</h2><p className="intro-copy">เห็นความพร้อม จำนวนที่นั่ง และงานที่ต้องติดตามก่อนเปิดสอน</p></div>
         </section>
 
-        <PageSections />
       <section className="kpi-grid" aria-label="ตัวชี้วัดหลัก">
           <PriorityKpi label="ต้องติดตาม" count={followUps.length} counts={queueCountByKind} note="ดูรายการที่ต้องทำต่อ" pressed={onlyFollowUps} onClick={showFollowUps} />
 
@@ -293,6 +286,11 @@ export function ElectiveDashboard({ payload }: Props) {
             <div className="kpi-note">ที่นั่งว่างจากจำนวนที่ทราบ {formatNumber(capacity)}{unknownCapacity > 0 ? ` · ยังไม่ทราบจำนวนรับ ${unknownCapacity} วิชา` : ""}{overbooked > 0 ? ` · ลงเกินอีก ${formatNumber(overbooked)} คน` : ""}</div>
           </article>
 
+        </section>
+
+        <section id="dashboard-analysis" tabIndex={-1} className="analytics-grid">
+          <article className="panel chart-panel"><div className="panel-heading"><div><p className="section-kicker">สัดส่วนหมวดหมู่</p><h3>รายวิชาแยกตามหมวดหมู่</h3></div><span className="panel-caption">จาก {formatNumber(total)} รายวิชา · กดแถบเพื่อกรอง</span></div><div className="bar-chart" aria-label="กราฟจำนวนรายวิชาแยกตามหมวดหมู่">{categoryCounts.length === 0 ? <EmptyResult message="ไม่มีรายวิชาให้แสดงตามตัวกรองปัจจุบัน" hasFilters={hasActiveFilters} onClear={resetFilters} /> : categoryCounts.map(([item, count]) => <button className={`bar-row ${category === item ? "is-active" : ""}`} key={item} type="button" onClick={() => setCategory(category === item ? "all" : item)} aria-pressed={category === item}><span className="bar-label"><span>{item}</span><strong>{formatNumber(count)} · {total ? Math.round((count / total) * 100) : 0}%</strong></span><span className="bar-track"><span className="bar-fill" style={{ width: `${(count / maxCategoryCount) * 100}%` }} /></span></button>)}</div></article>
+          <article className="panel chart-panel"><div className="panel-heading"><div><p className="section-kicker">ความพร้อม</p><h3>ความพร้อมของงาน</h3></div><div className="readiness-heading-meta"><span className="panel-caption">{readinessFilters.length > 0 ? `จาก ${formatNumber(readinessScopeTotal)} รายวิชาก่อนกรองความพร้อม · กดแถบเพื่อกรอง` : `จาก ${formatNumber(readinessScopeTotal)} รายวิชา · กดแถบเพื่อกรอง`}</span>{readinessFilters.length > 0 ? <div className="selection-chip-list" aria-label="รายการ readiness ที่เลือก">{readinessFilters.map((selectedKey) => <button className="selection-chip" type="button" key={selectedKey} onClick={() => toggleReadinessFilter(selectedKey)} aria-label={`ยกเลิกการเลือก ${readinessOptions.find((item) => item.key === selectedKey)?.label}`}>เลือกแล้ว: {readinessOptions.find((item) => item.key === selectedKey)?.label} ×</button>)}<button className="selection-clear" type="button" onClick={() => setReadinessFilters([])}>ล้างการเลือก</button></div> : null}</div></div><div className="readiness-list" aria-label="สรุปความพร้อมของงาน">{readiness.map(([key, label, count, tone]) => <button className={`readiness-row ${readinessFilters.includes(key) ? "is-active" : ""}`} key={key} type="button" onClick={() => toggleReadinessFilter(key)} aria-pressed={readinessFilters.includes(key)}><span className="readiness-label"><span className={`legend-dot ${tone}`} /><span>{label}</span>{readinessFilters.includes(key) ? <em className="readiness-selected">เลือกแล้ว</em> : null}<strong>{count}</strong></span><span className="readiness-track"><span className={`readiness-fill ${tone}`} style={{ width: `${readinessScopeTotal ? (count / readinessScopeTotal) * 100 : 0}%` }} /></span><span className="readiness-percent">{readinessScopeTotal ? Math.round((count / readinessScopeTotal) * 100) : 0}%</span></button>)}</div></article>
         </section>
 
         <section id="dashboard-filters" tabIndex={-1} className="control-panel" aria-label="ตัวกรองข้อมูล">
@@ -336,11 +334,6 @@ export function ElectiveDashboard({ payload }: Props) {
               <span className="chevron" aria-hidden="true">›</span>
             </button>;
           }) : <EmptyResult message="ไม่มีรายการที่ต้องติดตามตามตัวกรองปัจจุบัน" hasFilters={hasActiveFilters} onClear={resetFilters} />}</div>
-        </section>
-
-        <section id="dashboard-analysis" tabIndex={-1} className="analytics-grid">
-          <article className="panel chart-panel"><div className="panel-heading"><div><p className="section-kicker">สัดส่วนหมวดหมู่</p><h3>รายวิชาแยกตามหมวดหมู่</h3></div><span className="panel-caption">จาก {formatNumber(total)} รายวิชา · กดแถบเพื่อกรอง</span></div><div className="bar-chart" aria-label="กราฟจำนวนรายวิชาแยกตามหมวดหมู่">{categoryCounts.length === 0 ? <EmptyResult message="ไม่มีรายวิชาให้แสดงตามตัวกรองปัจจุบัน" hasFilters={hasActiveFilters} onClear={resetFilters} /> : categoryCounts.map(([item, count]) => <button className={`bar-row ${category === item ? "is-active" : ""}`} key={item} type="button" onClick={() => setCategory(category === item ? "all" : item)} aria-pressed={category === item}><span className="bar-label"><span>{item}</span><strong>{formatNumber(count)} · {total ? Math.round((count / total) * 100) : 0}%</strong></span><span className="bar-track"><span className="bar-fill" style={{ width: `${(count / maxCategoryCount) * 100}%` }} /></span></button>)}</div></article>
-          <article className="panel chart-panel"><div className="panel-heading"><div><p className="section-kicker">ความพร้อม</p><h3>ความพร้อมของงาน</h3></div><div className="readiness-heading-meta"><span className="panel-caption">{readinessFilters.length > 0 ? `จาก ${formatNumber(readinessScopeTotal)} รายวิชาก่อนกรองความพร้อม · กดแถบเพื่อกรอง` : `จาก ${formatNumber(readinessScopeTotal)} รายวิชา · กดแถบเพื่อกรอง`}</span>{readinessFilters.length > 0 ? <div className="selection-chip-list" aria-label="รายการ readiness ที่เลือก">{readinessFilters.map((selectedKey) => <button className="selection-chip" type="button" key={selectedKey} onClick={() => toggleReadinessFilter(selectedKey)} aria-label={`ยกเลิกการเลือก ${readinessOptions.find((item) => item.key === selectedKey)?.label}`}>เลือกแล้ว: {readinessOptions.find((item) => item.key === selectedKey)?.label} ×</button>)}<button className="selection-clear" type="button" onClick={() => setReadinessFilters([])}>ล้างการเลือก</button></div> : null}</div></div><div className="readiness-list" aria-label="สรุปความพร้อมของงาน">{readiness.map(([key, label, count, tone]) => <button className={`readiness-row ${readinessFilters.includes(key) ? "is-active" : ""}`} key={key} type="button" onClick={() => toggleReadinessFilter(key)} aria-pressed={readinessFilters.includes(key)}><span className="readiness-label"><span className={`legend-dot ${tone}`} /><span>{label}</span>{readinessFilters.includes(key) ? <em className="readiness-selected">เลือกแล้ว</em> : null}<strong>{count}</strong></span><span className="readiness-track"><span className={`readiness-fill ${tone}`} style={{ width: `${readinessScopeTotal ? (count / readinessScopeTotal) * 100 : 0}%` }} /></span><span className="readiness-percent">{readinessScopeTotal ? Math.round((count / readinessScopeTotal) * 100) : 0}%</span></button>)}</div></article>
         </section>
 
         <section id="dashboard-directory" tabIndex={-1} className="panel table-panel" aria-labelledby="course-directory-heading">

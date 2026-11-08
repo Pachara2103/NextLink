@@ -6,6 +6,10 @@ import { focusDashboardSection } from "@/features/dashboard/lib/section-navigati
 /** Shortcuts stay available while reading a long dashboard. */
 export function PageSections({ capstone = false, friday = false }: { capstone?: boolean; friday?: boolean }) {
   const sections = [
+    ...(!friday ? [
+      { id: "dashboard-overview", label: "ภาพรวม" },
+      { id: "dashboard-analysis", label: "สถิติ" },
+    ] : []),
     { id: "dashboard-filters", label: "ค้นหา" },
     { id: "action-queue", label: "งานติดตาม" },
     { id: "dashboard-directory", label: "ทะเบียน" },
@@ -13,8 +17,10 @@ export function PageSections({ capstone = false, friday = false }: { capstone?: 
       { id: "capstone-ranking", label: "อันดับกลุ่ม" },
       { id: "capstone-relationships", label: "บริษัทและอาจารย์" },
     ] : []),
-    ...(friday ? [{ id: "friday-companies", label: "บริษัทในเทอมนี้" }] : []),
-    { id: "dashboard-analysis", label: friday ? "ผลประเมิน" : "สถิติ" },
+    ...(friday ? [
+      { id: "friday-companies", label: "บริษัทในเทอมนี้" },
+      { id: "dashboard-analysis", label: "ผลประเมิน" },
+    ] : []),
   ];
 
   function jump(event: MouseEvent<HTMLAnchorElement>, id: string) {

@@ -15,7 +15,7 @@ export function DashboardFrame({ children, source }: { children: ReactNode; sour
   return <RequireAuth>
     <ConsoleProvider>
       <ConsoleFrame active="dashboard" wide onNavigate={panel => router.push(`/?panel=${panel}`)}>
-        <div className="nextlink-dashboard" key={user?.id}>
+        <div className="nextlink-dashboard" data-source={dataSource} key={user?.id}>
           <a className="skip-link" href="#main-content">ข้ามไปเนื้อหา Dashboard</a>
           <Suspense fallback={<p className="page-content" role="status">กำลังโหลด Dashboard…</p>}>
             {children}
