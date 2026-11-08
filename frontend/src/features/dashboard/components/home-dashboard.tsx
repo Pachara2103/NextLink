@@ -61,22 +61,24 @@ export function HomeDashboard() {
       <main id="main-content" tabIndex={-1} className="page-content home-content">
         <section className="intro-row">
           <div>
-            <p className="section-kicker">การเรียนรู้และความร่วมมือ</p>
             <h2>ภาพรวมการเรียนรู้และความร่วมมือ</h2>
-            <p className="intro-copy">เลือกงานที่ต้องการติดตาม เพื่อดูภาพรวม ตรวจรายละเอียด และจัดการงานที่ค้างอยู่</p>
+            <p className="intro-copy">เลือกโมดูลเพื่อดูภาพรวม ทะเบียน และงานที่ต้องติดตาม</p>
           </div>
         </section>
 
         <section className="home-module-grid" aria-label="เลือกโมดูลการทำงาน">
           {DASHBOARD_ROUTES.map(({ href, label }) => {
             const detail = moduleDetails[href];
+            const isFriday = href === "/dashboard/friday-activities";
+            const moduleId = `module-${href.slice(1)}`;
             return (
-              <Link key={href} href={withAcademicPeriod(href, period)} data-route={href} className="home-module-card" data-tone={detail.tone} aria-labelledby={`module-${href.slice(1)}`}>
+              <Link key={href} href={withAcademicPeriod(href, period)} data-route={href} className="home-module-card" data-tone={detail.tone} aria-labelledby={moduleId} aria-describedby={`${moduleId}-source`}>
                 <div className="home-module-topline">
                   <span className="home-module-icon" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d={detail.icon} /></svg></span>
                   <span className="home-module-category">{detail.category}</span>
+                  <span id={`${moduleId}-source`} className={`module-source status-pill ${isFriday ? "tone-green" : "tone-neutral"}`}>{isFriday ? "ฐานข้อมูลกลาง" : "ข้อมูลทดลอง"}</span>
                 </div>
-                <h3 id={`module-${href.slice(1)}`}>{label}</h3>
+                <h3 id={moduleId}>{label}</h3>
                 <p className="home-module-description">{detail.description}</p>
                 <p className="home-module-features">{detail.features}</p>
                 <span className="home-module-action">เปิดหน้า{label}<span aria-hidden="true">↗</span></span>

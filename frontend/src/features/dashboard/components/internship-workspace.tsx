@@ -1,13 +1,12 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState, type KeyboardEvent } from "react";
+import { lazy, Suspense, useState, type KeyboardEvent } from "react";
 import { AcademicPeriodEmptyState, AcademicPeriodSelector } from "@/features/dashboard/components/academic-period-selector";
 import { DashboardModuleNav } from "@/features/dashboard/components/app-nav";
 import { InternshipDirectory } from "@/features/dashboard/components/internship-directory";
-import { InternshipEvaluationBoard } from "@/features/dashboard/components/internship-evaluation-board";
 import { InternshipOverview } from "@/features/dashboard/components/internship-overview";
-import { LocalDataStatus, StorageWarning } from "@/features/dashboard/components/local-data-status";
+import { DashboardDemoStatus, LocalDataStatus, StorageWarning } from "@/features/dashboard/components/local-data-status";
 import { StatusToast, useStatusToast } from "@/features/dashboard/components/status-toast";
 import { StorageRecoveryPanel } from "@/features/dashboard/components/storage-recovery";
 import { isInternshipCompany } from "@/features/dashboard/lib/dataset-validation";
@@ -26,16 +25,21 @@ const VIEWS = [
 ] as const;
 type View = typeof VIEWS[number]["id"];
 const isView = (value: string | null): value is View => VIEWS.some(v => v.id === value);
+const InternshipEvaluationBoard = lazy(() => import("./internship-evaluation-board").then(module => ({ default: module.InternshipEvaluationBoard })));
 
 /**
- * The ฝึกงาน module, split into three sub-tabs. Every panel stays mounted so
- * filters and scroll survive switching tabs; only the active one is shown.
+ * Keep visited panels mounted so filters and scroll survive switching tabs.
+ * The directory stays mounted to restore and write URL filters for every view.
  */
 export function InternshipWorkspace({ payload }: Props) {
   const track = payload.track;
   const period = useAcademicPeriod();
   const params = useSearchParams();
-  const [view, setView] = useState<View>(() => { const v = params.get("view"); return isView(v) ? v : "overview"; });
+  const [{ view, visited }, setTabs] = useState(() => {
+    const requested = params.get("view");
+    const view: View = isView(requested) ? requested : "overview";
+    return { view, visited: new Set<View>([view]) };
+  });
   const { items: allCompanies, update: updateCompanies, reset: resetCompanies, editedAt, ready, warning, hasOverrides, undo, recovery, recover } = useLocalDataset(INTERNSHIP_TRACKS[track].storageKey, payload.companies, isInternshipCompany);
   const { toast, show: showToast, dismiss: dismissToast, holdTimer, resumeTimer } = useStatusToast();
 
@@ -67,6 +71,10 @@ export function InternshipWorkspace({ payload }: Props) {
     showToast(persisted ? "คืนค่าข้อมูลตั้งต้นแล้ว" : "คืนค่าไม่ได้ ข้อมูลเดิมยังอยู่");
   };
 
+  const selectView = (next: View) => setTabs(current => current.view === next
+    ? current
+    : { view: next, visited: new Set([...current.visited, next]) });
+
   // Arrow keys move between tabs, per the WAI-ARIA tabs pattern.
   const onTabKey = (event: KeyboardEvent<HTMLButtonElement>) => {
     const index = VIEWS.findIndex(v => v.id === view);
@@ -74,7 +82,7 @@ export function InternshipWorkspace({ payload }: Props) {
     if (!step) return;
     event.preventDefault();
     const next = VIEWS[(index + step + VIEWS.length) % VIEWS.length].id;
-    setView(next);
+    selectView(next);
     document.getElementById(`internship-tab-${next}`)?.focus();
   };
 
@@ -83,25 +91,27 @@ export function InternshipWorkspace({ payload }: Props) {
       <header className="topbar">
         <DashboardModuleNav />
         <div className="header-tools">
-          <div className="header-meta">
-            <LocalDataStatus editedAt={editedAt} warning={warning} hasOverrides={hasOverrides} timezone={payload.timezone} onReset={resetDemoData} />
-          </div>
           <AcademicPeriodSelector />
         </div>
       </header>
 
       <main id="main-content" tabIndex={-1} className="page-content">
-        <StorageWarning message={warning} /><StorageRecoveryPanel key={recovery?.raw} recovery={recovery} onRecover={recover} />
         <div className="io-subtabs" role="tablist" aria-label={`มุมมองหน้า${track}`}>
-          {VIEWS.map(v => <button key={v.id} id={`internship-tab-${v.id}`} type="button" role="tab" aria-selected={view === v.id} aria-controls={`internship-panel-${v.id}`} tabIndex={view === v.id ? 0 : -1} onKeyDown={onTabKey} onClick={() => setView(v.id)}>{v.label}</button>)}
+          {VIEWS.map(v => <button key={v.id} id={`internship-tab-${v.id}`} type="button" role="tab" aria-selected={view === v.id} aria-controls={`internship-panel-${v.id}`} tabIndex={view === v.id ? 0 : -1} onKeyDown={onTabKey} onClick={() => selectView(v.id)}>{v.label}</button>)}
         </div>
+        <DashboardDemoStatus>
+          <LocalDataStatus editedAt={editedAt} warning={warning} hasOverrides={hasOverrides} timezone={payload.timezone} onReset={resetDemoData} />
+        </DashboardDemoStatus>
+        <StorageWarning message={warning} /><StorageRecoveryPanel key={recovery?.raw} recovery={recovery} onRecover={recover} />
 
         <section id="internship-panel-overview" role="tabpanel" aria-labelledby="internship-tab-overview" hidden={view !== "overview"}>
-          <InternshipOverview academicYear={period.year} />
+          {visited.has("overview") && <InternshipOverview academicYear={period.year} />}
         </section>
 
         <section id="internship-panel-evaluation" role="tabpanel" aria-labelledby="internship-tab-evaluation" hidden={view !== "evaluation"}>
-          <InternshipEvaluationBoard academicYear={period.year} />
+          {visited.has("evaluation") && <Suspense fallback={<div className="panel panel-caption" role="status">กำลังโหลดผลการประเมิน…</div>}>
+            <InternshipEvaluationBoard academicYear={period.year} />
+          </Suspense>}
         </section>
 
         <section id="internship-panel-table" role="tabpanel" aria-labelledby="internship-tab-table" hidden={view !== "table"}>

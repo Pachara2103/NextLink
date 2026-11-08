@@ -259,8 +259,10 @@ try {
     assert.equal(await tabs.getByRole('tab').count(), 3);
     assert.equal(await tabs.getByRole('tab', { name: 'ภาพรวม', exact: true }).getAttribute('aria-selected'), 'true');
     assert.equal(await page.getByRole('tabpanel', { name: 'ภาพรวม', exact: true }).isVisible(), true);
+    const evaluation = page.locator('#internship-panel-evaluation .io-overview');
+    assert.equal(await evaluation.count(), 0, 'evaluation is not rendered before opening its tab');
     await tabs.getByRole('tab', { name: 'ผลการประเมิน', exact: true }).click();
-    assert.equal(await page.getByRole('tabpanel', { name: 'ผลการประเมิน', exact: true }).isVisible(), true);
+    await evaluation.waitFor();
     await page.keyboard.press('ArrowRight');
     assert.equal(await tabs.getByRole('tab', { name: 'ตารางข้อมูล', exact: true }).getAttribute('aria-selected'), 'true');
     assert.equal(await page.getByRole('searchbox').isVisible(), true);
@@ -268,6 +270,37 @@ try {
     await tabs.getByRole('tab', { name: 'ภาพรวม', exact: true }).click();
     await tabs.getByRole('tab', { name: 'ตารางข้อมูล', exact: true }).click();
     assert.equal(await page.getByRole('searchbox').inputValue(), 'TAB-STATE-QA');
+  });
+  await check('internship directory keeps company and details in view while its table scrolls', async () => {
+    await page.setViewportSize({ width: 1270, height: 714 });
+    await go('/internship');
+    assert.equal(await page.locator('#internship-panel-overview .io-overview').count(), 0, 'a table deep link defers overview charts');
+    assert.equal(await page.locator('#internship-panel-evaluation .io-overview').count(), 0, 'a table deep link defers evaluation charts');
+    const table = page.getByRole('region', { name: 'ตารางข้อมูลบริษัท', exact: true });
+    const layout = await table.evaluate(element => {
+      const rect = element.getBoundingClientRect();
+      const header = element.querySelector('th');
+      const company = element.querySelector('tbody td:first-child');
+      const details = element.querySelector('tbody .row-action');
+      const detailsInView = () => {
+        const button = details.getBoundingClientRect();
+        return button.left >= rect.left && button.right <= rect.right;
+      };
+      const initialDetailsVisible = detailsInView();
+      element.scrollLeft = element.scrollWidth;
+      const companyPinned = Math.abs(company.getBoundingClientRect().left - rect.left) <= 1;
+      const scrolledDetailsVisible = detailsInView();
+      element.scrollTop = 100;
+      return {
+        scrolled: element.scrollLeft > 0 && element.scrollTop > 0,
+        companyPinned,
+        initialDetailsVisible,
+        scrolledDetailsVisible,
+        headerPinned: Math.abs(header.getBoundingClientRect().top - rect.top) <= 1,
+      };
+    });
+    assert.deepEqual(layout, { scrolled: true, companyPinned: true, initialDetailsVisible: true, scrolledDetailsVisible: true, headerPinned: true });
+    await page.setViewportSize({ width: 1440, height: 1000 });
   });
   await check('search shortcuts move focus to results, including empty results, on every module', async () => {
     for (const path of paths.filter(path => path && path !== '/friday-activities')) {
@@ -459,11 +492,21 @@ try {
       for (const path of paths) {
         await go(path);
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `mobile fits: ${path} ${width}`);
-        const links = await page.locator('.dashboard-module-nav a').all();
-        for (const link of links) {
-          const rect = await link.boundingBox();
-          assert.ok(rect.height >= 44 && rect.x >= 0 && rect.x + rect.width <= width, `reachable module at ${width}`);
-        }
+        const nav = page.getByRole('navigation', { name: 'โมดูล Dashboard', exact: true });
+        assert.equal(await nav.getByRole('link').count(), 7);
+        const rail = await nav.evaluate(element => {
+          const links = Array.from(element.querySelectorAll('a'), link => link.getBoundingClientRect());
+          const bounds = element.getBoundingClientRect();
+          const active = element.querySelector('[aria-current="page"]')?.getBoundingClientRect();
+          return {
+            singleRow: links.every(link => Math.abs(link.top - links[0].top) <= 1 && link.height >= 44),
+            inViewport: bounds.left >= 0 && bounds.right <= innerWidth,
+            currentVisible: active && active.left >= bounds.left - 1 && active.right <= bounds.right + 1,
+            scrollable: element.scrollWidth > element.clientWidth && getComputedStyle(element).overflowX === 'auto',
+          };
+        });
+        assert.ok(rail.singleRow && rail.inViewport && rail.currentVisible, `compact module navigation at ${path || '/'} ${width}px`);
+        if (width < 761) assert.ok(rail.scrollable, `off-screen modules can be reached at ${width}px`);
         if (path === '/electives' && width < 760) {
           assert.ok(await page.locator('.mobile-course-stats .status-select').evaluateAll(selects => selects.every(select => {
             const rect = select.getBoundingClientRect();

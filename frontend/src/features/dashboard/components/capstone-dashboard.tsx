@@ -2,6 +2,7 @@
 
 import { AcademicPeriodEmptyState, AcademicPeriodSelector } from "@/features/dashboard/components/academic-period-selector";
 import { PageSections } from "@/features/dashboard/components/page-sections";
+import { DashboardDemoStatus } from "@/features/dashboard/components/local-data-status";
 import { FilterFields } from "@/features/dashboard/components/filter-fields";
 
 import { lazy, useDeferredValue, useMemo, useRef, useState } from "react";
@@ -134,10 +135,14 @@ export function CapstoneDashboard({ payload }: { payload: CapstoneDataset }) {
       </div>
     </header>
     <main id="main-content" tabIndex={-1} className="page-content">
-      <AcademicPeriodEmptyState hasData={payload.topics.length > 0} /><StorageRecoveryPanel key={recovery?.raw} recovery={recovery} onRecover={recover} />
-      <section className="intro-row"><div><p className="section-kicker">โครงการและความร่วมมือ</p><h2>ภาพรวม Capstone</h2><p className="intro-copy">ติดตามหัวข้อที่นิสิตสนใจ อันดับกลุ่มจากบริษัท และอาจารย์ที่ร่วมงาน</p></div><div className="intro-badges"><span className="scope-chip">{data.topics.length} โครงการ · {periodCompanies.length} บริษัท</span></div></section>
-      {warning && <p className="cap-warning" role="status">{warning}</p>}
       <PageSections capstone />
+      <DashboardDemoStatus />
+      <AcademicPeriodEmptyState hasData={payload.topics.length > 0} /><StorageRecoveryPanel key={recovery?.raw} recovery={recovery} onRecover={recover} />
+      <section id="dashboard-overview" tabIndex={-1} className="intro-row">
+        <div><h2>ภาพรวม Capstone</h2><p className="intro-copy">หัวข้อที่นิสิตสนใจ อันดับกลุ่มจากบริษัท และอาจารย์ที่ร่วมงาน</p></div>
+        <div className="intro-badges"><span className="scope-chip">{data.topics.length} โครงการ · {periodCompanies.length} บริษัท</span></div>
+      </section>
+      {warning && <p className="cap-warning" role="status">{warning}</p>}
       <section className="kpi-grid" aria-label="ตัวชี้วัด Capstone">
         <PriorityKpi label="หัวข้อที่ต้องติดตาม" count={stats.pending} counts={stats.counts} note="แต่ละหัวข้อนับครั้งเดียว" onClick={() => queueRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} />
         <article className="kpi-card blue"><div className="kpi-label">หัวข้อทั้งหมด</div><div className="kpi-value" data-testid="topic-count">{stats.topics}</div><div className="kpi-note">ตามตัวกรอง · รวมทุกสถานะ</div></article>
@@ -145,6 +150,16 @@ export function CapstoneDashboard({ payload }: { payload: CapstoneDataset }) {
         <article className="kpi-card purple"><div className="kpi-label">จำนวนกลุ่มที่ยังรับได้</div><div className="kpi-value" data-testid="remaining-count">{stats.remaining}</div><div className="kpi-note">เฉพาะหัวข้อเปิดรับ{stats.unknownCapacity ? ` · ยังไม่ทราบอีก ${stats.unknownCapacity} หัวข้อ` : ""}</div></article>
         <article className="kpi-card orange"><div className="kpi-label">บริษัทที่ร่วมเสนอหัวข้อ</div><div className="kpi-value">{stats.companies}</div><div className="kpi-note">นับบริษัทไม่ซ้ำตามตัวกรอง</div></article>
       </section>
+      <div id="dashboard-analysis" tabIndex={-1} className="analytics-grid">
+        <section className="panel"><div className="panel-heading"><div><p className="section-kicker">ความสนใจของนิสิต</p><h3>หัวข้อที่นิสิตเลือก</h3></div><span className="scope-chip">{stats.students} คนไม่ซ้ำ</span></div><p className="panel-caption">{filters.round ? `รอบ ${filters.round}` : "รวมทุกรอบแบบไม่ซ้ำ"} · สูงสุด 8 หัวข้อ · กดแถบเพื่อกรอง{stats.unknownInterest ? ` · ยังไม่มีข้อมูลอีก ${stats.unknownInterest} หัวข้อ` : ""}</p>
+          <div className="bar-chart">{demand.map(t => <button className="bar-row" key={t.id} type="button" onClick={() => setFilter("topic", filters.topic === t.id ? "" : t.id)} aria-pressed={filters.topic === t.id}><span className="bar-label"><span>{t.title}</span><strong>{countLabel(metrics.get(t.id)!.interest)}{t.interestKnown ? " คน" : ""}</strong></span><span className="bar-track"><span className="bar-fill" style={{ width: `${((metrics.get(t.id)!.interest ?? 0) / maxDemand) * 100}%` }} /></span></button>)}</div>{!demand.length && noResults("ไม่มีหัวข้อให้แสดง")}
+          <p className="source-footnote">นิสิตหนึ่งคนเลือกได้หลายหัวข้อ จำนวนรวมจึงไม่ใช่ผลบวกของแต่ละแท่ง</p>
+        </section>
+        <section className="panel"><div className="panel-heading"><div><p className="section-kicker">จำนวนกลุ่มรายบริษัท</p><h3>รับได้และยืนยันแล้ว</h3></div></div><p className="panel-caption">สถานะปัจจุบันของหัวข้อตามตัวกรอง · <span className="cap-legend-capacity">รับได้</span> / <span className="cap-legend-confirmed">ยืนยันแล้ว</span></p>
+          <div className="bar-chart">{companyCapacity.map(c => <button type="button" className="bar-row" key={c.company.id} aria-pressed={filters.company === c.company.id} onClick={() => setFilter("company", filters.company === c.company.id ? "" : c.company.id)}><span className="bar-label"><span>{c.company.name}</span><strong>{c.unknown ? `≥ ${c.capacity}` : c.capacity} / {c.confirmed} กลุ่ม</strong></span><span className="cap-capacity-tracks"><span className="bar-track"><span className="bar-fill" style={{ width: `${c.capacity / maxCapacity * 100}%` }} /></span><span className="bar-track"><span className="cap-confirmed-fill" style={{ width: `${c.confirmed / maxCapacity * 100}%` }} /></span></span>{c.unknown > 0 && <small>ยังไม่ทราบจำนวนที่รับอีก {c.unknown} หัวข้อ</small>}</button>)}</div>{!companies.length && noResults("ไม่มีบริษัทในชุดข้อมูลที่เลือก")}
+        </section>
+      </div>
+
       <section id="dashboard-filters" tabIndex={-1} className="control-panel" aria-label="ตัวกรอง Capstone">
         <div className="control-heading"><div><h3>ค้นหาและกรองข้อมูล</h3></div><button type="button" className="text-button" onClick={resetFilters} disabled={!hasFilters}>ล้างตัวกรอง</button></div>
         <FilterFields className="cap-filters" activeCount={[filters.year, filters.round, filters.company, filters.professor, filters.category, filters.status].filter(Boolean).length} search={<label className="search-field"><span>ค้นหาหัวข้อ บริษัท หรือผู้ประสานงาน</span><input type="search" placeholder="ชื่อหัวข้อ, CAP-001, บริษัท…" value={filters.query} onChange={e => setFilter("query", e.target.value)} /></label>}>
@@ -166,15 +181,6 @@ export function CapstoneDashboard({ payload }: { payload: CapstoneDataset }) {
         {!visibleQueue.length && noResults("ไม่มีงานติดตามตามตัวกรองนี้")}
         {visibleQueue.length > 6 && <p className="source-footnote">แสดง 6 จาก {visibleQueue.length} หัวข้อ · <button className="text-button" type="button" onClick={() => tableRef.current?.scrollIntoView({ behavior: "smooth" })}>ดูต่อในทะเบียน</button></p>}
       </section>
-      <div id="dashboard-analysis" tabIndex={-1} className="analytics-grid">
-        <section className="panel"><div className="panel-heading"><div><p className="section-kicker">ความสนใจของนิสิต</p><h3>หัวข้อที่นิสิตเลือก</h3></div><span className="scope-chip">{stats.students} คนไม่ซ้ำ</span></div><p className="panel-caption">{filters.round ? `รอบ ${filters.round}` : "รวมทุกรอบแบบไม่ซ้ำ"} · สูงสุด 8 หัวข้อ · กดแถบเพื่อกรอง{stats.unknownInterest ? ` · ยังไม่มีข้อมูลอีก ${stats.unknownInterest} หัวข้อ` : ""}</p>
-          <div className="bar-chart">{demand.map(t => <button className="bar-row" key={t.id} type="button" onClick={() => setFilter("topic", filters.topic === t.id ? "" : t.id)} aria-pressed={filters.topic === t.id}><span className="bar-label"><span>{t.title}</span><strong>{countLabel(metrics.get(t.id)!.interest)}{t.interestKnown ? " คน" : ""}</strong></span><span className="bar-track"><span className="bar-fill" style={{ width: `${((metrics.get(t.id)!.interest ?? 0) / maxDemand) * 100}%` }} /></span></button>)}</div>{!demand.length && noResults("ไม่มีหัวข้อให้แสดง")}
-          <p className="source-footnote">นิสิตหนึ่งคนเลือกได้หลายหัวข้อ จำนวนรวมจึงไม่ใช่ผลบวกของแต่ละแท่ง</p>
-        </section>
-        <section className="panel"><div className="panel-heading"><div><p className="section-kicker">จำนวนกลุ่มรายบริษัท</p><h3>รับได้และยืนยันแล้ว</h3></div></div><p className="panel-caption">สถานะปัจจุบันของหัวข้อตามตัวกรอง · <span className="cap-legend-capacity">รับได้</span> / <span className="cap-legend-confirmed">ยืนยันแล้ว</span></p>
-          <div className="bar-chart">{companyCapacity.map(c => <button type="button" className="bar-row" key={c.company.id} aria-pressed={filters.company === c.company.id} onClick={() => setFilter("company", filters.company === c.company.id ? "" : c.company.id)}><span className="bar-label"><span>{c.company.name}</span><strong>{c.unknown ? `≥ ${c.capacity}` : c.capacity} / {c.confirmed} กลุ่ม</strong></span><span className="cap-capacity-tracks"><span className="bar-track"><span className="bar-fill" style={{ width: `${c.capacity / maxCapacity * 100}%` }} /></span><span className="bar-track"><span className="cap-confirmed-fill" style={{ width: `${c.confirmed / maxCapacity * 100}%` }} /></span></span>{c.unknown > 0 && <small>ยังไม่ทราบจำนวนที่รับอีก {c.unknown} หัวข้อ</small>}</button>)}</div>{!companies.length && noResults("ไม่มีบริษัทในชุดข้อมูลที่เลือก")}
-        </section>
-      </div>
       <section id="capstone-relationships" tabIndex={-1} className="panel cap-panel" aria-label="บริษัทและอาจารย์">
         <div className="panel-heading"><div><p className="section-kicker">เครือข่ายความร่วมมือ</p><h3>บริษัทเชื่อมกับอาจารย์คนใด</h3></div><span className="panel-caption">กดชื่อเพื่อกรอง · ดูและแก้บทบาทจากรายละเอียดหัวข้อ</span></div>
         <div className="cap-company-grid">{companies.map(c => <article className="cap-company-card" key={c.id}><button className="text-button" type="button" onClick={() => setFilter("company", c.id)}>{c.name}</button><p className="panel-caption">{c.domain} · {companyTopics.get(c.id)!.length} หัวข้อ</p>{(index.relationships.get(c.id) ?? []).map(r => <div className="cap-company-person" key={r.id}><button type="button" className="text-button" onClick={() => setFilter("professor", r.professorId)}>{index.professors.get(r.professorId)?.name}</button><span>{r.role || "ยังไม่ระบุบทบาท"}</span><small>{r.source || "ยังไม่มีข้อมูลที่มา"}</small></div>)}{!index.relationships.get(c.id)?.length && <p>ยังไม่มีข้อมูลความเชื่อมโยง</p>}<button className="row-action" type="button" disabled={!ready} onClick={e => open(companyTopics.get(c.id)![0], e.currentTarget, "company")}>ดูความเชื่อมโยง</button></article>)}</div>{!companies.length && noResults("ไม่มีบริษัทในชุดข้อมูลที่เลือก")}

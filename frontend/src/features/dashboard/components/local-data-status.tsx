@@ -1,4 +1,18 @@
+import type { ReactNode } from "react";
+import { academicPeriodLabel } from "@/features/dashboard/lib/academic-period";
 import { formatUpdated } from "@/features/dashboard/lib/format";
+import { useAcademicPeriod } from "@/features/dashboard/lib/use-academic-period";
+
+export function DashboardDemoStatus({ children, showPeriod = true }: { children?: ReactNode; showPeriod?: boolean }) {
+  const period = useAcademicPeriod();
+  return <div className="dashboard-demo-status">
+    <p className="panel-caption">
+      <span className="tone-dot tone-orange" aria-hidden="true" />
+      <span>{showPeriod ? `${academicPeriodLabel(period)} · ` : ""}<strong>ข้อมูลทดลอง</strong> · บันทึกในเบราว์เซอร์นี้</span>
+    </p>
+    {children}
+  </div>;
+}
 
 export function LocalDataStatus({ editedAt, warning, hasOverrides, timezone, onReset, source }: {
   editedAt: string | null; warning: string; hasOverrides: boolean; timezone: string; onReset: () => void; source?: "mock" | "postgresql";

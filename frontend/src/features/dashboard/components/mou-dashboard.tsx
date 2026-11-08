@@ -13,7 +13,7 @@ import { DeferredRecordDialog } from "@/features/dashboard/components/deferred-r
 import { EmptyResult } from "@/features/dashboard/components/empty-result";
 import { FilterSummary } from "@/features/dashboard/components/filter-summary";
 import { StorageRecoveryPanel } from "./storage-recovery";
-import { LocalDataStatus, StorageWarning } from "@/features/dashboard/components/local-data-status";
+import { DashboardDemoStatus, LocalDataStatus, StorageWarning } from "@/features/dashboard/components/local-data-status";
 import { PAGE_SIZE, Pager } from "@/features/dashboard/components/pager";
 import { PriorityKpi } from "@/features/dashboard/components/priority-kpi";
 import { QueueFilterGroup } from "@/features/dashboard/components/queue-filter";
@@ -21,7 +21,7 @@ import { ResultAnnouncer } from "@/features/dashboard/components/result-announce
 import { StatusToast, useStatusToast } from "@/features/dashboard/components/status-toast";
 import { isMouCompany } from "@/features/dashboard/lib/dataset-validation";
 import { allowedValue, QUEUE_VALUES } from "@/features/dashboard/lib/filter-values";
-import { display, formatNumber, formatUpdated } from "@/features/dashboard/lib/format";
+import { display, formatNumber } from "@/features/dashboard/lib/format";
 import { authorizationStatusOptions, FilterValue, MouEditDraft, mouStorageKey, optionalMouValue, Props, SortOption, statusClass } from "@/features/dashboard/lib/mou-presentation";
 import { MOU_DOCUMENT_STATUSES, sortMouStatuses } from "@/features/dashboard/lib/mou-statuses";
 import { QUEUE_META, queueRank, type QueueKind } from "@/features/dashboard/lib/queue";
@@ -223,28 +223,37 @@ export function MouDashboard({ payload }: Props) {
       <header className="topbar">
         <DashboardModuleNav />
         <div className="header-tools">
-          <div className="header-meta">
-            <LocalDataStatus editedAt={editedAt} warning={warning} hasOverrides={hasOverrides} timezone={payload.timezone} onReset={resetDemoData} />
-          </div>
           <AcademicPeriodSelector />
         </div>
       </header>
 
       <main id="main-content" tabIndex={-1} className="page-content">
+        <PageSections />
+        <DashboardDemoStatus>
+          <LocalDataStatus editedAt={editedAt} warning={warning} hasOverrides={hasOverrides} timezone={payload.timezone} onReset={resetDemoData} />
+        </DashboardDemoStatus>
         <AcademicPeriodEmptyState hasData={payload.companies.length > 0} />
         <StorageWarning message={warning} /><StorageRecoveryPanel key={recovery?.raw} recovery={recovery} onRecover={recover} />
-        <section className="intro-row">
-          <div><p className="section-kicker">ภาพรวมการจัดการคู่สัญญา</p><h2>ภาพรวมคู่สัญญา MOU</h2><p className="intro-copy">เห็นสถานะเอกสาร งานตรวจแก้ การมอบอำนาจ และคนที่ต้องติดตามต่อ</p></div>
-          <div className="intro-badges"><span className="scope-chip"><span className="scope-chip-label">ทะเบียน</span>{formatNumber(companies.length)} คู่สัญญา · ชีต {payload.sheetName}</span><p className="academic-period-copy">ภาพสถานะงานติดตามเอกสารในปีและเทอมที่เลือก ไม่ใช่ช่วงอายุสัญญา</p></div>
+        <section id="dashboard-overview" tabIndex={-1} className="intro-row">
+          <div><h2>ภาพรวมคู่สัญญา MOU</h2><p className="intro-copy">สถานะเอกสาร งานตรวจแก้ และการมอบอำนาจตามช่วงการศึกษาที่เลือก</p></div>
         </section>
 
-        <PageSections />
       <section className="kpi-grid" aria-label="ตัวชี้วัด MOU">
           <PriorityKpi label="ต้องติดตาม" count={pending.length} counts={queueCounts} note="ดูรายการที่ต้องทำต่อ" onClick={showFollowUps} />
           <article className="kpi-card blue"><div className="kpi-topline"><span className="kpi-label">บริษัททั้งหมด</span><span className="kpi-context">ตามตัวกรอง</span></div><div className="kpi-value">{formatNumber(total)}</div><div className="kpi-note">คู่สัญญาที่อยู่ในทะเบียนนี้</div></article>
           <article className="kpi-card green"><div className="kpi-topline"><span className="kpi-label">ลงนามแล้ว</span><span className="kpi-context">{signedRate}%</span></div><div className="kpi-value">{formatNumber(signed)} / {formatNumber(total)}</div><span className="kpi-progress" role="progressbar" aria-label="สัดส่วน MOU ที่ลงนามแล้ว" aria-valuemin={0} aria-valuemax={100} aria-valuenow={signedRate}><i className="kpi-progress-fill green" style={{ width: `${signedRate}%` }} /></span><div className="kpi-note">พร้อมใช้เป็นข้อตกลงความร่วมมือ</div></article>
           <article className="kpi-card purple"><div className="kpi-topline"><span className="kpi-label">มอบอำนาจแล้ว</span><span className="kpi-context">{total ? Math.round((authorizationDone / total) * 100) : 0}%</span></div><div className="kpi-value">{formatNumber(authorizationDone)}</div><div className="kpi-note">จาก {formatNumber(total)} บริษัท</div></article>
           <article className="kpi-card orange"><div className="kpi-topline"><span className="kpi-label">อยู่ระหว่างแก้ไข</span><span className="kpi-context">{total ? Math.round((revised / total) * 100) : 0}%</span></div><div className="kpi-value">{formatNumber(revised)}</div><div className="kpi-note">รายการที่มีค่าแก้ไขเป็น Y</div></article>
+        </section>
+
+        <section id="dashboard-analysis" tabIndex={-1} className="analytics-grid">
+          <article className="panel chart-panel"><div className="panel-heading"><div><p className="section-kicker">สัดส่วนสถานะ</p><h3>สถานะเอกสาร MOU</h3></div><span className="panel-caption">จาก {formatNumber(total)} บริษัท · กดแถบเพื่อกรอง</span></div><div className="bar-chart" aria-label="กราฟสถานะเอกสาร MOU">{statusCounts.length === 0 ? <EmptyResult message="ไม่มีบริษัทให้แสดงตามตัวกรองปัจจุบัน" hasFilters={hasFilters} onClear={resetFilters} /> : statusCounts.map(([status, count]) => <button className={`bar-row ${statusFilter === status ? "is-active" : ""}`} key={status} type="button" onClick={() => setStatusFilter(statusFilter === status ? "all" : status)} aria-pressed={statusFilter === status}><span className="bar-label"><span className={`tone-dot ${statusClass(status)}`} /> <span>{status}</span><strong>{formatNumber(count)} · {total ? Math.round((count / total) * 100) : 0}%</strong></span><span className="bar-track"><span className="bar-fill" style={{ width: `${(count / maxStatusCount) * 100}%` }} /></span></button>)}</div></article>
+          <article className="panel chart-panel"><div className="panel-heading"><div><p className="section-kicker">ความคืบหน้า</p><h3>ความครบถ้วนของกระบวนการ</h3></div><span className="panel-caption">ตรวจจากข้อมูลในชีต</span></div><div className="mou-process-summary">{[
+            ["มี Template MoU", filteredCompanies.filter((company) => Boolean(company.template)), "blue"],
+            ["มีผลตรวจแก้", filteredCompanies.filter((company) => Boolean(company.legalReviewResult)), "purple"],
+            ["มอบอำนาจแล้ว", filteredCompanies.filter((company) => company.authorizationStatus === "มอบอำนาจแล้ว"), "green"],
+            ["ลงนามแล้ว", filteredCompanies.filter(isSigned), "orange"],
+          ].map(([label, items, tone]) => { const count = (items as MouCompany[]).length; const percentage = total ? Math.round((count / total) * 100) : 0; return <div className="mou-process-summary-row" key={label as string}><span className={`legend-dot ${tone}`} /><span>{label as string}</span><strong>{formatNumber(count)}</strong><span className="mou-process-track"><i className={`mou-process-fill ${tone}`} style={{ width: `${percentage}%` }} /></span><small>{percentage}%</small></div>; })}</div></article>
         </section>
 
         <section id="dashboard-filters" tabIndex={-1} className="control-panel" aria-label="ตัวกรองข้อมูล MOU">
@@ -271,16 +280,6 @@ export function MouDashboard({ payload }: Props) {
           <div className="panel-heading"><div><p className="section-kicker">งานที่ต้องทำ</p><h3 id="mou-queue-heading">รายการ MOU ที่ต้องติดตาม</h3></div><span className="count-chip">{formatNumber(pending.length)} รายการ</span></div>
           <QueueFilterGroup label="กรองระดับความเร่งด่วนของ MOU ที่ต้องติดตาม" value={queueFilter} counts={queueCounts} total={pending.length} onChange={setQueueFilter} />
           <div className="follow-up-list mou-follow-up-list">{queueCompanies.length ? queueCompanies.map((company) => { const meta = QUEUE_META[queueKind(company)]; return <button className="follow-up-item" key={company.id} type="button" onClick={(event) => openCompany(company.id, event.currentTarget)}><span className={`follow-up-icon ${meta.className}`} aria-hidden="true">{meta.icon}</span><span className="follow-up-copy"><span className={`follow-up-severity ${meta.className}`}>{meta.label}</span><strong>{company.companyEnglish}</strong><small>{company.companyThai} · {nextAction(company)}</small></span><span className="chevron" aria-hidden="true">›</span></button>; }) : <EmptyResult message="ไม่มีรายการ MOU ที่ต้องติดตามตามตัวกรองปัจจุบัน" hasFilters={hasFilters} onClear={resetFilters} />}</div>
-        </section>
-
-        <section id="dashboard-analysis" tabIndex={-1} className="analytics-grid">
-          <article className="panel chart-panel"><div className="panel-heading"><div><p className="section-kicker">สัดส่วนสถานะ</p><h3>สถานะเอกสาร MOU</h3></div><span className="panel-caption">จาก {formatNumber(total)} บริษัท · กดแถบเพื่อกรอง</span></div><div className="bar-chart" aria-label="กราฟสถานะเอกสาร MOU">{statusCounts.length === 0 ? <EmptyResult message="ไม่มีบริษัทให้แสดงตามตัวกรองปัจจุบัน" hasFilters={hasFilters} onClear={resetFilters} /> : statusCounts.map(([status, count]) => <button className={`bar-row ${statusFilter === status ? "is-active" : ""}`} key={status} type="button" onClick={() => setStatusFilter(statusFilter === status ? "all" : status)} aria-pressed={statusFilter === status}><span className="bar-label"><span className={`tone-dot ${statusClass(status)}`} /> <span>{status}</span><strong>{formatNumber(count)} · {total ? Math.round((count / total) * 100) : 0}%</strong></span><span className="bar-track"><span className="bar-fill" style={{ width: `${(count / maxStatusCount) * 100}%` }} /></span></button>)}</div></article>
-          <article className="panel chart-panel"><div className="panel-heading"><div><p className="section-kicker">ความคืบหน้า</p><h3>ความครบถ้วนของกระบวนการ</h3></div><span className="panel-caption">ตรวจจากข้อมูลในชีต</span></div><div className="mou-process-summary">{[
-            ["มี Template MoU", filteredCompanies.filter((company) => Boolean(company.template)), "blue"],
-            ["มีผลตรวจแก้", filteredCompanies.filter((company) => Boolean(company.legalReviewResult)), "purple"],
-            ["มอบอำนาจแล้ว", filteredCompanies.filter((company) => company.authorizationStatus === "มอบอำนาจแล้ว"), "green"],
-            ["ลงนามแล้ว", filteredCompanies.filter(isSigned), "orange"],
-          ].map(([label, items, tone]) => { const count = (items as MouCompany[]).length; const percentage = total ? Math.round((count / total) * 100) : 0; return <div className="mou-process-summary-row" key={label as string}><span className={`legend-dot ${tone}`} /><span>{label as string}</span><strong>{formatNumber(count)}</strong><span className="mou-process-track"><i className={`mou-process-fill ${tone}`} style={{ width: `${percentage}%` }} /></span><small>{percentage}%</small></div>; })}</div></article>
         </section>
 
         <section id="dashboard-directory" tabIndex={-1} className="panel table-panel" aria-labelledby="mou-directory-heading">
